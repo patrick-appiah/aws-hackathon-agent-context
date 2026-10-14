@@ -1,11 +1,14 @@
 """Tests for the progress-auditor guard: an allowed and a refused case for every rule."""
+import io
 import json
 import os
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
+from unittest import mock
 
 GUARD = Path(__file__).resolve().parent / "auditor_guard.py"
 SHA7 = "abc1234"
@@ -329,6 +332,102 @@ class RoundThreeTests(GuardTestCase):
         ]:
             with self.subTest(tool_name=tool_name, tool_input=tool_input):
                 self.assertEqual(self.decide(tool_name, tool_input), "deny")
+
+
+class RoundFourTests(GuardTestCase):
+    """Fix round 4: input caps (no fail-open by hook timeout), fail closed on any error, strict gh endpoints."""
+
+    TIME_LIMIT_SECONDS = 2.0
+
+    def timed_bash(self, command):
+        started = time.monotonic()
+        decision = self.bash(command)
+        return decision, time.monotonic() - started
+
+    def test_too_many_tokens_denied_quickly(self):
+        decision, elapsed = self.timed_bash("cat " + " ".join(["a"] * 300))
+        self.assertEqual(decision, "deny")
+        self.assertLess(elapsed, self.TIME_LIMIT_SECONDS)
+
+    def test_deep_tokens_finish_quickly_or_are_denied(self):
+        deep_token = "a/" * 100
+        decision, elapsed = self.timed_bash("cat " + " ".join([deep_token] * 200))
+        self.assertTrue(decision == "deny" or elapsed < self.TIME_LIMIT_SECONDS, (decision, elapsed))
+        self.assertLess(elapsed, self.TIME_LIMIT_SECONDS)
+
+    def test_caps_refused(self):
+        vault = self.vault
+        self.assert_bash("deny", [
+            "cat " + "x" * 4001,
+            "cat " + "a/" * 65,
+            f'cat "{vault}/06 Workstreams/' + "a/" * 60 + 'Brief.md"',
+        ])
+        self.assertEqual(self.decide("Read", {"file_path": f"{vault}/" + "a/" * 65 + "x"}), "deny")
+
+    def test_caps_still_allow_normal_reads(self):
+        vault = self.vault
+        self.assert_bash("allow", [
+            "wc -l " + " ".join([f'"{vault}/06 Workstreams/Brief.md"'] * 40),
+        ])
+
+    def test_refused(self):
+        vault, repo = self.vault, self.repo
+        self.assert_bash("deny", [
+            "cat //proc/self/cwd/README.md",
+            f'grep -r x "//proc/self/cwd/06 Workstreams"',
+            f'cat "//{vault}/06 Workstreams/Brief.md"',
+            f'gh api "repos/{GITHUB_REPO}/%2E%2E/%2E%2E/user/emails"',
+            f'gh api "repos/{GITHUB_REPO}//user"',
+            f'gh api "repos/{GITHUB_REPO}/@evil.example/x"',
+            f'gh api "repos/{GITHUB_REPO}/pulls/./8"',
+            f'gh api "repos/{GITHUB_REPO}/pulls?x=1/../../user"',
+            f"gh api repos/{GITHUB_REPO}",
+            f'git -C {repo} branch --list "--format=%(signature:grade)"',
+            f"git -C {repo} branch --list --format=%(refname)",
+            f"gh pr view ١٢ -R {GITHUB_REPO}",
+            f"gh pr view ² -R {GITHUB_REPO}",
+        ])
+
+    def test_allowed(self):
+        self.assert_bash("allow", [
+            f"gh api repos/{GITHUB_REPO}/pulls/8",
+            f'gh api "repos/{GITHUB_REPO}/pulls?state=all&per_page=50"',
+            f"gh api repos/{GITHUB_REPO}/pulls/8/files --paginate",
+            f"gh pr view 12 -R {GITHUB_REPO}",
+        ])
+
+    def test_file_tools(self):
+        for tool_name, tool_input in [
+            ("Read", {"file_path": "//proc/self/cwd/x"}),
+            ("Read", {"file_path": f"/{self.vault}/06 Workstreams/Brief.md"}),
+            ("Read", {"file_path": ["a"]}),
+            ("Read", {"file_path": 5}),
+            ("Write", {"file_path": [f"{self.vault}/08 Progress/2026-10-14 1530.md"], "content": "x"}),
+            ("Edit", {"file_path": None, "old_string": "a", "new_string": "b"}),
+        ]:
+            with self.subTest(tool_name=tool_name, tool_input=tool_input):
+                self.assertEqual(self.decide(tool_name, tool_input), "deny")
+
+    def test_any_exception_denies(self):
+        """main must deny on an exception class it does not list (here OSError and RecursionError)."""
+        sys.path.insert(0, str(GUARD.parent))
+        try:
+            import auditor_guard
+        finally:
+            sys.path.pop(0)
+        for error in (OSError("readlink race"), RecursionError("deep")):
+            with self.subTest(error=type(error).__name__):
+                output = io.StringIO()
+                with mock.patch.object(auditor_guard, "decide", side_effect=error), \
+                        mock.patch.object(auditor_guard, "load_roots", return_value=None), \
+                        mock.patch.object(sys, "stdin", io.StringIO("{}")), \
+                        mock.patch.object(sys, "stdout", output):
+                    with self.assertRaises(SystemExit) as exit_context:
+                        auditor_guard.main()
+                self.assertEqual(exit_context.exception.code, 0)
+                decision = json.loads(output.getvalue())["hookSpecificOutput"]
+                self.assertEqual(decision["permissionDecision"], "deny")
+                self.assertIn(f"guard error ({type(error).__name__}); refused", decision["permissionDecisionReason"])
 
 
 class DrvFsTests(GuardTestCase):

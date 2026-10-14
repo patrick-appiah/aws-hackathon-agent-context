@@ -11,6 +11,7 @@ bundled flags that are not listed): blocklists lost to option abbreviation and b
 Shell metacharacters that bash would expand (globs, braces, comments, history, escapes)
 are refused outside quotes, so the guard sees the same words bash will run.
 """
+import functools
 import json
 import os
 import re
@@ -62,7 +63,8 @@ GIT_OPTION_TABLE = {
     "ls-tree": (set("rdt"), set(), {"name-only"}, set()),
     "diff": (set(), set(), {"stat", "name-only", "name-status"}, set()),
     "rev-parse": (set(), set(), {"verify", "short", "abbrev-ref"}, set()),
-    "branch": (set("rav"), set(), {"remotes", "all", "list", "merged", "no-merged"}, {"format", "sort"}),
+    # no --format: newer git's %(signature...) atoms run gpg
+    "branch": (set("rav"), set(), {"remotes", "all", "list", "merged", "no-merged"}, {"sort"}),
     "grep": (set("niIEFwlch"), set("e"), set(), set()),
     "merge-base": (set(), set(), {"is-ancestor"}, set()),
     "cat-file": (set("tspe"), set(), set(), set()),
@@ -87,6 +89,11 @@ GH_OPTION_TABLE = {
     ("api",): {"--jq": True, "-q": True, "--paginate": False, "--cache": True},
 }
 GH_API_ENDPOINT_PREFIX = "repos/"
+# after repos/<github_repo>: at least one plain path segment, then an optional plain query
+GH_API_ENDPOINT_TAIL = r"(/[A-Za-z0-9._-]+)+(\?[A-Za-z0-9_=&.,-]*)?"
+GH_API_REFUSED_CHARACTERS = ("%", "//", "@", "#", "\\")
+GH_API_DOT_SEGMENTS = {".", ".."}
+GH_PR_NUMBER = re.compile(r"[0-9]+")
 GH_REPO_OPTIONS = {"--repo", "-R"}
 GH_JQ_OPTIONS = {"--jq", "-q"}
 GH_JQ_REFUSED = "env"
@@ -94,6 +101,12 @@ SEGMENT_OPERATORS = {"|", "||", "&&", ";"}
 PUNCTUATION = set("();<>|&")
 STDERR_TO_NULL = re.compile(r"(?<=[ \t])2>/dev/null(?=[ \t]|$)")
 SPECIAL_FILESYSTEMS = re.compile(r"^/(proc|dev)(/|$)")
+DOUBLE_SLASH = "//"
+# Input caps: every path costs filesystem calls (slow on DrvFs), and a hook that outruns
+# Claude Code's timeout lets the call proceed. Bounded input keeps the guard well inside it.
+MAX_COMMAND_CHARACTERS = 4000
+MAX_COMMAND_TOKENS = 200
+MAX_PATH_COMPONENTS = 64
 DOTDOT = re.compile(r"(^|[/:=])\.\.(/|$)")
 SED_RANGE = re.compile(r"\d+(,\d+)?p")
 SHA = re.compile(r"[0-9a-f]{7,40}")
@@ -172,15 +185,30 @@ def under(path, root):
     return path == root or path.startswith(root + os.sep)
 
 
+def path_components(path):
+    return [component for component in path.split(os.sep) if component]
+
+
 def resolved(path, cwd):
-    return os.path.realpath(os.path.join(cwd, path))
+    joined = os.path.join(cwd, path)
+    if len(path_components(joined)) > MAX_PATH_COMPONENTS:
+        deny(f"paths over {MAX_PATH_COMPONENTS} components are refused")
+    return os.path.realpath(joined)
 
 
-def same_file(first, second):
+class Unknown(Exception):
+    """A path exists (or may) but can't be identified; callers fail closed."""
+
+
+def file_identity(path):
+    """(st_dev, st_ino), or None if the path does not exist; Unknown on any other error."""
     try:
-        return os.path.samefile(first, second)
-    except OSError:
-        return True  # cannot tell, so treat as the same: fail closed
+        status = os.stat(path)
+    except (FileNotFoundError, NotADirectoryError):
+        return None
+    except OSError as error:
+        raise Unknown(path) from error
+    return status.st_dev, status.st_ino
 
 
 def ancestors_and_self(path):
@@ -190,6 +218,30 @@ def ancestors_and_self(path):
         if parent == path:
             return
         path = parent
+
+
+def existing_identities(paths):
+    identities = set()
+    for path in paths:
+        try:
+            identity = file_identity(path)
+        except Unknown:
+            continue
+        if identity is not None:
+            identities.add(identity)
+    return identities
+
+
+@functools.lru_cache(maxsize=None)
+def refused_identities(roots):
+    return existing_identities(roots.denied_dirs())
+
+
+@functools.lru_cache(maxsize=None)
+def refused_and_ancestor_identities(roots):
+    return existing_identities(
+        ancestor for refused in roots.denied_dirs() for ancestor in ancestors_and_self(refused)
+    )
 
 
 def inside_refused(real, roots):
@@ -203,14 +255,26 @@ def inside_refused(real, roots):
     for refused in roots.denied_dirs():
         if under(folded, refused.casefold()):
             return True
-    existing_refused = [refused for refused in roots.denied_dirs() if os.path.exists(refused)]
-    for probe in ancestors_and_self(real):
-        if os.path.exists(probe) and any(same_file(probe, refused) for refused in existing_refused):
+    refused = refused_identities(roots)
+    # Walk from the root down and stop at the first missing ancestor: nothing below it
+    # exists either. At most MAX_PATH_COMPONENTS + 1 stats per path.
+    probes = list(ancestors_and_self(real))
+    if len(probes) > MAX_PATH_COMPONENTS + 1:
+        return True  # a symlink made it deeper than the cap: fail closed
+    for probe in reversed(probes):
+        try:
+            identity = file_identity(probe)
+        except Unknown:
+            return True  # cannot tell: fail closed
+        if identity is None:
+            return False
+        if identity in refused:
             return True
     return False
 
 
 def judge_real_path(real, shown, roots):
+    refuse_special_path(real)
     if not any(under(real, root) for root in roots.readable()):
         deny(f"{shown} is outside the vault and the repo")
     if inside_refused(real, roots):
@@ -222,17 +286,19 @@ def judge_real_path(real, shown, roots):
 def is_ancestor_of_denied(real, roots):
     """True if real is, or contains, a refused directory (casefolded and by identity)."""
     folded = real.casefold()
-    for refused in roots.denied_dirs():
-        if under(refused.casefold(), folded):
-            return True
-        if os.path.exists(real) and any(
-            os.path.exists(candidate) and same_file(real, candidate) for candidate in ancestors_and_self(refused)
-        ):
-            return True
-    return False
+    if any(under(refused.casefold(), folded) for refused in roots.denied_dirs()):
+        return True
+    try:
+        identity = file_identity(real)
+    except Unknown:
+        return True  # cannot tell: fail closed
+    return identity is not None and identity in refused_and_ancestor_identities(roots)
 
 
 def refuse_special_path(token):
+    # POSIX normpath keeps a leading "//", which would hide //proc from the pattern
+    if token.startswith(DOUBLE_SLASH):
+        deny("paths starting with // are refused")
     if SPECIAL_FILESYSTEMS.match(os.path.normpath(token)):
         deny("/proc and /dev paths are refused")
 
@@ -417,16 +483,23 @@ def check_gh(tokens, roots):
     if key != ("api",):
         if not repo_given:
             deny("gh pr commands need --repo <github_repo>")
-        if not all(positional.isdigit() for positional in positionals):
+        if not all(GH_PR_NUMBER.fullmatch(positional) for positional in positionals):
             deny("gh pr commands take only a PR number")
         return
-    if (
-        len(positionals) != 1
-        or not positionals[0].startswith(f"{GH_API_ENDPOINT_PREFIX}{roots.github_repo}/")
-        or "graphql" in positionals[0]
-        or ".." in positionals[0]
-    ):
+    if len(positionals) != 1:
         deny("gh api takes one repos/... endpoint, never graphql")
+    check_gh_api_endpoint(positionals[0], roots)
+
+
+def check_gh_api_endpoint(endpoint, roots):
+    if any(character in endpoint for character in GH_API_REFUSED_CHARACTERS):
+        deny("gh api endpoints may not contain %, //, @, # or a backslash")
+    pattern = re.escape(f"{GH_API_ENDPOINT_PREFIX}{roots.github_repo}") + GH_API_ENDPOINT_TAIL
+    if not re.fullmatch(pattern, endpoint) or "graphql" in endpoint:
+        deny("gh api takes one repos/<github_repo>/... endpoint, never graphql")
+    path = endpoint.partition("?")[0]
+    if any(segment in GH_API_DOT_SEGMENTS for segment in path.split("/")):
+        deny("gh api endpoints may not contain . or .. segments")
 
 
 def check_python(tokens, cwd, roots):
@@ -519,6 +592,8 @@ def check_segment(tokens, cwd, roots):
 
 
 def check_bash(command, cwd, roots):
+    if len(command) > MAX_COMMAND_CHARACTERS:
+        deny(f"commands over {MAX_COMMAND_CHARACTERS} characters are refused")
     command = STDERR_TO_NULL.sub(" ", " " + command)
     scan_raw(command)
     try:
@@ -528,6 +603,11 @@ def check_bash(command, cwd, roots):
         tokens = list(lexer)
     except ValueError:
         deny("unparseable command")
+    if len(tokens) > MAX_COMMAND_TOKENS:
+        deny(f"commands over {MAX_COMMAND_TOKENS} words are refused")
+    for token in tokens:
+        if len(path_components(token)) > MAX_PATH_COMPONENTS:
+            deny(f"paths over {MAX_PATH_COMPONENTS} components are refused")
     segment = []
     for token in tokens:
         if token == "":
@@ -567,7 +647,9 @@ def decide(payload, roots):
     if not any(under(cwd, root) for root in roots.readable()):
         deny("the working directory is outside the vault and the repo")
     if tool_name in ("Read", "Write", "Edit"):
-        file_path = str(tool_input["file_path"])
+        file_path = tool_input["file_path"]
+        if not isinstance(file_path, str):
+            deny("file_path must be a string")
         if "~" in file_path:
             deny("'~' is refused in file paths")
         refuse_special_path(file_path)
@@ -593,6 +675,8 @@ def main():
         reason = str(refusal)
     except (ValueError, KeyError, TypeError, AttributeError) as error:
         reason = f"could not parse the tool call ({type(error).__name__}); refused"
+    except Exception as error:  # any other failure must deny: a crash would let the call run
+        reason = f"guard error ({type(error).__name__}); refused"
     else:
         sys.exit(0)
     print(json.dumps({"hookSpecificOutput": {
