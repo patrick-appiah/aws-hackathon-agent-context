@@ -10,6 +10,13 @@ updated: 2026-10-14
 
 > **For the executing agent:** follow [[How to execute a plan]] exactly. Work the tasks in order, and in each task the steps in order. Write the test, run it, **watch it fail with the expected message**, implement, run it, watch it pass, commit. Compare every command's output with its `Expected:` line. If anything differs, stop and follow "When output doesn't match" in [[How to execute a plan]]. Never improvise around it.
 
+> **Re-review against develop (2026-10-14, eaeca3c): read before executing.** These rulings override the text below:
+> 1. The test file imports `from infra.functions import spine` (D-024). Fixed in the code below.
+> 2. L1 is merged: write the L1 form directly. Use `from infra.functions.scope import demo_scope`, and add no `DEMO_USER_ID` / `DEMO_ROLE` constants or `ALL_ENTITIES_WILDCARD` import. Skip Task 2 Step 4 and every "pre-L1 / No module named 'auth'" branch.
+> 3. Don't write `test_the_local_scope_is_the_demo_cfo_of_the_default_tenant`: it duplicates L1's scope test (no unnecessary tests). P3 adds **+7** tests, not +8.
+> 4. Start state: 448 passed, 0 skipped (it may be higher). The guards give 16 passed or more.
+> 5. Tests and the E9 run never import `agents.blocker_analyst` (L5). A full live E4 answer needs L5 merged.
+
 ## 0. Context: read the vault first
 The vault is the context space for this work (clone `git@github.com:patrick-appiah/aws-hackathon-agent-context.git`, then `git pull`). Read before Task 1:
 1. [[How to execute a plan]]: the procedure, the rules for commits and PRs, and what to do when stuck.
@@ -219,7 +226,7 @@ import pytest
 from adapters.csv_repo import CsvRepository
 from adapters.memory_ledger import InMemoryLedger
 from config import REPO_ROOT, get_settings
-from flow import spine
+from infra.functions import spine
 from scripts import ask
 from tools.api_schema import AskResponse, PromptRef, RejectedClaim, TraceStep
 from tools.models import Answer, Bullet, Citation, OrchestratorResult, PartialAnswer, Plan, Verdict
