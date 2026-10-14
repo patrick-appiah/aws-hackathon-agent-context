@@ -53,7 +53,7 @@ Work in parallel: an item starts as soon as its dependencies are merged into `de
 | L2 | `/entity`, `/rows`, the error body | Linus | C1, L1 | M2 | merged (PR #46, 392da2d) | [[L2 - Entity and rows handlers - spec]] · [[L2 - Entity and rows handlers - plan]] |
 | L3 | `/ask`, `/publish`, `/approve` entry points (Q11 pre-run refusal) | Linus | L1, H2b, H4 | M3 | spec + plan ready | [[L3 - Ask, publish and approve entry points - spec]] · [[L3 - Ask, publish and approve entry points - plan]] |
 | L4 | `scripts/export_summary.py` *(new)* (front-end fixtures) | Linus | C1 | M2 | merged (PR #42, 5c33292) | [[L4 - Front-end fixtures from the real summary - spec]] · [[L4 - Front-end fixtures from the real summary - plan]] |
-| L5 | Blocker-analyst agent + prompt | Linus | C1, P1 | M2 | spec + plan ready | [[L5 - Blocker-analyst agent - spec]] · [[L5 - Blocker-analyst agent - plan]] |
+| L5 | Blocker-analyst agent + prompt | Linus | C1, P1 | M2 | merged (PR #52, cb7dd4b) | [[L5 - Blocker-analyst agent - spec]] · [[L5 - Blocker-analyst agent - plan]] |
 | L6 | Deployed-API eval asker `evals/api_asker.py` *(new)* | Linus | L3, Y1, M3b | M4 | spec + plan ready | [[L6 - Deployed-API eval asker - spec]] · [[L6 - Deployed-API eval asker - plan]] |
 | L7 | `docs/ROADMAP.md` review and update (exists on develop) | Linus | (none) | M5 | spec + plan ready | [[L7 - Roadmap draft - spec]] · [[L7 - Roadmap draft - plan]] |
 
