@@ -77,7 +77,7 @@ Work in parallel: an item starts as soon as its dependencies are merged into `de
 | M2 | `infra/app.py` *(new)* + DataStack + LedgerStack; CDK in its own `infra` dependency group; Node 22 in CI | Michael | C1, M1 (edits the Jenkinsfile) | M1 → M2 | **merged** (PR #37, 307da7c) | [[M2 - App, DataStack and LedgerStack - spec]] · [[M2 - App, DataStack and LedgerStack - plan]] |
 | M3a | GuardrailStack | Michael | M2 | M1 → M3 | **merged** (PR #38, 18f98ae) | [[M3a - GuardrailStack - spec]] · [[M3a - GuardrailStack - plan]] |
 | M3b | AuthStack (Cognito) | Michael | M2, A2 | M1 → M3 | **merged** (PR #44, 8ccf8d7) | [[M3b - AuthStack - spec]] · [[M3b - AuthStack - plan]] |
-| M4a | WebStack (S3 + CloudFront, `/api/*`) and the Cognito callback fix | Michael | M2; app wiring needs M3b and Y1 | M1 → M2 | spec + plan ready | [[M4a - WebStack - spec]] · [[M4a - WebStack - plan]] |
+| M4a | WebStack (S3 + CloudFront, `/api/*`) and the Cognito callback fix | Michael | M2; app wiring needs M3b and Y1 | M1 → M2 | in review (PR #54) | [[M4a - WebStack - spec]] · [[M4a - WebStack - plan]] |
 | M4b | Observability (dashboards, alarms) | Michael | M2; app wiring needs Y1, Y2a and M4a | M2 | spec + plan ready | [[M4b - Observability - spec]] · [[M4b - Observability - plan]] |
 | M5 | Clean-deploy runbook (with Patrick) | Michael | all stacks | M2, M4 | spec + plan ready | [[M5 - Clean-deploy runbook - spec]] · [[M5 - Clean-deploy runbook - plan]] |
 | Y1 | ApiStack (HTTP API v2, JWT authorizer, routes) | Yaw | M3a, M3b | M1 → M2 | in review (PR #51) | [[Y1 - ApiStack - spec]] · [[Y1 - ApiStack - plan]] |
@@ -92,7 +92,7 @@ Work in parallel: an item starts as soon as its dependencies are merged into `de
 |---|---|---|---|---|---|---|
 | F1a | Types from the JSON Schema; all 14 artefacts | Mildred | C1 | M2 | **merged** (PR #35, ec0aa53) | [[F1a - Contract types and the 14 artefacts - spec]] · [[F1a - Contract types and the 14 artefacts - plan]] |
 | F1b | Fixtures from L4; dashboard on the contract keys | Mildred | F1a, L4 | M2 | **merged** (PR #48, d10d43e) | [[F1b - Real fixtures and the dashboard on the contract keys - spec]] · [[F1b - Real fixtures and the dashboard on the contract keys - plan]] |
-| F2 | Click a number → `/rows`; `http` against the deployed API | Mildred | F1b, L2, Y1, M4a | M2 | spec + plan ready | [[F2 - Click a number and the live API - spec]] · [[F2 - Click a number and the live API - plan]] |
+| F2 | Click a number → `/rows`; `http` against the deployed API | Mildred | F1b, L2, Y1, M4a | M2 | **merged** (PR #53, 09084a6) | [[F2 - Click a number and the live API - spec]] · [[F2 - Click a number and the live API - plan]] |
 | F3a | Cognito sign-in (managed login + PKCE) | Clement | M3b, Y1, F2 | M3 | spec + plan ready | [[F3a - Cognito sign-in - spec]] · [[F3a - Cognito sign-in - plan]] |
 | F3b | Role views and the 403 refusal | Clement | F1b, L1 | M3 | spec + plan ready | [[F3b - Role views and the 403 refusal - spec]] · [[F3b - Role views and the 403 refusal - plan]] |
 | F4a | Ask panel on `/ask` (trace, cost, partial, could-not-verify) | Clement | C1, F1b, L3 | M3 | spec + plan ready | [[F4a - Ask panel on the real ask contract - spec]] · [[F4a - Ask panel on the real ask contract - plan]] |
