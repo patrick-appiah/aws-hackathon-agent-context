@@ -23,7 +23,7 @@ uv sync && uv run --locked pytest 2>&1 | grep -E "[0-9]+ (passed|failed)|TOTAL"
 git switch -c <the branch the plan names>
 mkdir -p .superpowers && printf '# Ledger: <plan ID and title>\n' > .superpowers/ledger-<ID>.md
 ```
-- The test count and coverage must match the plan's **start state**. If they don't, stop: you're not on the expected `develop`.
+- No test may fail, and coverage must be at least the plan's **start state**. The test count may be **higher** than the start state (items merged since the plan was written add tests; C1 itself merged with 213, not the 206 the first plans were dry-run against). Each step's `Expected:` count is then that much higher too: what must match is the number of tests the step adds. If anything fails, or the count is lower than the start state, stop: you're not on the expected `develop`.
 - `.superpowers/` is gitignored. The ledger is your memory; it survives a context reset. Front-end plans: `cd web && corepack enable && yarn install --frozen-lockfile && yarn test` instead (the npm token is in your home `~/.npmrc`). DevOps plans: `export AWS_PROFILE=hackathon AWS_REGION=eu-west-1`.
 
 ## 2. The loop, for each task in order

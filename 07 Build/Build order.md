@@ -21,22 +21,24 @@ Milestones (`docs/TEAM_PLAN.md` §4):
 | ID | Item | Owner | Depends on | Milestone | Status | Spec / plan |
 |---|---|---|---|---|---|---|
 | **C1** | API and ask-spine contracts (`tools/api_schema.py` *(new)*, step models with `usage`, settings, JSON Schema, DevOps handover) | Patrick | (none) | M0 | spec + plan ready | [[C1 - API and spine contracts - spec]] · [[C1 - API and spine contracts - plan]] |
-| P1 | Retriever agent + prompt | Patrick | C1 | M2 | not specced | |
-| P2 | Orchestrator agent + prompt (budget via H2, `PartialAnswer`, re-plan) | Patrick | C1, H2, L5 (or a stub) | M2 | not specced | |
-| P3 | `scripts/ask.py` *(new)* local runner | Patrick | P2, H2 | M2 | not specced | |
-| H1 | Ledger extensions (rejected records, read methods, steps, task tokens) on both adapters | Huvison | C1 | M2 | not specced | |
-| H2 | `flow/budget.py` *(new)* + `flow/steps.py` *(new)* (the ask-spine states) | Huvison | C1, H1 | M2 | not specced | |
-| H3 | Writer agent + prompt (drops uncited bullets) | Huvison | C1 | M2 | not specced | |
-| H4 | Publish + approve (`flow/publish.py` *(new)*, task token, status-pack write) | Huvison | C1, H1 | M3 | not specced | |
-| H5 | Cost per run (price table, `flow/cost.py` *(new)*) | Huvison | C1, A3 | M4 | not specced | |
-| H6 | Local eval asker `flow/local.py` *(new)* (applies `inject`; decides the Q09 verdict count) | Huvison | H2, P2 | M3 | not specced | |
-| L1 | `auth/scope.py` *(new)* + `/summary` handler | Linus | C1 | M2 | not specced | |
-| L2 | `/entity`, `/rows`, the error body | Linus | C1, L1 | M2 | not specced | |
-| L3 | `/ask`, `/publish`, `/approve` entry points (Q11 pre-run refusal) | Linus | L1, H2, H4 | M3 | not specced | |
-| L4 | `scripts/export_summary.py` *(new)* (front-end fixtures) | Linus | C1 | M2 | not specced | |
-| L5 | Blocker-analyst agent + prompt | Linus | C1 | M2 | not specced | |
-| L6 | Deployed-API eval asker `evals/api_asker.py` *(new)* | Linus | L3, Y1, M3* | M4 | not specced | |
-| L7 | `docs/ROADMAP.md` review and update (exists on develop) | Linus | (none) | M5 | not specced | |
+| P1 | Retriever agent + prompt | Patrick | C1 | M2 | spec + plan ready | [[P1 - Retriever agent - spec]] · [[P1 - Retriever agent - plan]] |
+| P2 | Orchestrator agent + prompt (budget via H2a, `PartialAnswer`, re-plan) | Patrick | C1, H2a, L5 (or a stub) | M2 | spec + plan ready | [[P2 - Orchestrator agent - spec]] · [[P2 - Orchestrator agent - plan]] |
+| P3 | `scripts/ask.py` *(new)* local runner on `run_spine` | Patrick | H2b | M2 | spec + plan ready | [[P3 - Local ask runner - spec]] · [[P3 - Local ask runner - plan]] |
+| H1 | Ledger extensions (rejected records, read methods, steps, task tokens) on both adapters | Huvison | C1 | M2 | spec + plan ready | [[H1 - Ledger extensions - spec]] · [[H1 - Ledger extensions - plan]] |
+| H2a | Budget and ledger states (`flow/budget.py` *(new)*, the ledger steps of the ask spine) | Huvison | C1, H1, H5 | M2 | spec + plan ready | [[H2a - Budget and ledger states - spec]] · [[H2a - Budget and ledger states - plan]] |
+| H2b | Agent states, local spine (`run_spine`) and Lambda handlers | Huvison | H2a, H3, H5 | M2 | spec + plan ready | [[H2b - Agent states, local spine and Lambda handlers - spec]] · [[H2b - Agent states, local spine and Lambda handlers - plan]] |
+| H3 | Writer agent + prompt (drops uncited bullets) | Huvison | C1, P1 | M2 | spec + plan ready | [[H3 - Writer agent - spec]] · [[H3 - Writer agent - plan]] |
+| H4 | Publish + approve (`flow/publish.py` *(new)*, task token, status-pack write) | Huvison | C1, H1, H2b | M3 | spec + plan ready | [[H4 - Publish and approve - spec]] · [[H4 - Publish and approve - plan]] |
+| H5 | Cost per run (price table, `flow/cost.py` *(new)*) | Huvison | C1 | M4 | spec + plan ready | [[H5 - Cost per run - spec]] · [[H5 - Cost per run - plan]] |
+| H6 | Local eval asker `flow/local.py` *(new)* (applies `inject`; decides the Q09 verdict count) | Huvison | H2b, P2 | M3 | spec + plan ready | [[H6 - Local eval asker - spec]] · [[H6 - Local eval asker - plan]] |
+| H7 | Guardrail settings (PII and prompt-attack filters) and the `/ask` latency check (sync or async decision) | Huvison | P1; M3a for the deploy part; Y2a deployed and H6 merged for the timing | M3 | spec + plan ready | [[H7 - Guardrail settings and ask latency - spec]] · [[H7 - Guardrail settings and ask latency - plan]] |
+| L1 | `auth/scope.py` *(new)* + `/summary` handler (+ `DEMO_ROLE` for `AUTH_MODE=none`) | Linus | C1 | M2 | spec + plan ready | [[L1 - Scope from the token and the summary handler - spec]] · [[L1 - Scope from the token and the summary handler - plan]] |
+| L2 | `/entity`, `/rows`, the error body | Linus | C1, L1 | M2 | spec + plan ready | [[L2 - Entity and rows handlers - spec]] · [[L2 - Entity and rows handlers - plan]] |
+| L3 | `/ask`, `/publish`, `/approve` entry points (Q11 pre-run refusal) | Linus | L1, H2b, H4 | M3 | spec + plan ready | [[L3 - Ask, publish and approve entry points - spec]] · [[L3 - Ask, publish and approve entry points - plan]] |
+| L4 | `scripts/export_summary.py` *(new)* (front-end fixtures) | Linus | C1 | M2 | spec + plan ready | [[L4 - Front-end fixtures from the real summary - spec]] · [[L4 - Front-end fixtures from the real summary - plan]] |
+| L5 | Blocker-analyst agent + prompt | Linus | C1, P1 | M2 | spec + plan ready | [[L5 - Blocker-analyst agent - spec]] · [[L5 - Blocker-analyst agent - plan]] |
+| L6 | Deployed-API eval asker `evals/api_asker.py` *(new)* | Linus | L3, Y1, M3b | M4 | spec + plan ready | [[L6 - Deployed-API eval asker - spec]] · [[L6 - Deployed-API eval asker - plan]] |
+| L7 | `docs/ROADMAP.md` review and update (exists on develop) | Linus | (none) | M5 | spec + plan ready | [[L7 - Roadmap draft - spec]] · [[L7 - Roadmap draft - plan]] |
 
 ## Evals, Cognito, docs (Abdul, no Python)
 | ID | Item | Owner | Depends on | Milestone | Status | Spec / plan |
@@ -65,14 +67,17 @@ Milestones (`docs/TEAM_PLAN.md` §4):
 | Y4 | IAM review (least privilege, no `*`) | Yaw (with Patrick) | all stacks | M2 | not specced |
 
 ## Front end
-| ID | Item | Owner | Depends on | Milestone | Status |
-|---|---|---|---|---|---|
-| F1 | Types from the JSON Schema; all 14 artefacts; fixtures from L4; dashboard on the new keys | Mildred | C1, L4 | M2 | not specced |
-| F2 | Click a number → `/rows`; `http` against the deployed API | Mildred | F1, L2, Y1 | M2 | not specced |
-| F3 | Cognito sign-in (managed login + PKCE), role views, 403 refusal | Clement | M3*, Y1 | M3 | not specced |
-| F4 | Ask panel on `/ask` (trace, cost, partial, could-not-verify) | Clement | C1, L3 | M3 | not specced |
-| F5 | Publish + approve on the real API | Clement | L3, H4 | M4 | not specced |
-| F6 | Demo rehearsal + 2-minute backup video | Clement (with Patrick) | everything | M5 | not specced |
+| ID | Item | Owner | Depends on | Milestone | Status | Spec / plan |
+|---|---|---|---|---|---|---|
+| F1a | Types from the JSON Schema; all 14 artefacts | Mildred | C1 | M2 | spec + plan ready | [[F1a - Contract types and the 14 artefacts - spec]] · [[F1a - Contract types and the 14 artefacts - plan]] |
+| F1b | Fixtures from L4; dashboard on the contract keys | Mildred | F1a, L4 | M2 | spec + plan ready | [[F1b - Real fixtures and the dashboard on the contract keys - spec]] · [[F1b - Real fixtures and the dashboard on the contract keys - plan]] |
+| F2 | Click a number → `/rows`; `http` against the deployed API | Mildred | F1b, L2, Y1, M4a | M2 | spec + plan ready | [[F2 - Click a number and the live API - spec]] · [[F2 - Click a number and the live API - plan]] |
+| F3a | Cognito sign-in (managed login + PKCE) | Clement | M3b, Y1, F2 | M3 | spec + plan ready | [[F3a - Cognito sign-in - spec]] · [[F3a - Cognito sign-in - plan]] |
+| F3b | Role views and the 403 refusal | Clement | F1b, L1 | M3 | spec + plan ready | [[F3b - Role views and the 403 refusal - spec]] · [[F3b - Role views and the 403 refusal - plan]] |
+| F4a | Ask panel on `/ask` (trace, cost, partial, could-not-verify) | Clement | C1, F1b, L3 | M3 | spec + plan ready | [[F4a - Ask panel on the real ask contract - spec]] · [[F4a - Ask panel on the real ask contract - plan]] |
+| F4b | Async ask polling (only if H7 decides async) | Clement | F4a, H7 (only if async) | M4 | spec + plan ready | [[F4b - Async ask polling - spec]] · [[F4b - Async ask polling - plan]] |
+| F5 | Publish + approve on the real API | Clement | F1b, L3, H4 | M4 | spec + plan ready | [[F5 - Publish and approve on the real API - spec]] · [[F5 - Publish and approve on the real API - plan]] |
+| F6 | Demo rehearsal + 2-minute backup video | Clement (with Patrick) | everything | M5 | spec + plan ready | [[F6 - Demo rehearsal and backup video - spec]] · [[F6 - Demo rehearsal and backup video - plan]] |
 
 ## Business case and pitch
 | ID | Item | Owner | Depends on | Milestone | Status | Spec / plan |
@@ -84,5 +89,7 @@ Milestones (`docs/TEAM_PLAN.md` §4):
 | B3c | Pitch script and Q and A | Patrick, Michael | B2, B3b, F6 | M5 | spec + plan ready | [[B3c - Pitch script and Q and A - spec]] · [[B3c - Pitch script and Q and A - plan]] |
 
 *M3\* is the GuardrailStack + AuthStack item. It isn't the D2 12:00 milestone M3.*
+
+*M3a (GuardrailStack), M3b (AuthStack) and M4a (WebStack) are the split DevOps items: [[M3a - GuardrailStack - spec]], [[M3b - AuthStack - spec]], [[M4a - WebStack - spec]]. The DevOps rows above are updated separately.*
 
 Related: [[Workstreams]], [[How to execute a plan]]

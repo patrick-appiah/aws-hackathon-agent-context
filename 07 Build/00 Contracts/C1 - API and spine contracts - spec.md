@@ -170,4 +170,17 @@ Functions:
 - Changing `metrics.portfolio_summary`'s output, including the timeline-bars question, which is a later decision.
 - Changing front-end code. Mildred aligns her types to the exported schemas in F1.
 
+
+## 9. Changes after review (PR #22, `/simplify` and `/code-review`)
+What was built differs from §1–8 in these ways; the code on `feature/api-and-spine-contracts` (a4e8690 and later) is the reference.
+- **One strict base:** `tools.models.StrictModel` (`extra="forbid"`, frozen) replaces `StepModel`; `tools.api_schema.Contract` is now an alias of it.
+- **Model-written shapes are lenient on extra keys:** `BlockerClaim`, `ChainLink`, `Figure` and `Verdict` drop a key the model invents instead of failing (a stray `confidence` from the critic would otherwise turn `/ask` into a 500). A missing required key still fails. D-021 updated.
+- **Error codes** all live in `tools/constants.py`; `tools.agent_tools` and `tools.api_schema` still export them, so existing imports work.
+- **Aliases:** `RunId`, `QuestionText`, `MarkupFreeText` in `tools/models.py`. `reject_markup(text)` takes one argument. `Answer.headline` and `Bullet.text` reject `<` and `>`.
+- **Helpers:** `Citation.from_label(label)`, `queries.citation_key`, `queries.missing_citations(citations, rows)`, `metrics.entity_row(repository, entity)`.
+- **`AskResponse`:** `partial_reason` is required exactly when `partial` is true.
+- **`AUTH_MODE` defaults to `cognito`** (fail closed). Local runs and the skeleton set `AUTH_MODE=none` explicitly.
+- **Handover:** `states:SendTaskSuccess`/`SendTaskFailure` on `*` (no resource-level permissions); agents also get `bedrock:InvokeModelWithResponseStream`; `/approve` also gets `dynamodb:UpdateItem`.
+- **Suite:** 213 passed, 96%.
+
 Related: [[Build order]], [[Patrick - contracts, orchestrator, retriever]], [[Workstreams]]
