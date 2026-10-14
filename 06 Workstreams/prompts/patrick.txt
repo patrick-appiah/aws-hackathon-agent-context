@@ -30,7 +30,7 @@ HOW TO WORK:
 - Anything architectural: brainstorm, write a spec, write a plan, then implement test-first. If you have the
   superpowers skills, use them (brainstorming, writing-plans, test-driven-development); otherwise follow the same steps.
 - Test first: write the test, run it and watch it fail, then make it pass. All tests live in tests/, mirroring the code.
-- Run `uv run --locked pytest` from the repo root before every commit. Coverage must not drop below 92%.
+- Run `uv run --locked pytest` from the repo root before every commit. Coverage must not drop (95% today).
 - Branch <type>/<short-topic> from develop (feature/, fix/, chore/, docs/, refactor/, test/); PR to develop.
   Small commits with clear messages: the commit history is graded.
 - Ask Patrick before anything outward-facing: pushing, opening PRs, deploying, publishing.

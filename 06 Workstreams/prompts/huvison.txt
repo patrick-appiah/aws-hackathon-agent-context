@@ -37,15 +37,15 @@ HOW TO WORK:
   superpowers skills, use them; otherwise follow the same steps.
 - Test first. Every new ledger method goes into tests/adapters/test_ledgers.py, so both adapters pass the same tests
   (DynamoDB via moto). No real AWS in unit tests.
-- Run `uv run --locked pytest` from the repo root before every commit. Coverage must not drop below 92%.
+- Run `uv run --locked pytest` from the repo root before every commit. Coverage must not drop (95% today).
 - Branch <type>/<short-topic> from develop; PR to develop; Patrick merges. Small, clear commits (history is graded).
 - Ask Huvison before pushing, opening PRs or touching AWS.
 
 FIRST TASK: ledger extensions on branch feature/ledger-extensions:
-- put_rejected / rejected;
+- put_rejected / rejected (a separate rejected-records table: rejected_table setting, pk=run_id, sk=claim_id);
 - run, claims;
 - add_step (STEP#n);
-- persist tokens_in/tokens_out on the RUN item;
+- expose the token totals already stored on the RUN item (add_cost does it) through run(run_id);
 - put_task_token / task_token keyed by run_id (sk=TASK).
 Test-first, on both adapters.
 Then: flow/budget.py (require_budget), flow/steps.py (one function per state), agents/writer.py with a code check

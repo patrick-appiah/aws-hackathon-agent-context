@@ -25,7 +25,7 @@ NON-NEGOTIABLE RULES:
   passwords set out of band).
 - CDK in Python. Stack names take a prefix so a second fresh deploy doesn't collide. Use stack outputs; never
   hardcode names. Demo resources use RemovalPolicy.DESTROY (S3 auto_delete_objects).
-- Deploys are manual from the README; CI builds and tests only (D-018).
+- Deploys are manual from the README; CI builds and tests only (D-018, which lands with PR #8).
 - Synthetic data only.
 
 HOW TO WORK:

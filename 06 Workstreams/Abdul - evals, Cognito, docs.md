@@ -18,9 +18,9 @@ The organisers' guideline calls the eval set "the single highest-leverage ninety
 
 ## Where you sit in the architecture
 ```
- ★evals/inputs/Qnn.json★ ─▶ Linus's evals/run.py ─▶ the agent loop (in-process) ─▶ evals/results/<date>.json
+ ★evals/inputs/Qnn.json★ ─▶ Michael's evals/run.py ─▶ the agent loop (in-process) ─▶ evals/results/run-*.json
                                                                                        └─▶ ★EVALS.md results★
- ★evals/expected/Qnn.json★ (what must appear)        ★evals/expected/agents/<agent>.json★ (worked examples)
+ ★evals/expected/Qnn.json★ (what must appear)        ★evals/expected/<agent>.json★ (worked examples)
  ★evals/api-collection/★ (Bruno) ─▶ API Gateway ─▶ Linus's handlers
  ★Cognito groups + test users★ (Michael deploys in AuthStack) ─▶ sign-in ─▶ the token's role and entity claims
  ★Bedrock prices★ ─▶ Huvison's price table ─▶ cost per run ─▶ ★COST.md★
@@ -30,7 +30,7 @@ The organisers' guideline calls the eval set "the single highest-leverage ninety
 | Path | State |
 |---|---|
 | `evals/inputs/`, `evals/expected/` | exist (Michael, PR #16): you review them, write Q10 on Day 2, and run the manual checks |
-| `evals/expected/agents/` *(new)* | worked examples per agent |
+| `evals/expected/<agent>.json` *(new)* | worked examples per agent |
 | `evals/api-collection/` *(new)* | the Bruno collection |
 | `EVALS.md` "Results" and "What still fails" sections | exist, empty |
 | `COST.md` unit prices and totals | exist as TODOs |
@@ -55,7 +55,7 @@ The organisers' guideline calls the eval set "the single highest-leverage ninety
 ### 1. The eval set: review it and own it (D1 10:30–12:00)
 **Already built (Michael, PR #16):**
 - `evals/run.py` is the runner: `uv run python -m evals.run`, then `--asker <module>:<function>` once the agent loop exists.
-- The 14 inputs are in `evals/inputs/QNN.json`: `id`, `question`, `scope`, `entity_id`, and optionally `inject` (`strip_citations` for Q08, `always_reject` for Q09), `kind` (`manual` for Q10) and `note`.
+- The 14 inputs are in `evals/inputs/QNN.json`: `id`, `question`, `scope`, `entity_id`, and optionally `inject` (`strip_citations` for Q08, `force_unsupportable_claim` for Q09), `kind` (`manual` for Q10) and `note`.
 - The expectations are in `evals/expected/QNN.json`: `must_cite`, `should_cite`, `must_not_contain` (regular expressions), `row_fields`, `min_rejected` and `manual_check`.
 - Each run writes `evals/results/run-*.json`.
 - 27 of 27 data checks pass today; the answer checks show *not run* until an asker is plugged in (`EVALS.md`).
@@ -73,7 +73,7 @@ Your part:
 ### 2. The results write-up after every run
 Each `uv run python -m evals.run` writes `evals/results/run-*.json` (Linus or Michael runs it). From that file, add one row to `EVALS.md` "Results" (date, commit, prompt versions, pass, fail, notes), and update "What still fails" honestly.
 
-### 3. Worked examples per agent: `evals/expected/agents/<agent>.json`
+### 3. Worked examples per agent: `evals/expected/<agent>.json`
 Once the agents run (D2), capture **one real input and its real output** per agent (orchestrator, retriever, blocker-analyst, critic, writer) from a run. Linus shows you where they're printed. This is scored ("worked examples"). Real outputs only, never hand-written.
 
 ### 4. The API request collection: `evals/api-collection/` (Bruno)
@@ -91,10 +91,11 @@ Once the agents run (D2), capture **one real input and its real output** per age
 ### 6. Bedrock prices for `COST.md`
 - For each model ID in `config.py` (`eu.anthropic.claude-sonnet-4-6`, `eu.amazon.nova-lite-v1:0`, and Haiku 4.5 if it activates), find the on-demand price per 1,000 input and output tokens in **eu-west-1** on the AWS Bedrock pricing page.
 - Put them in `COST.md`'s unit-price column with the source link and the date you checked. Send the table to Huvison for the price table in code.
-- After the D2 eval run, fill the per-question and scale rows from the measured `cost_usd` in `evals/results/<date>.json`: pilot ~200 questions/month, and 100/day.
+- After the D2 eval run, fill the per-question and scale rows from the measured `cost_usd` in `evals/results/run-*.json`: pilot ~200 questions/month, and 100/day.
 
 ### 7. Documents
 - **`EVALS.md` "Results" and "What still fails":** one row per eval run (date, commit, prompt versions, pass, fail, notes) from Linus's results file. **Write failures honestly:** a perfect `EVALS.md` is treated as a missing one.
+- **`docs/ROADMAP.md` draft with Linus** (D1 evening; Patrick finalises): phases, client dependencies, top-3 risks, go/no-go criteria.
 - **Target diagram v2** (`docs/architecture-target-v2.png`): based on `ARCHITECTURE.md` §3b. Show Cognito federation, Verified Permissions, Athena + Glue, Lake Formation row filters, connectors + EventBridge and CloudTrail, with the roadmap phase on each box (`ARCHITECTURE.md` §6 table). Review it with Patrick.
 - **`HANDOFF.md`:** the test users, what the evals cover, what fails. **`DEMO.md`:** the eval and cost lines.
 - **Prompt wording review:** read `agents/prompts/*.txt` and send wording suggestions to each owner. The files are locked; only the owner edits and re-locks them.

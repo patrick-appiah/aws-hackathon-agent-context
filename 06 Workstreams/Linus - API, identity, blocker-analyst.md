@@ -81,7 +81,7 @@ Each task has a spec and plan first (superpowers), test-first code, and a PR to 
 ### 6. Evals: run them, and add the deployed-API asker (Day 2)
 **Already built (Michael, PR #16):**
 - `evals/run.py` is the runner: `uv run python -m evals.run`, then `--asker <module>:<function>` once the agent loop exists.
-- The 14 inputs are in `evals/inputs/QNN.json`: `id`, `question`, `scope`, `entity_id`, and optionally `inject` (`strip_citations` for Q08, `always_reject` for Q09), `kind` (`manual` for Q10) and `note`.
+- The 14 inputs are in `evals/inputs/QNN.json`: `id`, `question`, `scope`, `entity_id`, and optionally `inject` (`strip_citations` for Q08, `force_unsupportable_claim` for Q09), `kind` (`manual` for Q10) and `note`.
 - The expectations are in `evals/expected/QNN.json`: `must_cite`, `should_cite`, `must_not_contain` (regular expressions), `row_fields`, `min_rejected` and `manual_check`.
 - Each run writes `evals/results/run-*.json`.
 - 27 of 27 data checks pass today; the answer checks show *not run* until an asker is plugged in (`EVALS.md`).
@@ -92,9 +92,12 @@ Your part:
 - **The local asker** (the in-process loop that applies `inject`) is Huvison's (`flow/local.py` *(new)*).
 - Keep `tests/evals/test_run.py` green when you change anything the runner reads, such as metrics or row fields.
 
-### 7. DevOps contact and mentoring
+### 7. The roadmap draft (D1 evening, with Abdul)
+Draft `docs/ROADMAP.md` with Abdul (phases, client dependencies, top-3 risks, go/no-go criteria) from `ARCHITECTURE.md` §3b and §6; Patrick finalises it on D2.
+
+### 8. DevOps contact and mentoring
 - **For Yaw:** keep your rows of `docs/DEVOPS_HANDOVER.md` *(new)* (Patrick's) true: entry points `api.handlers:summary` etc., the environment variables, and IAM (read `artefacts/`, read the ledger, `states:StartSyncExecution` on the ask machine).
-- **For Abdul:** explain the eval format, review his JSON, and help him capture the worked examples in `evals/expected/agents/<agent>.json` from real runs.
+- **For Abdul:** explain the eval format, review his JSON, and help him capture the worked examples in `evals/expected/<agent>.json` from real runs.
 
 ## Interfaces
 | You consume | From | Exact name |

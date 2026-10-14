@@ -91,6 +91,7 @@ Each task has a spec and plan first (superpowers), test-first code, and a PR to 
 - **Clean-account deploy twice** with Michael and Yaw: D1 18:00 and D2 13:00, with a fresh stack prefix.
 - **Merge every PR.** Review contract files yourself (`tools/models.py`, `tools/ports.py`, `tools/api_schema.py`, `config.py`); Linus and Huvison review each other's code PRs.
 - **The release PR** `develop` → `main` for the demo and submission builds.
+- **`docs/ROADMAP.md` final** (D2 14:00–16:00): Linus and Abdul draft it on D1 evening; you finalise it with the phases, client dependencies, top-3 risks and go/no-go criteria, plus a **monitoring, evaluation and model-update plan** (Judging rubric 3.2): how prompts, models and the eval set are updated after the pilot.
 - **`DECISIONS.md` entries** for every contract decision; **`AGENTS.md`** orchestrator and retriever rows kept true; drive the demo (`DEMO.md`).
 
 ## Interfaces
@@ -98,7 +99,7 @@ Each task has a spec and plan first (superpowers), test-first code, and a PR to 
 |---|---|---|
 | Retriever tools | done | `tools.agent_tools.make_retriever_tools(scope, repository)`, `as_strands_tools` |
 | Blocker-analyst agent | Linus | `agents/blocker_analyst.py` *(new)*: `BlockerClaim[]` + `Usage` |
-| Budget check | Huvison | `flow/budget.py` *(new)* |
+| Budget check | Huvison | `flow/budget.py` *(new)*: `require_budget(ledger, run_id) -> float | PartialAnswer` |
 | Ledger | done + Huvison's extensions | `Ledger.budget_remaining`, `revise_claim` (`tools/ports.py`) |
 | Prompts | done | `agents.prompt_loader.load_prompt(name)` → `Prompt.text`, `.provenance()` |
 

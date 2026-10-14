@@ -8,7 +8,7 @@ updated: 2026-10-14
 > **Proposal: confirm this split with Clement at the first stand-up.** You take the **data layer and the one screen**; Clement takes **sign-in, ask, publish and approve**. File ownership is listed below so you never edit the same files.
 
 ## Your job in one paragraph
-You built the portal (PR #12: Angular 22, the AmaliTech design system, mock and http adapters, the dashboard, ask and publish screens, 69 tests). Your job now is to move **the one screen off mock data and onto the real API**, with every number matching the back end exactly:
+You built the portal (PR #12: Angular 22, the AmaliTech design system, mock and http adapters, the dashboard, ask and publish screens, its own unit tests). Your job now is to move **the one screen off mock data and onto the real API**, with every number matching the back end exactly:
 - align the TypeScript models with the API schema;
 - replace the fixtures with ones generated from the real summary;
 - show all five KPIs from `/summary`;
@@ -17,7 +17,7 @@ You built the portal (PR #12: Angular 22, the AmaliTech design system, mock and 
 Judges look for "every figure derived from the migration's own artefacts", and your screen is where they see it.
 
 ## Shared front-end context (same in Clement's brief)
-- **Setup:** Node 22 (`web/.nvmrc`), yarn 1.22.22 via `corepack enable`, the read-only npm token in your **home** `~/.npmrc` (`web/README.md`). Then `cd web && yarn install --frozen-lockfile && yarn start`; `yarn test` (69 tests); `yarn build` → `web/dist/web/browser`.
+- **Setup:** Node 22 (`web/.nvmrc`), yarn 1.22.22 via `corepack enable`, the read-only npm token in your **home** `~/.npmrc` (`web/README.md`). Then `cd web && yarn install --frozen-lockfile && yarn start`; `yarn test`; `yarn build` → `web/dist/web/browser`.
 - **Switches:** `web/src/app/core/config/portal-config.ts`: `dataSource` (`mock` | `http`), `authMode` (`none` | `cognito`), `apiBaseUrl` (`/api`, same origin through Michael's CloudFront `/api/*` behaviour, so no CORS).
 - **The API contract** is Patrick's `tools/api_schema.py` *(new)*, exported as JSON Schema by `scripts/export_api_schema.py` *(new)*. **The front end adopts the back end's keys;** the back end won't reshape to the old front-end types.
 - **Mismatches the scope sweep found** (fix them when the schema lands):
@@ -42,7 +42,7 @@ Judges look for "every figure derived from the migration's own artefacts", and y
 | `web/src/app/core/api/` except `bearer-token-interceptor.ts` | the `PortalApi` port, `http-portal-api.ts`, `mock-portal-api.ts`, `provide-portal-api.ts`, `api-error.ts`, `fixtures/` |
 | `web/src/app/core/config/portal-config.ts`, `display-rules.ts`, `core/format/` | shared config. Clement asks you before changing `authMode` handling |
 | `web/src/app/features/dashboard/` | the one screen: KPI row, entities table, timeline, blockers table, capacity card, source-target banner |
-| `web/src/app/shared/citations/`, `web/src/app/shared/ui/` | citation viewer, row viewer, shared UI |
+| `web/src/app/shared/citations/`, `web/src/app/shared/ui/`, `web/src/app/shared/forms/` | citation viewer, row viewer, shared UI and form helpers |
 | `web/scripts/build-fixtures.mjs` | to retire: it reads `kpis.json`, which PR #11 deleted |
 | `web/README.md` | front-end docs (shared; keep Clement's sections) |
 

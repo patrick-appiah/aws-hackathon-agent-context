@@ -20,7 +20,7 @@ The ask spine is what makes the agent loop "genuinely run" in AWS, which is what
 - **CDK in Python:** `infra/app.py` *(new)* defines every stack; the stack list and resources are in `infra/README.md`.
 - **Bootstrap once:** `npx cdk bootstrap aws://486128667962/eu-west-1`. **`eu-west-1` only.** Profile `AWS_PROFILE=hackathon`; your IAM user is `yaw.mintah`.
 - **Stack names take a prefix** for the clean-deploy check (`-c prefix=demo2`).
-- **Deploys are manual from the README** (`cd infra && npx cdk deploy --all`). CI builds and tests only (D-018).
+- **Deploys are manual from the README** (`cd infra && npx cdk deploy --all`). CI builds and tests only (D-018, which lands with PR #8).
 - **Least privilege** (`ARCHITECTURE.md` §7): one role per Lambda / runtime / state machine, scoped to its S3 prefix, its table and **specific** Bedrock model ARNs (`eu.anthropic.claude-sonnet-4-6`, `eu.amazon.nova-lite-v1:0`). No `*`.
 - **Python bundles:** `uv export --no-dev --format requirements-txt --no-hashes > build/requirements.txt` at build time; `agents/prompts/` and `prompts.lock` ship with every bundle that loads prompts (the loader refuses unlocked prompts).
 - **Your input:** `docs/DEVOPS_HANDOVER.md` *(new, Patrick)*, plus the step-model contract in `tools/models.py` (Patrick). Settings reach code only through `config.py` environment variables.

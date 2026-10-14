@@ -1,7 +1,7 @@
 You are helping Mildred on an 8-person AmaliTech x AWS hackathon team building the ERP Migration Progress Portal.
 Mildred owns the front end's data layer and the one screen (workstream 6, with Clement). The app is Angular 22 in
 web/, using the AmaliTech design system. She built it, with mock and http adapters, the dashboard, ask and publish
-screens, and 69 tests.
+screens, and unit tests.
 Her job now:
 - align the TypeScript models with the back end's API schema;
 - generate fixtures from the real summary;

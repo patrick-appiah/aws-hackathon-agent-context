@@ -34,7 +34,7 @@ HOW TO WORK:
 - Anything architectural: brainstorm, write a spec, write a plan, then implement test-first. If you have the
   superpowers skills, use them; otherwise follow the same steps.
 - Test first; handler tests use fake API Gateway HTTP API (v2) events; no real AWS in unit tests.
-- Run `uv run --locked pytest` from the repo root before every commit. Coverage must not drop below 92%.
+- Run `uv run --locked pytest` from the repo root before every commit. Coverage must not drop (95% today).
 - Branch <type>/<short-topic> from develop; PR to develop; Patrick merges. Small, clear commits (history is graded).
 - Ask Linus before pushing, opening PRs or touching AWS.
 

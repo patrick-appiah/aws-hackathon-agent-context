@@ -46,12 +46,12 @@ Each task has a spec and plan first (superpowers), test-first code, and a PR to 
 Extend the `Ledger` port in `tools/ports.py` and **both** adapters. Every method gets a test in `tests/adapters/test_ledgers.py`, which already runs the same suite against `InMemoryLedger` and `DynamoLedger` (moto).
 | Method | Behaviour | DynamoDB item |
 |---|---|---|
-| `put_rejected(run_id, claim_id, verdicts)` | create-once; the claim's full verdict list | `pk=run_id, sk=REJECTED#<claim_id>` (or the `rejected_table` setting from Patrick's PR) |
-| `rejected(run_id) -> list[dict]` | for `AskResponse.rejected[]` | query `sk` begins_with `REJECTED#` |
+| `put_rejected(run_id, claim_id, verdicts)` | create-once; the claim's full verdict list | separate rejected-records table (`rejected_table` setting from Patrick's PR; Michael's LedgerStack): `pk=run_id, sk=claim_id` |
+| `rejected(run_id) -> list[dict]` | for `AskResponse.rejected[]` | query the rejected-records table by `pk=run_id` |
 | `run(run_id) -> dict` | scope, budget, cost, tokens, status | `sk=RUN` (exists) |
 | `claims(run_id) -> list[dict]` | every claim with attempts and verdicts | `sk` begins_with `CLAIM#` (exists: `CLAIM_SORT_KEY_PREFIX`) |
 | `add_step(run_id, step)` | trace entries `{step, agent, prompt}` for `AskResponse.trace` | `sk=STEP#<n>` (TEAM_PLAN §3) |
-| token totals | `add_cost(run_id, tokens_in, tokens_out, cost_usd)` already takes tokens: persist `tokens_in`/`tokens_out` on the RUN item | `sk=RUN` |
+| token totals | **already stored:** both adapters persist `tokens_in`/`tokens_out`/cost on the RUN item via `add_cost`; expose them through `run(run_id)`, don't rewrite them | `sk=RUN` |
 | `put_task_token(run_id, token)` / `task_token(run_id)` | the publish approval token, **keyed by `run_id`** (spec decision; `/approve` takes `run_id`) | `pk=run_id, sk=TASK` |
 
 Keep the integrity rules (D-012): create-once runs, claims and rejections; updates to unknown items raise `LedgerConflict`; the attempt counter and spent cost can never be reset.
@@ -97,7 +97,7 @@ Test the whole sequence locally with `InMemoryLedger` and stub agents (Q01 passe
 Michael's runner (`evals/run.py`, PR #16) calls an asker: `(case_input, scope, repository) -> dict`, returning the `/ask` response plus `"refused": true` when refused.
 - Write `flow/local.py: ask`. It runs your step sequence in-process (`CsvRepository`, `InMemoryLedger`, the real agents) and **applies the input's `inject` itself**:
   - `strip_citations` (Q08): strip the citations from one analyst claim, so the critic pre-check must reject it without a model call;
-  - `always_reject` (Q09): a critic double that always rejects, so retries stop at the limit and the claim lands in rejected records.
+  - `force_unsupportable_claim` (Q09): the asker forces a claim no evidence supports, the **real** critic rejects it until the retry guard stops it, and the claim lands in rejected records (as `evals/inputs/Q09.json` says).
 - Run it with `uv run python -m evals.run --asker flow.local:ask`. Patrick's `scripts/ask.py` can call the same function.
 - **No fault switch exists in the API or production config.** Only the eval asker applies `inject`.
 - **Decide the Q09 verdict count:** `EVALS.md` says 3 verdicts; `max_claim_attempts = 2` with `attempts < 2` gives 2. Pick the rule (D-012 intent: "two retries" means 3 verdicts), make the code and `EVALS.md` agree, and tell Abdul.

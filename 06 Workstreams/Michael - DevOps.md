@@ -17,7 +17,7 @@ You make the system **deploy from a clean AWS account**: hard gate 1, checked tw
 - **CDK in Python:** `infra/app.py` *(new)* defines every stack; the stack list and resources are in `infra/README.md`.
 - **Bootstrap once:** `npx cdk bootstrap aws://486128667962/eu-west-1`. **`eu-west-1` only** (organiser rule). Profile `AWS_PROFILE=hackathon`; your IAM user is `michael.lamptey`.
 - **Stack names take a prefix** (a context value, e.g. `-c prefix=demo2`), so the lead can deploy a second, fresh copy for the clean-deploy check.
-- **Deploys are manual from the README** (`cd infra && npx cdk deploy --all`). CI builds and tests only, never deploys (D-018).
+- **Deploys are manual from the README** (`cd infra && npx cdk deploy --all`). CI builds and tests only, never deploys (D-018, which lands with PR #8).
 - **Least privilege** (`ARCHITECTURE.md` §7): one role per Lambda / runtime / state machine, scoped to its S3 prefix, its table and **specific** Bedrock model ARNs. No `*`.
 - **Python bundles:** generated at build time with `uv export --no-dev --format requirements-txt --no-hashes`; `agents/prompts/` and `prompts.lock` must ship with any code that loads prompts (D-014, D-017).
 - **Your input from the back end:** `docs/DEVOPS_HANDOVER.md` *(new, Patrick)*. Each Lambda's entry point, environment variables and IAM. Settings names come from `config.py` (`get_settings()`), which is the only code that reads environment variables.
@@ -26,7 +26,7 @@ You make the system **deploy from a clean AWS account**: hard gate 1, checked tw
 ## What you own
 | Stack / file | Resources |
 |---|---|
-| `Jenkinsfile` *(new: PR #8)* (PR #8, open) | path-aware CI: gitleaks, the Python suite (`uv run --locked pytest`), bandit, pip-audit, the front-end build |
+| `Jenkinsfile` *(new: PR #8, open)* | path-aware CI: gitleaks, the Python suite (`uv run --locked pytest`), bandit, pip-audit, the front-end build |
 | `DataStack` | S3 bucket; `artefacts/` = upload of `demo/data/erp/output/migration/` (all 14 CSVs + `programme.json`); `status-packs/` prefix (written by Huvison's publish flow after approval) |
 | `LedgerStack` | DynamoDB run ledger (name from `LEDGER_TABLE`, default `erp-portal-run-ledger`; `pk` string + `sk` string, on-demand); the rejected-records table (`REJECTED_TABLE`, Patrick's new setting). Huvison's approval token is an item `sk=TASK` in the ledger, so nothing extra |
 | `GuardrailStack` | Bedrock Guardrail: PII filter + prompt-attack filter, settings from Huvison; outputs `guardrail_id` / version for `GUARDRAIL_ID` / `GUARDRAIL_VERSION` |

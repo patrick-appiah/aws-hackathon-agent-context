@@ -34,7 +34,7 @@ The DevOps split between Michael and Yaw, and the front-end split between Mildre
  user (CFO · sponsor · delivery lead · entity lead)
    │
    ▼
- Portal (Angular, web/)  ── S3 + CloudFront ................................ Mildred, Clement / Yaw
+ Portal (Angular, web/)  ── S3 + CloudFront ................................ Mildred, Clement / Michael
    │ sign in (Cognito: groups = roles, claims tenant_id + entity_ids) ........ Abdul, Linus / Michael
    │ JWT
    ▼
@@ -93,7 +93,7 @@ Dashboard figures: 18,420 of 31,700 records reconciled (58.1%); C3 pass rate 96.
 | Ledger port and its extensions (rejected records, read methods, steps, tokens, task tokens) | Huvison | Huvison, Linus (eval runner), Yaw (IAM) | `tools/ports.py`, `adapters/*_ledger.py` |
 | Lambda handover: entry points, environment variables, IAM needs, bundling (`uv export`, prompts included) | Patrick, Linus, Huvison | Yaw, Michael | `docs/DEVOPS_HANDOVER.md` *(new)* (new) |
 | Token claims → `Scope` | Linus (code), Abdul + Michael (Cognito) | every handler | `auth/` |
-| Eval runner, inputs and expectations (**built, PR #16**) | Michael (runner), Abdul (review, Q10, write-up) | the local asker (Huvison, `flow/local.py` *(new)*), the deployed-API asker (Linus) | `evals/run.py`, `evals/inputs/`, `evals/expected/` (worked examples per agent in `evals/expected/agents/` *(new)*) |
+| Eval runner, inputs and expectations (**built, PR #16**) | Michael (runner), Abdul (review, Q10, write-up) | the local asker (Huvison, `flow/local.py` *(new)*), the deployed-API asker (Linus) | `evals/run.py`, `evals/inputs/`, `evals/expected/` (worked examples per agent in `evals/expected/<agent>.json` *(new)*) |
 | Budget check (one function, two callers: the `check_budget` state and the orchestrator before each re-plan) | Huvison | Patrick, Yaw | `flow/budget.py` *(new)* (new) |
 
 ## 5. Timeline (`docs/TEAM_PLAN.md` §4)
