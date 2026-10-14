@@ -175,6 +175,77 @@ class BashTests(GuardTestCase):
         ])
 
 
+class AllowlistTests(GuardTestCase):
+    """Fix round 1: every payload from the security review, plus the allowlist edges."""
+
+    def test_review_payloads_refused(self):
+        vault, repo = self.vault, self.repo
+        self.assert_bash("deny", [
+            "ls x#; whoami",
+            'ls "a" #; whoami',
+            "ls a#b",
+            "cat 07*/Progress*/evals/cases/c1.md",
+            "cat */*/evals/cases/c1.md",
+            "cat */config",
+            "cat {/etc/hostname,x}",
+            f'cat "{vault}/07 Build/Progress auditor/"{{evals,x}}/cases/c1.md',
+            f"git -C {repo} grep --open-files-in=true x",
+            f"git -C {repo} grep --open=true x",
+            f"git -C {repo} diff --outp=/tmp/x",
+            f"git -C {repo} diff --ext-d",
+            f"git -C {repo} log --textconv",
+            f"sort -ro {vault}/f {vault}/06 Workstreams/Brief.md",
+            "sort --outp=f g",
+            "sort -T d g",
+            "sort --compress-program=true x",
+            "gh pr view 8 -cw",
+            "gh api repos/x/y/issues -iftitle=x",
+            "gh api repos/x/y -XPOST",
+            "date -us 2020-01-01",
+            "date --se=2020",
+        ])
+
+    def test_extra_refused(self):
+        vault = self.vault
+        self.assert_bash("deny", [
+            "ls a\\ b",
+            "ls !x",
+            "cat ~root/x",
+            f'grep -n a*b "{vault}/06 Workstreams/Brief.md"',
+            f'find "{vault}/06 Workstreams" -name x -o -exec rm {{}} ;',
+            f'tail -f "{vault}/06 Workstreams/Brief.md"',
+            f'head --bytes=5 "{vault}/06 Workstreams/Brief.md"',
+        ])
+
+    def test_extra_allowed(self):
+        vault, repo = self.vault, self.repo
+        self.assert_bash("allow", [
+            f'grep -rn --include="*.md" "M0" "{vault}/06 Workstreams"',
+            f'find "{vault}/06 Workstreams" -name "*.md" -type f',
+            f'head -n 40 "{vault}/06 Workstreams/Brief.md"',
+            f'tail -20 "{vault}/06 Workstreams/Brief.md"',
+            f"git -C {repo} log --format=%h%x20%s -n5 origin/develop",
+            f"git -C {repo} log --since=2026-10-14 --no-merges --name-only abc1234",
+            "gh pr list --repo Amali-Tech/cloud-9-hackathon --state all --limit 50 --json number,state",
+            "date +%Y-%m-%d",
+            f'sort -k2 -t, "{vault}/06 Workstreams/Brief.md"',
+        ])
+
+    def test_relative_write_resolves_against_payload_cwd(self):
+        payload = json.dumps({
+            "tool_name": "Write",
+            "tool_input": {"file_path": "08 Progress/2026-10-14 1530.md", "content": "x"},
+            "cwd": str(self.vault),
+        })
+        self.assertEqual(self.decide("Write", {}, raw=payload), "allow")
+        elsewhere = json.dumps({
+            "tool_name": "Write",
+            "tool_input": {"file_path": "08 Progress/2026-10-14 1530.md", "content": "x"},
+            "cwd": str(self.repo),
+        })
+        self.assertEqual(self.decide("Write", {}, raw=elsewhere), "deny")
+
+
 class FileToolTests(GuardTestCase):
     def test_reads(self):
         self.assertEqual(self.decide("Read", {"file_path": f"{self.vault}/06 Workstreams/Brief.md"}), "allow")

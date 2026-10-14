@@ -5,26 +5,83 @@ permissionDecision of "deny". Fails closed: anything it can't parse is denied.
 The auditor's only writes are a new 08 Progress/<YYYY-MM-DD> <HHMM>.md report and
 08 Progress/Progress.md. Reads are limited to the vault and the repo, never the eval
 answer key, a .git directory or ~/.claude.
+
+Every command's options are matched against an exact allowlist (no abbreviations, no
+bundled flags that are not listed): blocklists lost to option abbreviation and bundling.
+Shell metacharacters that bash would expand (globs, braces, comments, history, escapes)
+are refused outside quotes, so the guard sees the same words bash will run.
 """
 import json
 import os
 import re
 import shlex
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 PREFIX = "progress-auditor guard: "
 READ_PROGRAMS = {
     "ls", "cat", "head", "tail", "wc", "grep", "find", "sed", "sort", "uniq", "diff", "stat",
     "date", "basename", "dirname", "realpath", "pwd", "test", "nl", "cut", "tr", "comm",
 }
-GIT_SUBCOMMANDS = {"log", "show", "ls-tree", "diff", "rev-parse", "branch", "grep", "merge-base", "cat-file", "fetch"}
-GIT_REFUSED_OPTIONS = ("--output", "--ext-diff", "--open-files-in-pager", "-O", "--no-index", "--exec", "-f")
-GIT_BRANCH_OPTIONS = {"-r", "--remotes", "-a", "--all", "--list", "-v", "-vv", "--merged", "--no-merged"}
-GIT_FETCH_OPTIONS = {"--prune", "--quiet", "-q"}
-GH_PR_READS = {"list", "view", "checks", "diff"}
-GH_WRITE_FIELDS = re.compile(r"^(-[fF]|--field|--raw-field|--input)")
-FIND_REFUSED = {"-exec", "-execdir", "-ok", "-okdir", "-delete", "-fprint", "-fprint0", "-fprintf", "-fls"}
+# program -> (short flags, short flags that take a value, long flags, long flags that take a value)
+OPTION_TABLE = {
+    "ls": (set("lahA1trRSdF"), set(), set(), set()),
+    "cat": (set("n"), set(), set(), set()),
+    "head": (set(), set("nc"), set(), set()),
+    "tail": (set(), set("nc"), set(), set()),
+    "wc": (set("lwcm"), set(), set(), set()),
+    "grep": (set("nicloLhHEFwxvrRsq"), set("mABCe"), {"recursive"}, {"include", "exclude", "exclude-dir"}),
+    "sort": (set("nrufb"), set("kt"), set(), set()),
+    "uniq": (set("cdui"), set(), set(), set()),
+    "diff": (set("uqr"), set(), {"brief"}, set()),
+    "stat": (set(), set("c"), set(), {"format"}),
+    "date": (set("uIR"), set("d"), set(), set()),
+    "cut": (set(), set("dfc"), set(), set()),
+    "comm": (set("123"), set(), set(), set()),
+    "tr": (set(), set(), set(), set()),
+    "nl": (set(), set(), set(), set()),
+    "basename": (set(), set(), set(), set()),
+    "dirname": (set(), set(), set(), set()),
+    "realpath": (set(), set(), set(), set()),
+    "pwd": (set(), set(), set(), set()),
+}
+NUMERIC_OPTION_PROGRAMS = {"head", "tail"}
+# Programs whose option values are patterns, delimiters or formats, never paths.
+PATTERN_VALUE_PROGRAMS = {"grep", "cut", "sort", "stat", "date"}
+TEST_PRIMARIES = {"-e", "-f", "-d", "-s"}
+FIND_VALUE_PREDICATES = {"-name", "-iname", "-path", "-ipath", "-type", "-maxdepth", "-mindepth", "-newer", "-size", "-mtime"}
+FIND_NO_VALUE_PREDICATES = {"-print"}
+
+# git: the allowlist replaced the old option blocklist because git accepts unique
+# abbreviations of long options (--open-files-in=x is --open-files-in-pager=x).
+# subcommand -> (short flags, short flags with value, long flags, long flags with value)
+GIT_OPTION_TABLE = {
+    "log": (set("p"), set(), {"oneline", "name-only", "name-status", "stat", "no-merges", "first-parent", "reverse", "all"},
+            {"format", "pretty", "since", "until", "author", "grep", "max-count", "date"}),
+    "show": (set(), set(), {"stat", "name-only", "name-status", "oneline"}, {"format", "pretty"}),
+    "ls-tree": (set("rdt"), set(), {"name-only"}, set()),
+    "diff": (set(), set(), {"stat", "name-only", "name-status"}, set()),
+    "rev-parse": (set(), set(), {"verify", "short", "abbrev-ref"}, set()),
+    "branch": (set("rav"), set(), {"remotes", "all", "list", "merged", "no-merged"}, {"format", "sort"}),
+    "grep": (set("niIEFwlch"), set("e"), set(), set()),
+    "merge-base": (set(), set(), {"is-ancestor"}, set()),
+    "cat-file": (set("tspe"), set(), set(), set()),
+    "fetch": (set(), set(), {"prune", "quiet"}, set()),
+}
+GIT_COUNT_OPTION = re.compile(r"-n?\d+")
+# gh: (subcommand words) -> {option: takes a value}
+GH_OPTION_TABLE = {
+    ("pr", "list"): {
+        "--repo": True, "-R": True, "--state": True, "-s": True, "--limit": True, "-L": True, "--json": True,
+        "--jq": True, "-q": True, "--search": True, "-S": True, "--base": True, "-B": True, "--head": True,
+        "-H": True, "--author": True, "-A": True, "--label": True, "-l": True,
+    },
+    ("pr", "view"): {"--repo": True, "-R": True, "--json": True, "--jq": True, "-q": True, "--comments": False},
+    ("pr", "checks"): {"--repo": True, "-R": True},
+    ("pr", "diff"): {"--repo": True, "-R": True, "--name-only": False},
+    ("api",): {"--jq": True, "-q": True, "--paginate": False, "--cache": True},
+}
+GH_API_ENDPOINT_PREFIX = "repos/"
 SEGMENT_OPERATORS = {"|", "||", "&&", ";"}
 PUNCTUATION = set("();<>|&")
 STDERR_TO_NULL = re.compile(r"(?<=\s)2>/dev/null(?=\s|$)")
@@ -33,6 +90,9 @@ SED_RANGE = re.compile(r"\d+(,\d+)?p")
 SHA = re.compile(r"[0-9a-f]{7,40}")
 REPORT_NAME = re.compile(r"\d{4}-\d{2}-\d{2} \d{4}\.md")
 GLOB_CHARACTERS = set("*?[")
+UNQUOTED_REFUSED = set("#{}\\!*?[]")
+ALWAYS_REFUSED = set("$`\n\r")
+WORD_START_CHARACTERS = set(" \t|&;()<>")
 INDEX_NAME = "Progress.md"
 
 
@@ -70,6 +130,13 @@ class Roots:
         if self.repo:
             dirs.append(os.path.join(self.repo, ".git"))
         return dirs
+
+
+@dataclass
+class ParsedOptions:
+    positionals: list = field(default_factory=list)
+    values: list = field(default_factory=list)
+    flags: set = field(default_factory=set)
 
 
 def load_roots():
@@ -111,35 +178,47 @@ def is_ancestor_of_denied(real, roots):
     return any(under(denied_dir, real) for denied_dir in roots.denied_dirs())
 
 
+def scan_raw(command):
+    """Refuse shell syntax that bash would expand or hide, judged on the raw string.
+
+    Quote-aware: glob, brace, comment, history and escape characters are literal inside
+    quotes, so they are refused only outside them.
+    """
+    if any(character in ALWAYS_REFUSED for character in command):
+        deny("variables, command substitution and newlines are refused")
+    quote = None
+    index = 0
+    while index < len(command):
+        character = command[index]
+        if quote == "'":
+            if character == "'":
+                quote = None
+        elif quote == '"':
+            if character == "\\":
+                index += 1
+            elif character == '"':
+                quote = None
+        elif character in ("'", '"'):
+            quote = character
+        elif character in UNQUOTED_REFUSED:
+            deny(f"unquoted {character!r} is refused")
+        elif character == "~" and (index == 0 or command[index - 1] in WORD_START_CHARACTERS):
+            deny("unquoted home-directory paths are refused")
+        index += 1
+    if quote is not None:
+        deny("unterminated quote")
+
+
 def check_path_tokens(tokens, cwd, roots):
     for token in tokens:
         if DOTDOT.search(token):
             deny("'..' path components are refused")
         if token.startswith("~"):
             deny("home-directory paths are refused")
-        if token.startswith("-"):
-            value = token.split("=", 1)[1] if "=" in token else ""
-            if "/" in value:
-                judge_real_path(resolved(value, cwd), value, roots)
-            continue
-        glob_at = next((index for index, character in enumerate(token) if character in GLOB_CHARACTERS), None)
-        if glob_at is not None:
-            literal = token[:glob_at]
-            if "/" not in literal:
-                if token.startswith("."):
-                    deny("globs on dot-names are refused")
-                continue
-            prefix_dir = resolved(os.path.dirname(literal) or ".", cwd)
-            judge_real_path(prefix_dir, token, roots)
-            if is_ancestor_of_denied(prefix_dir, roots):
-                deny(f"{token} could reach a refused directory")
+        if token == "-":
             continue
         if "/" in token or os.path.exists(os.path.join(cwd, token)):
             judge_real_path(resolved(token, cwd), token, roots)
-
-
-def positional(tokens):
-    return [token for token in tokens if not token.startswith("-")]
 
 
 def check_recursive(start_tokens, cwd, roots):
@@ -152,8 +231,48 @@ def check_recursive(start_tokens, cwd, roots):
             deny(f"a recursive search from {token} could reach a refused directory; start lower")
 
 
-def has_short_flag(tokens, flag_letters):
-    return any(token.startswith("-") and not token.startswith("--") and set(token[1:]) & set(flag_letters) for token in tokens)
+def check_options(program, args, short_flags, short_with_value, long_flags, long_with_value, allow_numeric=False):
+    """Match every option against exact allowlists; return positionals, option values and flags seen."""
+    parsed = ParsedOptions()
+    index, options_ended = 0, False
+
+    def take_value(name):
+        nonlocal index
+        if index >= len(args):
+            deny(f"{program} option {name} needs a value")
+        index += 1
+        return args[index - 1]
+
+    while index < len(args):
+        token = args[index]
+        index += 1
+        if options_ended or token == "-" or not token.startswith("-"):
+            parsed.positionals.append(token)
+        elif token == "--":
+            options_ended = True
+        elif token.startswith("--"):
+            name, has_value, value = token[2:].partition("=")
+            if name in long_flags and not has_value:
+                parsed.flags.add(name)
+            elif name in long_with_value:
+                parsed.values.append(value if has_value else take_value(token))
+                parsed.flags.add(name)
+            else:
+                deny(f"{program} option {token} is not allowed")
+        elif allow_numeric and token[1:].isdigit():
+            continue
+        else:
+            body = token[1:]
+            for position, letter in enumerate(body):
+                if letter in short_flags:
+                    parsed.flags.add(letter)
+                elif letter in short_with_value:
+                    parsed.values.append(body[position + 1:] or take_value(token))
+                    parsed.flags.add(letter)
+                    break
+                else:
+                    deny(f"{program} option -{letter} is not allowed")
+    return parsed
 
 
 def check_git(tokens, cwd, roots):
@@ -171,16 +290,20 @@ def check_git(tokens, cwd, roots):
     if not args or args[0].startswith("-"):
         deny("git options before the subcommand are refused")
     subcommand, rest = args[0], args[1:]
-    if subcommand not in GIT_SUBCOMMANDS:
+    if subcommand not in GIT_OPTION_TABLE:
         deny(f"git {subcommand} is not a read")
     for token in rest:
-        if token.startswith(GIT_REFUSED_OPTIONS):
-            deny(f"git option {token} is refused")
         if DOTDOT.search(token):
             deny("'..' path components are refused")
-    if subcommand == "fetch" and (rest[:1] != ["origin"] or any(token not in GIT_FETCH_OPTIONS for token in rest[1:])):
+    if subcommand == "log":
+        rest = [token for token in rest if not GIT_COUNT_OPTION.fullmatch(token)]
+    parsed = check_options(f"git {subcommand}", rest, *GIT_OPTION_TABLE[subcommand])
+    for token in parsed.positionals:
+        if token.startswith(("/", "~")):
+            deny("git paths outside the repository are refused")
+    if subcommand == "fetch" and parsed.positionals != ["origin"]:
         deny("only `git fetch origin` is allowed")
-    if subcommand == "branch" and any(token not in GIT_BRANCH_OPTIONS and not token.startswith(("--format=", "--sort=")) for token in rest):
+    if subcommand == "branch" and parsed.positionals and not parsed.flags & {"list", "merged", "no-merged"}:
         deny("git branch is allowed only to list")
 
 
@@ -188,28 +311,32 @@ def check_gh(tokens, roots):
     if not roots.use_gh:
         deny("gh is disabled for this run (local.json use_gh: false)")
     args = tokens[1:]
-    if args[:1] == ["pr"] and len(args) > 1 and args[1] in GH_PR_READS:
-        if any(token in ("--web", "-w") for token in args[2:]):
-            deny("gh --web is refused")
-        return
-    if args[:1] == ["api"]:
-        rest = args[1:]
-        for index, token in enumerate(rest):
-            if GH_WRITE_FIELDS.match(token):
-                deny("gh api with fields or input is refused")
-            method = None
-            if token in ("-X", "--method"):
-                method = rest[index + 1] if index + 1 < len(rest) else ""
-            elif token.startswith("--method="):
-                method = token.split("=", 1)[1]
-            elif token.startswith("-X") and len(token) > 2:
-                method = token[2:]
-            if method is not None and method.upper() != "GET":
-                deny("gh api allows GET only")
-        if any("graphql" in token for token in positional(rest)):
-            deny("gh api graphql is refused")
-        return
-    deny("only gh pr list/view/checks/diff and gh api GET are allowed")
+    key = ("api",) if args[:1] == ["api"] else tuple(args[:2])
+    allowed = GH_OPTION_TABLE.get(key)
+    if allowed is None:
+        deny("only gh pr list/view/checks/diff and gh api GET are allowed")
+    rest, positionals, index = args[len(key):], [], 0
+    while index < len(rest):
+        token = rest[index]
+        index += 1
+        if not token.startswith("-") or token == "-":
+            positionals.append(token)
+            continue
+        name, has_value, _ = token.partition("=") if token.startswith("--") else (token, "", "")
+        if name not in allowed:
+            deny(f"gh option {token} is not allowed")
+        if allowed[name] and not has_value:
+            if index >= len(rest):
+                deny(f"gh option {name} needs a value")
+            index += 1
+        elif not allowed[name] and has_value:
+            deny(f"gh option {name} takes no value")
+    if key == ("api",) and (
+        len(positionals) != 1
+        or not positionals[0].startswith(GH_API_ENDPOINT_PREFIX)
+        or "graphql" in positionals[0]
+    ):
+        deny("gh api takes one repos/... endpoint, never graphql")
 
 
 def check_python(tokens, cwd, roots):
@@ -225,6 +352,53 @@ def check_python(tokens, cwd, roots):
             deny("the collector takes only --at <sha> and --no-tests")
 
 
+def check_find(args, cwd, roots):
+    index = 0
+    while index < len(args) and not args[index].startswith("-"):
+        index += 1
+    starts, predicates = args[:index], args[index:]
+    position = 0
+    while position < len(predicates):
+        predicate = predicates[position]
+        position += 1
+        if predicate in FIND_NO_VALUE_PREDICATES:
+            continue
+        if predicate not in FIND_VALUE_PREDICATES or position >= len(predicates):
+            deny(f"find {predicate} is not allowed")
+        value = predicates[position]
+        position += 1
+        if predicate == "-newer":
+            check_path_tokens([value], cwd, roots)
+    check_recursive(starts, cwd, roots)
+    check_path_tokens(starts, cwd, roots)
+
+
+def check_listed_program(program, args, cwd, roots):
+    parsed = check_options(program, args, *OPTION_TABLE[program], allow_numeric=program in NUMERIC_OPTION_PROGRAMS)
+    positionals = parsed.positionals
+    if program == "grep":
+        if "e" not in parsed.flags:
+            if not positionals:
+                deny("grep needs a pattern")
+            positionals = positionals[1:]
+    elif program == "date":
+        if any(not token.startswith("+") for token in positionals):
+            deny("date takes only a +FORMAT")
+        positionals = []
+    elif program == "uniq" and len(positionals) > 1:
+        deny("uniq with an output file is refused")
+    recursive = (
+        (program == "grep" and parsed.flags & {"r", "R", "recursive"})
+        or (program == "ls" and "R" in parsed.flags)
+        or (program == "diff" and "r" in parsed.flags)
+    )
+    if recursive:
+        check_recursive(positionals, cwd, roots)
+    check_path_tokens(positionals, cwd, roots)
+    if program not in PATTERN_VALUE_PROGRAMS:
+        check_path_tokens([value for value in parsed.values if "/" in value], cwd, roots)
+
+
 def check_segment(tokens, cwd, roots):
     if not tokens:
         deny("empty command")
@@ -233,48 +407,33 @@ def check_segment(tokens, cwd, roots):
         deny("environment prefixes and program paths are refused")
     if program == "git":
         check_git(tokens, cwd, roots)
-        return
-    if program == "gh":
+    elif program == "gh":
         check_gh(tokens, roots)
-        return
-    if program == "python3":
+    elif program == "python3":
         check_python(tokens, cwd, roots)
-        return
-    if program not in READ_PROGRAMS:
+    elif program not in READ_PROGRAMS:
         deny(f"{program} is not an allowed read command")
-    if program == "sed" and not (len(args) == 3 and args[0] == "-n" and SED_RANGE.fullmatch(args[1])):
-        deny("sed is allowed only as sed -n 'START,ENDp' <file>")
-    if program == "find":
-        if any(token in FIND_REFUSED for token in args):
-            deny("find actions that run or write are refused")
-        starts = []
-        for token in args:
-            if token.startswith(("-", "(", "!")):
-                break
-            starts.append(token)
-        check_recursive(starts, cwd, roots)
-    if program == "grep" and (has_short_flag(args, "rR") or any(token in ("--recursive", "--dereference-recursive") for token in args)):
-        check_recursive(positional(args)[1:], cwd, roots)
-    if program == "ls" and has_short_flag(args, "R"):
-        check_recursive(positional(args), cwd, roots)
-    if program == "sort" and any(token.startswith(("-o", "--output")) for token in args):
-        deny("sort -o writes a file")
-    if program == "uniq" and len(positional(args)) > 1:
-        deny("uniq with an output file is refused")
-    if program == "date" and any(token.startswith(("-s", "--set")) for token in args):
-        deny("date --set is refused")
-    check_path_tokens(args, cwd, roots)
+    elif program == "sed":
+        if not (len(args) == 3 and args[0] == "-n" and SED_RANGE.fullmatch(args[1])):
+            deny("sed is allowed only as sed -n 'START,ENDp' <file>")
+        check_path_tokens(args[2:], cwd, roots)
+    elif program == "test":
+        if len(args) != 2 or args[0] not in TEST_PRIMARIES:
+            deny("test is allowed only as test -e|-f|-d|-s <path>")
+        check_path_tokens(args[1:], cwd, roots)
+    elif program == "find":
+        check_find(args, cwd, roots)
+    else:
+        check_listed_program(program, args, cwd, roots)
 
 
 def check_bash(command, cwd, roots):
-    if "\n" in command or "\r" in command:
-        deny("multi-line commands are refused")
     command = STDERR_TO_NULL.sub(" ", " " + command)
-    if "$" in command or "`" in command:
-        deny("variables and command substitution are refused")
+    scan_raw(command)
     try:
         lexer = shlex.shlex(command, posix=True, punctuation_chars=True)
         lexer.whitespace_split = True
+        lexer.commenters = ""
         tokens = list(lexer)
     except ValueError:
         deny("unparseable command")
@@ -290,8 +449,7 @@ def check_bash(command, cwd, roots):
     check_segment(segment, cwd, roots)
 
 
-def check_write(file_path, roots):
-    real = os.path.realpath(file_path)
+def check_write(real, roots):
     if os.path.dirname(real) != roots.progress:
         deny("the auditor writes only in 08 Progress/")
     name = os.path.basename(real)
@@ -301,8 +459,8 @@ def check_write(file_path, roots):
         deny(f"{name} already exists; reports are never overwritten (edit Progress.md instead)")
 
 
-def check_edit(file_path, roots):
-    if os.path.realpath(file_path) != os.path.join(roots.progress, INDEX_NAME):
+def check_edit(real, roots):
+    if real != os.path.join(roots.progress, INDEX_NAME):
         deny("the auditor edits only 08 Progress/Progress.md")
 
 
@@ -316,9 +474,9 @@ def decide(payload, roots):
         real = resolved(str(tool_input["file_path"]), cwd)
         judge_real_path(real, str(tool_input["file_path"]), roots)
     elif tool_name == "Write":
-        check_write(str(tool_input["file_path"]), roots)
+        check_write(resolved(str(tool_input["file_path"]), cwd), roots)
     elif tool_name == "Edit":
-        check_edit(str(tool_input["file_path"]), roots)
+        check_edit(resolved(str(tool_input["file_path"]), cwd), roots)
     else:
         deny(f"{tool_name} is not available to the progress auditor")
 
