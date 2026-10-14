@@ -21,7 +21,7 @@ Front end (`web/`): `cd web && yarn install --frozen-lockfile`, then `yarn start
 - Reference the decision (`D-0xx`) or eval (`Qxx`) it relates to.
 
 ## Before you call it done
-- `pytest` green, coverage not lower.
+- `uv run --locked pytest` green, coverage not lower.
 - Your `AGENTS.md` row, `DECISIONS.md` entry and `HANDOFF.md` lines updated if the change affects them.
 - The vault updated if you made a decision or learned something ([[Vault upkeep]]).
 
