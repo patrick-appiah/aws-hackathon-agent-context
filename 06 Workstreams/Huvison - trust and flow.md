@@ -34,7 +34,7 @@ You also own **cost per run**, the **Guardrail settings**, and timing `/ask` aga
 |---|---|
 | `agents/critic.py`, `agents/prompts/critic.txt`, `agents/prompt_loader.py` | exist (critic v1.0.0, fails closed, prompt provenance) |
 | `agents/writer.py` *(new)*, `agents/prompts/writer.txt` *(new)* | the writer |
-| `flow/` *(new)*: `flow/steps.py`, `flow/budget.py`, `flow/publish.py`, `flow/cost.py` | the step functions |
+| `flow/` *(new)*: `flow/steps.py` *(new)*, `flow/budget.py` *(new)*, `flow/publish.py` *(new)*, `flow/cost.py` *(new)* | the step functions |
 | `tools/ports.py` (the `Ledger` port only, coordinate with Patrick), `adapters/memory_ledger.py`, `adapters/dynamo_ledger.py` | exist; you extend them |
 | `tests/adapters/test_ledgers.py` | exists; one suite run against **both** ledgers |
 | `AGENTS.md` rows: critic, writer; `HANDOFF.md` lines for your parts | your docs |
@@ -86,18 +86,21 @@ Test the whole sequence locally with `InMemoryLedger` and stub agents (Q01 passe
   - only a `delivery_lead` may approve;
   - `approve` → `SendTaskSuccess`, and the last state writes `s3://<artefacts_bucket>/<status_pack_prefix><run_id>.json`;
   - `send_back` → `SendTaskFailure`, logged on the run in the ledger.
-- Linus's `api/handlers.py` entry points call these two functions.
+- Linus's `api/handlers.py` *(new)* entry points call these two functions.
 - Test with moto (Step Functions + S3) or fakes; no real AWS in unit tests.
 
 ### 6. Cost: `flow/cost.py` + a price table in `tools/constants.py`
 - **Price table:** `MODEL_PRICES_USD_PER_1K_TOKENS = {model_id: (input, output)}` for every model ID in `config.py`. The prices and their sources come from Abdul's research (Bedrock eu-west-1 on-demand).
 - `cost_usd(usage) -> float`. Every state that runs an agent calls `add_cost` with it. The total per run lands in `AskResponse.cost_usd`, and `COST.md` is filled from real runs (Abdul).
 
-### 7. Fault doubles for EVALS Q08 and Q09 (`tests/` helpers or `evals/doubles.py` *(new)*)
-- **Q08:** a citation-stripping analyst (a claim with an empty chain) → the critic pre-check must reject it without a model call.
-- **Q09:** an always-rejecting critic → retries stop at 2 → a rejected-records row with all the verdicts.
-
-**Only Linus's eval runner injects these, in-process.** No fault field exists in the API or in production config.
+### 7. The local asker for the eval runner: `flow/local.py` *(new)*
+Michael's runner (`evals/run.py`, PR #16) calls an asker: `(case_input, scope, repository) -> dict`, returning the `/ask` response plus `"refused": true` when refused.
+- Write `flow/local.py: ask`. It runs your step sequence in-process (`CsvRepository`, `InMemoryLedger`, the real agents) and **applies the input's `inject` itself**:
+  - `strip_citations` (Q08): strip the citations from one analyst claim, so the critic pre-check must reject it without a model call;
+  - `always_reject` (Q09): a critic double that always rejects, so retries stop at the limit and the claim lands in rejected records.
+- Run it with `uv run python -m evals.run --asker flow.local:ask`. Patrick's `scripts/ask.py` can call the same function.
+- **No fault switch exists in the API or production config.** Only the eval asker applies `inject`.
+- **Decide the Q09 verdict count:** `EVALS.md` says 3 verdicts; `max_claim_attempts = 2` with `attempts < 2` gives 2. Pick the rule (D-012 intent: "two retries" means 3 verdicts), make the code and `EVALS.md` agree, and tell Abdul.
 
 ### 8. Guardrail settings
 Write down the settings Michael deploys in GuardrailStack: a PII filter, and the prompt-attack filter on input. Check that every agent's `make_agent` passes `guardrail_id` and `guardrail_version` when set (the critic already does). EVALS Q12: the `DEF-0462` text must stay data.
@@ -117,18 +120,18 @@ By D1 18:00, time a full `/ask` with one retry. API Gateway cuts synchronous cal
 | You produce | For | Exact name |
 |---|---|---|
 | Ledger methods | Linus (runner), Patrick, Yaw (IAM) | `tools/ports.py` `Ledger` + both adapters |
-| Step functions | Yaw (FlowStack Lambdas), Patrick (`scripts/ask.py`) | `flow/steps.py` |
+| Step functions | Yaw (FlowStack Lambdas), Patrick (`scripts/ask.py` *(new)*) | `flow/steps.py` |
 | Budget check | Patrick | `flow/budget.py` `require_budget` |
 | Publish functions | Linus (`api/handlers.py`) | `flow/publish.py` `start_publish`, `decide` |
-| Fault doubles | Linus (eval runner) | `evals/doubles.py` *(new)* |
-| Guardrail settings | Michael | in `docs/DEVOPS_HANDOVER.md` |
+| Local asker (applies `inject`) | the eval runner, Patrick (`scripts/ask.py`) | `flow/local.py` *(new)* |
+| Guardrail settings | Michael | in `docs/DEVOPS_HANDOVER.md` *(new)* |
 
 ## Dependencies
 - **You wait on:**
   - **Patrick's contracts PR** for the step models and settings. Until then, use `BlockerClaim` and `Verdict` (they exist) and plain dicts.
   - **Patrick's orchestrator.** Use a stub that returns the E4 claim from `tests/tools/test_claims.py` (`VALID_CLAIM`).
   - **Yaw's FlowStack and Michael's LedgerStack** for AWS. Everything runs locally first.
-- **Waiting on you:** Patrick (budget, ledger), Linus (publish functions, fault doubles, ledger reads for the runner), Yaw (state functions).
+- **Waiting on you:** Patrick (budget, ledger), Linus (publish functions), the eval runner (local asker), Yaw (state functions).
 
 ## Your milestones
 | When | Milestone |
@@ -137,7 +140,7 @@ By D1 18:00, time a full `/ask` with one retry. API Gateway cuts synchronous cal
 | D1 16:00 | The full `/ask` sequence runs locally with stubs, including one retry and one rejection |
 | D1 18:00 | Skeleton live (critic stubbed to pass); `/ask` timed against 29 s |
 | D2 12:00 | Real critic + retry guard + publish/approve end to end |
-| D2 14:00 | Cost per run recorded; Q08/Q09 doubles ready |
+| D2 14:00 | Cost per run recorded; the local asker runs all 14 |
 
 ## Eval questions you own or affect
 | Question | What it checks |
@@ -153,7 +156,7 @@ By D1 18:00, time a full `/ask` with one retry. API Gateway cuts synchronous cal
 - [ ] Writer drops uncited bullets (tested); prompt locked; `AGENTS.md` critic and writer rows true.
 - [ ] Publish needs a `delivery_lead` approval; the status pack is written only after approval; send-back is logged.
 - [ ] Cost per run comes from real `Usage`; the price table is sourced.
-- [ ] Q08, Q09, Q12 pass; the 29-second check done and decided.
+- [ ] `uv run python -m evals.run --asker flow.local:ask` runs; Q08, Q09, Q12 pass; the Q09 verdict count decided; the 29-second check done.
 - [ ] Your `HANDOFF.md` lines (what's real, what's faked, what breaks first).
 
 ## Rules and pitfalls specific to you
@@ -166,7 +169,7 @@ By D1 18:00, time a full `/ask` with one retry. API Gateway cuts synchronous cal
 ## Getting started
 ```bash
 cd ~/amalitech/aws-hackathon/erp-migration-portal && git switch develop && git pull
-uv sync && uv run --locked pytest           # 140 passed; ledger suite: tests/adapters/test_ledgers.py
+uv sync && uv run --locked pytest           # 160 passed; ledger suite: tests/adapters/test_ledgers.py
 git switch -c feature/ledger-extensions
 ```
 Then give your assistant `06 Workstreams/prompts/huvison.txt`.

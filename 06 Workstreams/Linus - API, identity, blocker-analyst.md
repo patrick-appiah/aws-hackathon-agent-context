@@ -30,11 +30,11 @@ You're also the back end's main contact for DevOps, and the person who gets the 
 ## What you own
 | Path | State |
 |---|---|
-| `tools/metrics.py`, `tools/queries.py`, `tools/agent_tools.py`, `tools/claims.py` | exist, 140 tests; you maintain them |
+| `tools/metrics.py`, `tools/queries.py`, `tools/agent_tools.py`, `tools/claims.py` | exist, tested (160 tests in the suite); you maintain them |
 | `api/handlers.py` *(new)*, `auth/scope.py` *(new)* | API and identity |
 | `agents/blocker_analyst.py` *(new)*, `agents/prompts/blocker_analyst.txt` *(new)* | the analyst |
 | `scripts/export_summary.py` *(new)* | front-end fixtures from the real summary |
-| `evals/run.py` *(new)*, `evals/results/` *(new)* | the eval runner |
+| `evals/run.py` (exists, Michael's PR #16): you run it and add `evals/api_asker.py` *(new)* | evals |
 | `AGENTS.md` blocker-analyst row; `HANDOFF.md` lines for your parts | your docs |
 
 ## What you build
@@ -78,27 +78,22 @@ Each task has a spec and plan first (superpowers), test-first code, and a PR to 
 - **The E4 chain to support (Q01):** `E4#RB-010` → `RC-C3-E4-customers` (91.2% vs 98%) → 212 load errors → `DEF-0412` (open, 18 days) → `E4#CUSMST#TAXNO`. `tests/tools/test_evidence_chain.py` walks it through the tools today.
 - **Model:** `get_settings().analyst_model_id` with the Guardrail (the `agents/critic.py` `make_agent` pattern). Stub-model tests: valid claims pass `validate_claim`, and a wrong figure is rejected.
 
-### 6. The eval runner, Day 2: `evals/run.py`
-- `uv run python evals/run.py` reads every `evals/inputs/Qnn.json` (Abdul's format, below) and builds the flow **in-process**:
-  - `CsvRepository`, `InMemoryLedger` and the real agents;
-  - for Q08/Q09, Huvison's fault doubles (`evals/doubles.py`), chosen by the input's `fault` field. That field is read **only** by the runner.
-- **Scoring:**
-  - `must_cite` (every `artefact:row_id` appears in the answer's citations); `should_cite` is reported, not failed;
-  - `must_say` and `must_not_say` (case-insensitive; decide whole-phrase matching with Abdul so "not ready" doesn't trip "ready");
-  - `expect` (`answer` / `partial` / `refused` / `rejected`);
-  - `target_only: true` → reported as "not run (target)".
-- **Output:** `evals/results/<YYYY-MM-DD>.json`, with the prompt versions (`load_prompt(name).provenance()` for each agent), the cost, pass/fail and the reasons, failures included. Abdul writes the `EVALS.md` results from it.
-- **The input format (agree it with Abdul at D1 10:30):**
-  ```json
-  {"id": "Q01", "question": "What is blocking cutover for E4?", "entity_id": "E4",
-   "scope": {"role": "cfo", "tenant_id": "t-01", "entity_ids": ["*"]},
-   "must_cite": ["reconciliation_results:RC-C3-E4-customers", "defect_log:DEF-0412", "cutover_runbook:E4#RB-010"],
-   "should_cite": ["field_mappings:E4#CUSMST#TAXNO"], "must_say": [], "must_not_say": ["resolved"],
-   "expect": "answer", "fault": null, "target_only": false, "source": "EVALS.md Q01", "notes": "The planted chain"}
-  ```
+### 6. Evals: run them, and add the deployed-API asker (Day 2)
+**Already built (Michael, PR #16):**
+- `evals/run.py` is the runner: `uv run python -m evals.run`, then `--asker <module>:<function>` once the agent loop exists.
+- The 14 inputs are in `evals/inputs/QNN.json`: `id`, `question`, `scope`, `entity_id`, and optionally `inject` (`strip_citations` for Q08, `always_reject` for Q09), `kind` (`manual` for Q10) and `note`.
+- The expectations are in `evals/expected/QNN.json`: `must_cite`, `should_cite`, `must_not_contain` (regular expressions), `row_fields`, `min_rejected` and `manual_check`.
+- Each run writes `evals/results/run-*.json`.
+- 27 of 27 data checks pass today; the answer checks show *not run* until an asker is plugged in (`EVALS.md`).
+
+Your part:
+- **Run it after each merge** that touches the agent loop, and hand the results file to Abdul for the `EVALS.md` write-up.
+- **On Day 2, add a second asker that calls the deployed API,** for example `evals/api_asker.py` *(new)*, so the same 14 questions also run against AWS. It sends `POST /ask` with a test user's ID token per scope (Abdul's Cognito users) and maps the response to the asker contract in `evals/run.py`'s docstring, including `"refused": true` on 403.
+- **The local asker** (the in-process loop that applies `inject`) is Huvison's (`flow/local.py` *(new)*).
+- Keep `tests/evals/test_run.py` green when you change anything the runner reads, such as metrics or row fields.
 
 ### 7. DevOps contact and mentoring
-- **For Yaw:** keep your rows of `docs/DEVOPS_HANDOVER.md` (Patrick's) true: entry points `api.handlers:summary` etc., the environment variables, and IAM (read `artefacts/`, read the ledger, `states:StartSyncExecution` on the ask machine).
+- **For Yaw:** keep your rows of `docs/DEVOPS_HANDOVER.md` *(new)* (Patrick's) true: entry points `api.handlers:summary` etc., the environment variables, and IAM (read `artefacts/`, read the ledger, `states:StartSyncExecution` on the ask machine).
 - **For Abdul:** explain the eval format, review his JSON, and help him capture the worked examples in `evals/expected/agents/<agent>.json` from real runs.
 
 ## Interfaces
@@ -108,8 +103,8 @@ Each task has a spec and plan first (superpowers), test-first code, and a PR to 
 | Repository | done | `adapters.repository_from_settings()` |
 | KPIs, lookups | done (yours) | `metrics.portfolio_summary`, `open_blockers`, `failing_reconciliations`, `cutover_calendar_conflicts`; `queries.rows_by_citation`, `in_entity_view` |
 | Analyst tools, claim validation | done (yours) | `make_analyst_tools(scope, repository)`, `validate_claim(raw_claim, repository, scope, analyst_tools)` |
-| Publish functions, fault doubles | Huvison | `flow/publish.py`, `evals/doubles.py` *(new)* |
-| Eval inputs | Abdul | `evals/inputs/Qnn.json` *(new)* |
+| Publish functions, local asker | Huvison | `flow/publish.py` *(new)*, `flow/local.py` *(new)* |
+| Eval runner, inputs, expectations | Michael (PR #16), Abdul (review) | `evals/run.py`, `evals/inputs/`, `evals/expected/` |
 
 | You produce | For | Exact name |
 |---|---|---|
@@ -117,14 +112,14 @@ Each task has a spec and plan first (superpowers), test-first code, and a PR to 
 | Scope builder | every handler | `auth/scope.py` `scope_from_claims` |
 | Fixtures | Mildred | `scripts/export_summary.py` → `web/src/app/core/api/fixtures/` |
 | Blocker-analyst | Patrick (orchestrator) | `agents/blocker_analyst.py` |
-| Eval results | Abdul (EVALS.md), everyone | `evals/results/<date>.json` |
+| Deployed-API asker | the Day 2 eval run | `evals/api_asker.py` *(new)* |
 
 ## Dependencies
 - **You wait on:**
   - **Patrick's contracts PR** for the schema and settings. Until then, return `portfolio_summary` as-is and add schema validation when it lands.
   - **Huvison's `flow/`** for `/ask` and publish. Until then, stub the entry points and test the Q11 refusal on its own.
   - **Michael's Cognito claims.** Until then, use fake claims in tests.
-- **Waiting on you:** Mildred and Clement (real data), Yaw (handler entry points), Patrick (the analyst), Abdul (the runner).
+- **Waiting on you:** Mildred and Clement (real data), Yaw (handler entry points), Patrick (the analyst), Abdul (results to write up).
 
 ## Your milestones
 | When | Milestone |
@@ -133,7 +128,7 @@ Each task has a spec and plan first (superpowers), test-first code, and a PR to 
 | D1 16:00 | `/entity`, `/rows` and the `/ask` Q11 refusal; `export_summary.py` committed; the analyst produces a valid E4 claim against a stub |
 | D1 18:00 | `/summary` live behind API Gateway (with Yaw); the front end on real data |
 | D2 12:00 | Cognito go/no-go: an entity lead is refused another entity, end to end |
-| D2 14:00 | Eval runner records all 14 (failures included) |
+| D2 14:00 | Evals recorded through the local asker and the deployed-API asker (failures included) |
 
 ## Eval questions you own or affect
 | Question | What it checks |
@@ -153,7 +148,7 @@ Each task has a spec and plan first (superpowers), test-first code, and a PR to 
 - [ ] `/summary` serves the one screen in AWS; the front end uses it.
 - [ ] `export_summary.py` fixtures replace the `kpis.json` dependency.
 - [ ] The blocker-analyst's claims pass `validate_claim`; prompt locked; `AGENTS.md` row true.
-- [ ] `evals/run.py` runs all 14 with one command and writes results with prompt versions and failures.
+- [ ] `uv run python -m evals.run --asker ...` recorded locally and against the deployed API, failures included.
 - [ ] Your `HANDOFF.md` lines.
 
 ## Rules and pitfalls specific to you
@@ -166,7 +161,7 @@ Each task has a spec and plan first (superpowers), test-first code, and a PR to 
 ## Getting started
 ```bash
 cd ~/amalitech/aws-hackathon/erp-migration-portal && git switch develop && git pull
-uv sync && uv run --locked pytest           # 140 passed
+uv sync && uv run --locked pytest           # 160 passed
 git switch -c feature/api-summary-and-scope
 ```
 Then give your assistant `06 Workstreams/prompts/linus.txt`.

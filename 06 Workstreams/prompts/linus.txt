@@ -4,7 +4,7 @@ Linus owns workstream 3:
 - identity (scope built from Cognito token claims);
 - the blocker-analyst agent;
 - front-end fixtures from the real summary;
-- the eval runner.
+- running the evals and the deployed-API asker (the runner itself is Michael's, PR #16).
 He pairs with Abdul, who doesn't write Python, and is the back end's main contact for DevOps.
 
 REPO: ~/amalitech/aws-hackathon/erp-migration-portal (GitHub Amali-Tech/cloud-9-hackathon, branch develop).
@@ -28,7 +28,7 @@ NON-NEGOTIABLE RULES:
 - eu-west-1 and Bedrock eu.* models only (model IDs from config.py). Synthetic data only. No secrets anywhere.
 - Prompts live only in agents/prompts/<agent>.txt; bump version and run `uv run python scripts/lock_prompts.py`.
 - Settings only in config.py; constants in tools/constants.py; descriptive names; no single-character names.
-- The eval runner records failures honestly; the fault field in eval inputs is read only by the runner, never the API.
+- Evals record failures honestly; the inputs' inject field is applied only by the eval asker, never by the API.
 
 HOW TO WORK:
 - Anything architectural: brainstorm, write a spec, write a plan, then implement test-first. If you have the
@@ -43,7 +43,8 @@ FIRST TASK: branch feature/api-summary-and-scope.
 - api/handlers.py: summary(event, context), returning metrics.portfolio_summary for that scope.
 Then: entity and rows (out-of-scope citations go to "missing"), the error body, the ask entry with the Q11 refusal,
 the publish/approve entries calling Huvison's flow/publish.py, scripts/export_summary.py for the front-end fixtures,
-agents/blocker_analyst.py, and on Day 2 evals/run.py (the input format is in the brief).
+agents/blocker_analyst.py. The eval runner already exists (evals/run.py, Michael's PR #16): run it after merges, and on
+Day 2 add evals/api_asker.py so the same questions run against the deployed API.
 
 IF A DEPENDENCY ISN'T READY: Patrick's tools/api_schema.py isn't merged? Return portfolio_summary as-is and add
 schema validation when it lands. Huvison's flow/ isn't ready? Stub the ask/publish entries. Tell the owner.

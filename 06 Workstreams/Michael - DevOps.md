@@ -26,7 +26,7 @@ You make the system **deploy from a clean AWS account**: hard gate 1, checked tw
 ## What you own
 | Stack / file | Resources |
 |---|---|
-| `Jenkinsfile` (PR #8, open) | path-aware CI: gitleaks, the Python suite (`uv run --locked pytest`), bandit, pip-audit, the front-end build |
+| `Jenkinsfile` *(new: PR #8)* (PR #8, open) | path-aware CI: gitleaks, the Python suite (`uv run --locked pytest`), bandit, pip-audit, the front-end build |
 | `DataStack` | S3 bucket; `artefacts/` = upload of `demo/data/erp/output/migration/` (all 14 CSVs + `programme.json`); `status-packs/` prefix (written by Huvison's publish flow after approval) |
 | `LedgerStack` | DynamoDB run ledger (name from `LEDGER_TABLE`, default `erp-portal-run-ledger`; `pk` string + `sk` string, on-demand); the rejected-records table (`REJECTED_TABLE`, Patrick's new setting). Huvison's approval token is an item `sk=TASK` in the ledger, so nothing extra |
 | `GuardrailStack` | Bedrock Guardrail: PII filter + prompt-attack filter, settings from Huvison; outputs `guardrail_id` / version for `GUARDRAIL_ID` / `GUARDRAIL_VERSION` |

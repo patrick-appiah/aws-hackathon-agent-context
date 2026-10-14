@@ -49,8 +49,9 @@ FIRST TASK: ledger extensions on branch feature/ledger-extensions:
 - put_task_token / task_token keyed by run_id (sk=TASK).
 Test-first, on both adapters.
 Then: flow/budget.py (require_budget), flow/steps.py (one function per state), agents/writer.py with a code check
-that drops uncited bullets, flow/publish.py (start_publish, decide), flow/cost.py with the price table, the Q08/Q09
-fault doubles for the eval runner, the Guardrail settings, and the 29-second timing.
+that drops uncited bullets, flow/publish.py (start_publish, decide), flow/cost.py with the price table, flow/local.py (the eval
+runner's local asker, which applies the inject conditions for Q08 and Q09; decide the Q09 verdict count), the
+Guardrail settings, and the 29-second timing.
 
 IF A DEPENDENCY ISN'T READY: Patrick's step models aren't merged? Use BlockerClaim/Verdict and plain dicts. No
 orchestrator yet? Use a stub returning VALID_CLAIM from tests/tools/test_claims.py. Tell Patrick.

@@ -47,7 +47,7 @@ The ask spine is what makes the agent loop "genuinely run" in AWS, which is what
 ## What you build
 1. **`ApiStack` with a stub `/summary` Lambda, deploying empty** (D1 12:00). Then the real handlers from `api/handlers.py` *(new, Linus)*. Acceptance: `curl` with an ID token on `/api/summary` returns the summary JSON; without a token it returns 401.
 2. **JWT authorizer:** issuer `https://cognito-idp.eu-west-1.amazonaws.com/<pool id>`, audience = the app client ID (Michael's outputs). Acceptance: the E4 lead's token reaches the Lambda with `cognito:groups` and `custom:entity_ids` in `event.requestContext.authorizer.jwt.claims`.
-3. **`FlowStack` Express ask spine** from Patrick's step contract and Huvison's `flow/steps.py`. One Lambda per state; pass JSON matching the step models; the `Choice` on `retry_decision`'s result. Acceptance: one E4 question runs end to end in AWS (D1 18:00, critic stubbed to pass).
+3. **`FlowStack` Express ask spine** from Patrick's step contract and Huvison's `flow/steps.py` *(new)*. One Lambda per state; pass JSON matching the step models; the `Choice` on `retry_decision`'s result. Acceptance: one E4 question runs end to end in AWS (D1 18:00, critic stubbed to pass).
 4. **The 29-second limit:** API Gateway cuts synchronous integrations at 29 s. Work with Huvison's timing (D1 18:00). If a run with retries is too slow, implement the agreed async fallback: `POST /ask` starts the execution and returns `run_id`; `GET /ask/{run_id}` polls.
 5. **`FlowStack` Standard publish** with `waitForTaskToken` (Huvison's `start_publish` / `decide`). Acceptance: publish waits until `/approve` as the delivery lead, then the status pack appears in `s3://<bucket>/status-packs/`.
 6. **`AgentStack`:** AgentCore Runtime + shim, and the Lambda fallback behind a config switch. Acceptance: the same question gives the same claims through both paths.
@@ -58,7 +58,7 @@ The ask spine is what makes the agent loop "genuinely run" in AWS, which is what
 |---|---|
 | `docs/DEVOPS_HANDOVER.md` (entry points, environment, IAM), step models | Patrick |
 | `api/handlers.py` entry points | Linus |
-| `flow/steps.py`, `flow/publish.py` functions | Huvison |
+| `flow/steps.py`, `flow/publish.py` *(new)* functions | Huvison |
 | Bucket, ledger and rejected tables, guardrail ID, user pool + client IDs, CloudFront | Michael (stack outputs) |
 
 | You produce | For |

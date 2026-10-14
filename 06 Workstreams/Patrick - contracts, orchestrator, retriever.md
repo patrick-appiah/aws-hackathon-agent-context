@@ -154,7 +154,7 @@ Each task has a spec and plan first (superpowers), test-first code, and a PR to 
 ## Getting started
 ```bash
 cd ~/amalitech/aws-hackathon/erp-migration-portal && git switch develop && git pull
-uv sync && uv run --locked pytest           # 140 passed
+uv sync && uv run --locked pytest           # 160 passed
 git switch -c feature/api-and-spine-contracts
 ```
 Then give your assistant `06 Workstreams/prompts/patrick.txt`.

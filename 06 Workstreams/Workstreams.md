@@ -54,7 +54,7 @@ The DevOps split between Michael and Yaw, and the front-end split between Mildre
 - **The agent table:** `AGENTS.md`, one row per agent with schemas, tools, guardrail and failure mode. It's the contract for agent work.
 
 ## 3. The code you build on (already done and tested)
-**140 tests, 94% coverage.** Run `uv run --locked pytest` from the repo root.
+**160 tests, 95% coverage** (including the eval runner). Run `uv run --locked pytest` from the repo root.
 
 | Module | What it gives you |
 |---|---|
@@ -87,19 +87,19 @@ Dashboard figures: 18,420 of 31,700 records reconciled (58.1%); C3 pass rate 96.
 
 | Contract | Produced by | Consumed by | Lives in |
 |---|---|---|---|
-| API response schema (`/summary`, `/entity/{id}`, `/rows`, `/ask`, `/publish`, `/approve`, error body), exported as JSON Schema | Patrick (shapes), Linus (handlers) | Mildred, Clement (TypeScript types), Abdul (request collection) | `tools/api_schema.py` + `scripts/export_api_schema.py` (both new) |
+| API response schema (`/summary`, `/entity/{id}`, `/rows`, `/ask`, `/publish`, `/approve`, error body), exported as JSON Schema | Patrick (shapes), Linus (handlers) | Mildred, Clement (TypeScript types), Abdul (request collection) | `tools/api_schema.py` *(new)* + `scripts/export_api_schema.py` *(new)* (both new) |
 | Ask-spine step inputs and outputs (`Question`, `Plan`, `RetrieveRequest`, `Evidence`, claims, `Verdict`, writer input, `Answer`, `PartialAnswer`), each agent output carrying `usage{model_id, tokens_in, tokens_out}` for cost | Patrick | Huvison (handlers), Yaw (state machine), Patrick and Linus (agents) | `tools/models.py` |
 | Agent tools | done | Patrick, Linus | `tools/agent_tools.py` |
 | Ledger port and its extensions (rejected records, read methods, steps, tokens, task tokens) | Huvison | Huvison, Linus (eval runner), Yaw (IAM) | `tools/ports.py`, `adapters/*_ledger.py` |
-| Lambda handover: entry points, environment variables, IAM needs, bundling (`uv export`, prompts included) | Patrick, Linus, Huvison | Yaw, Michael | `docs/DEVOPS_HANDOVER.md` (new) |
+| Lambda handover: entry points, environment variables, IAM needs, bundling (`uv export`, prompts included) | Patrick, Linus, Huvison | Yaw, Michael | `docs/DEVOPS_HANDOVER.md` *(new)* (new) |
 | Token claims → `Scope` | Linus (code), Abdul + Michael (Cognito) | every handler | `auth/` |
-| Eval inputs and expected outputs | Abdul | Linus (runner) | `evals/inputs/`, `evals/expected/` (worked examples per agent in `evals/expected/agents/`) |
-| Budget check (one function, two callers: the `check_budget` state and the orchestrator before each re-plan) | Huvison | Patrick, Yaw | `flow/budget.py` (new) |
+| Eval runner, inputs and expectations (**built, PR #16**) | Michael (runner), Abdul (review, Q10, write-up) | the local asker (Huvison, `flow/local.py` *(new)*), the deployed-API asker (Linus) | `evals/run.py`, `evals/inputs/`, `evals/expected/` (worked examples per agent in `evals/expected/agents/` *(new)*) |
+| Budget check (one function, two callers: the `check_budget` state and the orchestrator before each re-plan) | Huvison | Patrick, Yaw | `flow/budget.py` *(new)* (new) |
 
 ## 5. Timeline (`docs/TEAM_PLAN.md` §4)
 - **D1 09:00:** kick-off. Everyone reads this note, their own note, `AGENTS.md` and `ARCHITECTURE.md`.
 - **D1 10:30:** contracts frozen (Patrick).
-- **D1 10:30–12:00: build the eval set first.** The guideline calls it the single highest-leverage ninety minutes. Abdul writes the 14 inputs with Linus. DevOps gets **every stack deploying empty**.
+- **D1 10:30–12:00: the eval set first.** The guideline calls it the single highest-leverage ninety minutes. It's already built (PR #16): Abdul reviews it against `EVALS.md`. DevOps gets **every stack deploying empty**.
 - **D1 12:00–16:00:** tools before agents. Each workstream builds and unit-tests against mocks.
 - **D1 16:00–18:00:** integrate the walking skeleton: portal → `/summary`, and `/ask` → orchestrator → retriever → ledger → writer, with the critic stubbed to pass. **It must be live in AWS by 18:00**, and that's the first clean-deploy check.
 - **D2 09:00–12:00:** the Cognito slice end to end, the real critic and retry guard, the publish flow. **12:00 go/no-go for Cognito.**
@@ -146,7 +146,7 @@ Separately, the organisers' sandbox and security rules require `eu-west-1` and E
 ```bash
 git clone git@github.com:Amali-Tech/cloud-9-hackathon.git && cd cloud-9-hackathon
 curl -LsSf https://astral.sh/uv/install.sh | sh        # once per machine
-uv sync && uv run --locked pytest                      # back end: 140 passed
+uv sync && uv run --locked pytest                      # back end: 160 passed
 cd web && corepack enable && yarn install --frozen-lockfile && yarn start   # front end (needs the npm token, see web/README.md)
 export AWS_PROFILE=hackathon AWS_REGION=eu-west-1       # sandbox account 486128667962, your IAM user first.last
 ```

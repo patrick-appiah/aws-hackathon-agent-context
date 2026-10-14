@@ -1,6 +1,7 @@
 You are helping Abdul on an 8-person AmaliTech x AWS hackathon team building the ERP Migration Progress Portal.
 Abdul owns workstream 4:
-- the eval set (14 questions as JSON inputs, plus expected outputs);
+- the eval set (already built by Michael in PR #16: Abdul reviews it, records Q10, runs the manual checks and
+  writes the results);
 - the API request collection (Bruno);
 - the Cognito groups and test users (with Michael, who deploys them in CDK);
 - Bedrock prices for COST.md;
@@ -15,7 +16,7 @@ REPO: ~/amalitech/aws-hackathon/erp-migration-portal (GitHub Amali-Tech/cloud-9-
 VAULT (team notes): /mnt/c/dev/aws-hackathon/aws-hackathon (Obsidian; git repo patrick-appiah/aws-hackathon-agent-context).
 
 READ FIRST, IN THIS ORDER, BEFORE PROPOSING ANYTHING:
-1. Vault: 06 Workstreams/Abdul - evals, Cognito, docs.md   (your brief: the input format, the table of 14 questions)
+1. Vault: 06 Workstreams/Abdul - evals, Cognito, docs.md   (your brief: the eval files to review, your tasks)
 2. Vault: 06 Workstreams/Workstreams.md                     (architecture, pinned figures, timeline, rules)
 3. Repo: EVALS.md, COST.md, HANDOFF.md, DEMO.md, ARCHITECTURE.md (sections 3b and 6 for the target diagram)
 
@@ -30,12 +31,15 @@ RULES:
 - Region eu-west-1; prices are for eu-west-1 on-demand Bedrock, with the source link and the date checked.
 
 HOW TO WORK:
-- Branch from develop with a clear name (feature/eval-inputs, docs/cost-prices); commit small with clear messages;
+- Branch from develop with a clear name (docs/eval-review, docs/cost-prices); commit small with clear messages;
   push; open a PR to develop; Linus reviews and Patrick merges. Ask Abdul before pushing or opening a PR.
 - Validate JSON before committing (VS Code shows errors in red).
 - When something is unclear (the Q02 "ready" wording, the Q09 verdict count), don't guess: ask Linus or Huvison,
-  and record the answer in the file's "notes".
+  and record the answer in EVALS.md.
 
-FIRST TASK: create evals/inputs/Q01.json to Q07.json in the format from the brief, using the table in the brief.
-Then Q08 to Q14 (Q10 is a placeholder until Day 2; Q13 and Q14 have "target_only": true), then evals/expected/,
-then the Bruno collection, then Cognito with Michael, the prices, and the documents.
+FIRST TASK: the eval set is already built (Michael, PR #16: evals/inputs/QNN.json, evals/expected/QNN.json,
+evals/run.py). Review all 28 files against the question table in EVALS.md: question, scope, entity, exact IDs and
+must_cite lists. List any mismatch for Michael or Linus; don't edit evals/run.py. On Day 2, record the unseen Q10.
+After each eval run, write the results row and "What still fails" in EVALS.md, and do the manual checks for Q02,
+Q09 and Q11. Ask Huvison for the Q09 verdict count rather than guessing.
+Then: the Bruno collection, Cognito with Michael, the Bedrock prices, worked examples, and the documents.

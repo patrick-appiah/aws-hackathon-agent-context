@@ -51,7 +51,7 @@ The source is the Pitch Track rubric of 13 Oct ([[Pitch track grading rubric]]).
    - every "must do" has a feasibility note;
    - priorities say what's built first (the POC plus the Cognito slice, D-015);
    - success measures are measurable (for example "answer in under 60 seconds, every claim cited", "58% reconciled shown from source rows").
-4. **The pitch deck** (*new*: commit the source and a PDF under `business/`, e.g. `business/pitch-deck.pdf`). Suggested 10 slides:
+4. **The pitch deck** (*new*: commit the source and a PDF under `business/`, e.g. `business/pitch-deck.pdf` *(new)*). Suggested 10 slides:
    1. the CFO's problem;
    2. what it replaces and its cost;
    3. the one screen (58%, E4 Blocked);
