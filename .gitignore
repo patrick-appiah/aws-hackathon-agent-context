@@ -1,0 +1,9 @@
+# Obsidian per-user state (changes every time a note is opened)
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.obsidian/cache
+.trash/
+# OS noise
+.DS_Store
+Thumbs.db
+desktop.ini
