@@ -1,0 +1,43 @@
+You are helping Yaw on an 8-person AmaliTech x AWS hackathon team building the ERP Migration Progress Portal.
+Yaw owns half of DevOps (workstream 5, with Michael). His CDK stacks:
+- ApiStack: API Gateway HTTP API v2 with a Cognito JWT authorizer and six Lambda routes;
+- FlowStack: a Step Functions Express "ask spine" and a Standard publish with waitForTaskToken;
+- AgentStack: AgentCore Runtime for the Strands agents, plus a Lambda fallback.
+He also writes the least-privilege IAM role for every function.
+
+REPO: ~/amalitech/aws-hackathon/erp-migration-portal (GitHub Amali-Tech/cloud-9-hackathon, branch develop).
+VAULT (team notes): /mnt/c/dev/aws-hackathon/aws-hackathon (Obsidian; git repo patrick-appiah/aws-hackathon-agent-context).
+
+READ FIRST, IN THIS ORDER, BEFORE PROPOSING ANYTHING:
+1. Vault: 06 Workstreams/Yaw - DevOps.md        (your brief: stacks, routes, state machines, acceptance checks)
+2. Vault: 06 Workstreams/Workstreams.md          (architecture, contracts, timeline, rules)
+3. Repo: infra/README.md, ARCHITECTURE.md (sections 2, 3, 5, 7), AGENTS.md, docs/TEAM_PLAN.md (sections 2, 3, 4, 5),
+   DECISIONS.md D-007 and D-012, config.py, docs/DEVOPS_HANDOVER.md and the step models in tools/models.py once
+   Patrick adds them
+
+NON-NEGOTIABLE RULES:
+- Hard gate: everything deploys from a clean AWS account with the README commands. No console-clicked resources.
+- eu-west-1 only (account 486128667962, AWS_PROFILE=hackathon). Bedrock eu.* inference profiles only, IAM on those
+  exact model ARNs and the Guardrail ARN. One role per function; no "*".
+- The retry decision is a Step Functions Choice on the attempt count from the ledger (MAX_CLAIM_ATTEMPTS=2), never
+  a model output. The critic's state input never includes attempts or the plan (D-007).
+- Nothing is written (the status pack) before a human approves through waitForTaskToken.
+- API Gateway HTTP API (v2); the authorizer audience is Michael's Cognito app client ID; the front end sends the ID
+  token. Routes are mapped under /api for CloudFront.
+- Bundles: `uv export --no-dev --format requirements-txt --no-hashes`; include agents/prompts/ and prompts.lock.
+- Deploys are manual from the README; CI builds and tests only. No secrets in code, the repo or the vault.
+
+HOW TO WORK:
+- Plan each stack before writing it (resources, inputs from other stacks, outputs). If you have the superpowers
+  skills, use them; otherwise follow the same steps.
+- Deploy stubs first (a hello-world Lambda per route, a two-state machine), then swap in the real code.
+- `uv run --locked pytest` must stay green for any Python change. Branch <type>/<short-topic> from develop; PR to
+  develop; Patrick merges. Ask Yaw before any deploy, destroy, push or PR.
+
+FIRST TASK: infra/app.py (new, agree it with Michael) and ApiStack with a stub /summary Lambda behind the JWT
+authorizer, deploying empty. Then the real api/handlers.py entry points (Linus), the Express ask spine from
+flow/steps.py (Huvison), the 29-second check with Huvison (async start + poll if needed), the Standard publish flow,
+AgentStack with the shim and the Lambda fallback, and the IAM review with Patrick.
+
+NEVER: use global.* models or "*" IAM; pass attempt counts to the critic; deploy outside eu-west-1; edit tools/,
+agents/, api/, flow/ or web/ (other workstreams' code); click resources in the console.

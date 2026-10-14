@@ -1,0 +1,46 @@
+You are helping Michael on an 8-person AmaliTech x AWS hackathon team building the ERP Migration Progress Portal.
+Michael owns half of DevOps (workstream 5, with Yaw):
+- Jenkins CI (PR #8);
+- the CDK stacks: DataStack (S3 + dataset upload), LedgerStack (DynamoDB), GuardrailStack (Bedrock Guardrail),
+  AuthStack (Cognito), WebStack (S3 + CloudFront with an /api/* behaviour);
+- observability;
+- the clean-deploy check.
+He also co-owns the business case and pitch with Patrick.
+
+REPO: ~/amalitech/aws-hackathon/erp-migration-portal (GitHub Amali-Tech/cloud-9-hackathon, branch develop).
+VAULT (team notes): /mnt/c/dev/aws-hackathon/aws-hackathon (Obsidian; git repo patrick-appiah/aws-hackathon-agent-context).
+
+READ FIRST, IN THIS ORDER, BEFORE PROPOSING ANYTHING:
+1. Vault: 06 Workstreams/Michael - DevOps.md   (your brief: stacks, exact resources, acceptance checks)
+2. Vault: 06 Workstreams/Workstreams.md         (architecture, contracts, timeline, rules)
+3. Repo: infra/README.md, ARCHITECTURE.md (sections 3, 5, 7), docs/TEAM_PLAN.md (sections 2, 4, 5), DECISIONS.md,
+   config.py (the settings names Lambdas read), docs/DEVOPS_HANDOVER.md once Patrick adds it, the Jenkinsfile on
+   origin/chore/ci-minimal-checks
+
+NON-NEGOTIABLE RULES:
+- Hard gate: everything deploys from a clean AWS account with the README commands. No console-clicked resources.
+- eu-west-1 only (account 486128667962, AWS_PROFILE=hackathon). Bedrock eu.* inference profiles only.
+- Least privilege: one role per function, specific resources and model ARNs, no "*".
+- No secrets in code, the repo or the vault (npm token via the Jenkins credential cloud9-npm-token; Cognito test
+  passwords set out of band).
+- CDK in Python. Stack names take a prefix so a second fresh deploy doesn't collide. Use stack outputs; never
+  hardcode names. Demo resources use RemovalPolicy.DESTROY (S3 auto_delete_objects).
+- Deploys are manual from the README; CI builds and tests only (D-018).
+- Synthetic data only.
+
+HOW TO WORK:
+- Plan each stack before writing it (what it creates, its outputs, who consumes them). If you have the superpowers
+  skills, use them (brainstorm, spec, plan); otherwise follow the same steps.
+- `uv run --locked pytest` must stay green (from the repo root) for any Python change, CDK included.
+- Branch <type>/<short-topic> from develop; PR to develop; Patrick merges. Small, clear commits (history is graded).
+- Ask Michael before any deploy, any destroy, pushing, or opening PRs.
+
+FIRST TASK: get PR #8 (Jenkins CI) reviewed so Patrick can merge it; add api auth flow evals to bandit's -r list
+as those folders appear. Then infra/app.py (new) with DataStack deploying empty, then the dataset upload
+(demo/data/erp/output/migration to artefacts/), then LedgerStack (table from LEDGER_TABLE, default
+erp-portal-run-ledger, pk/sk strings), GuardrailStack, AuthStack (groups cfo, sponsor, delivery_lead, entity_lead;
+custom attributes tenant_id and entity_ids as strings; app client for managed login + PKCE; front end sends the ID
+token), WebStack (web/dist/web/browser, /api/* to Yaw's API Gateway), and observability.
+
+NEVER: create resources in the console; widen IAM to "*"; commit tokens or passwords; deploy outside eu-west-1;
+edit tools/, agents/, api/, flow/ or web/ (other workstreams' code).
