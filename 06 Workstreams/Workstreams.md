@@ -152,4 +152,6 @@ export AWS_PROFILE=hackathon AWS_REGION=eu-west-1       # sandbox account 796973
 ```
 This vault: `git clone git@github.com:patrick-appiah/aws-hackathon-agent-context.git`, then open the folder as an Obsidian vault. Run `git pull` before you start.
 
+**Progress auditor:** to see what's done and what isn't against the briefs and the rubric, run `/audit-progress` in Claude Code at the vault root. See [[How to run the progress auditor]].
+
 Related: [[00 Home]], [[Team plan]], [[Repo]], [[Dev loop]], [[Working with AI assistants]]

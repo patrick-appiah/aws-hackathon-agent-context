@@ -135,7 +135,7 @@ All paths are relative to the vault root.
 
 Footer: `Related: [[Progress]], [[Workstreams]], [[Build order]]`.
 
-**Tone:** findings describe the work, not the person: "`api/handlers.py` not on develop at 2a745c7; fix: …", never "Linus hasn't …". The owner is a column.
+**Tone:** findings describe the work, not the person: "`infra/functions/api.py` not on develop at <sha7>; fix: …", never "Linus hasn't …". The owner is a column.
 
 **Index (`08 Progress/Progress.md`):** frontmatter `tags: [moc, progress]`; one table, newest first: `Run · Audited sha · Summary (one line) · Report link`; footer `Related: [[Workstreams]], [[Build order]]`.
 
@@ -207,5 +207,7 @@ A `PreToolUse` hook (matcher `Bash|Read|Write|Edit|Grep|Glob`). It reads the hoo
 - Scoring the deck's or business case's prose quality beyond the rubric's checklist (the band is an estimate, labelled as one).
 
 **Amended while planning (2026-10-14):** the collector's facts go to a gitignored file, not stdout (too long for a Bash result; the grader needs them); `git -C <repo>` is allowed for the repo path only (the agent starts in the vault and can't `cd`); `timeline.json` holds a fixed `utc_offset`; `use_gh: false` also makes the guard refuse `gh`.
+
+**Amended 2026-10-14 (D-024):** the repo layout changed (`infra/functions/` replaces `api/`, `auth/`, `flow/`; see `07 Build/00 Contracts/C2 - Repo layout - spec.md`). The auditor takes expected paths from the briefs, Build order and specs at run time; only examples changed here.
 
 Related: [[Build order]], [[Progress auditor - handoff]], [[Workstreams]]
