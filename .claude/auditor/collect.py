@@ -1,8 +1,11 @@
 """Progress auditor collector: every mechanically checkable fact, with its source.
 
 Writes the facts to .claude/auditor/runs/<YYYY-MM-DD HHMM>.json and prints a short
-summary. Stdlib only. The only state-changing commands it runs are `git fetch origin`
-and `git worktree add/remove` on a path inside its own temporary directory.
+summary. Stdlib only. The only state-changing commands it runs are `git fetch origin --prune`
+(which prunes only local remote-tracking refs, never branches or the work tree),
+`git worktree add/remove` on a path inside its own temporary directory, and `uv run pytest`
+in that worktree. `uv` keeps its own cache (~/.cache/uv), outside the temporary directory.
+Every command runs in its own process group, so a timeout kills the whole process tree.
 """
 from __future__ import annotations
 
@@ -12,9 +15,11 @@ import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -38,7 +43,7 @@ GREP_PATTERNS = {
 }
 REGION = re.compile(GREP_PATTERNS["region_strings"][0])
 ALLOWED_REGION = "eu-west-1"
-SECRET_PATTERN = r"AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|npm_[A-Za-z0-9]{36}"
+SECRET_PATTERN = r"(AKIA|ASIA)[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|npm_[A-Za-z0-9]{36}"
 NO_MATCH_EXIT_CODE = 1
 TIMEOUT_EXIT_CODE = 124
 NOT_FOUND_EXIT_CODE = 127
@@ -108,7 +113,10 @@ def load_config(config_dir: Path) -> Config:
         utc_offset = parse_offset(timeline["utc_offset"])
     except (KeyError, ValueError) as error:
         raise ConfigError(f"timeline.json needs day1 (YYYY-MM-DD) and utc_offset (+HH:MM): {error}") from error
-    return Config(repo=repo, github_repo=github_repo, use_gh=bool(local.get("use_gh", True)), day1=day1, utc_offset=utc_offset)
+    use_gh = local.get("use_gh", True)
+    if not isinstance(use_gh, bool):
+        raise ConfigError(f"use_gh must be true or false in {local_path}, got {use_gh!r}")
+    return Config(repo=repo, github_repo=github_repo, use_gh=use_gh, day1=day1, utc_offset=utc_offset)
 
 
 def parse_milestones(build_order_text: str, day1: datetime.date, now: datetime.datetime) -> dict:
@@ -148,14 +156,24 @@ class CommandResult:
 
 
 def run_command(argv: list[str], cwd: Path, timeout: int, env: dict | None = None) -> CommandResult:
-    """The one place the collector shells out. Tests replace it."""
+    """The one place the collector shells out. Tests replace it. The command gets its own
+    process group, so a timeout kills everything it started, not only the first process."""
     try:
-        completed = subprocess.run(argv, cwd=cwd, capture_output=True, text=True, timeout=timeout, env=env, check=False)
-    except subprocess.TimeoutExpired:
-        return CommandResult(TIMEOUT_EXIT_CODE, "", f"timed out after {timeout}s")
-    except FileNotFoundError as error:
+        process = subprocess.Popen(
+            argv, cwd=cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True,
+        )
+    except OSError as error:
         return CommandResult(NOT_FOUND_EXIT_CODE, "", str(error))
-    return CommandResult(completed.returncode, completed.stdout, completed.stderr)
+    try:
+        stdout, stderr = process.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except OSError:
+            pass  # the group has already exited
+        process.communicate()
+        return CommandResult(TIMEOUT_EXIT_CODE, "", f"timed out after {timeout}s")
+    return CommandResult(process.returncode, stdout, stderr)
 
 
 class Unavailable(Exception):
@@ -239,17 +257,25 @@ def grep_hits(repo: Path, sha: str, pattern: str, paths: list[str], runner) -> l
     return hits
 
 
+def hit_entry(path: str, line_number: int, text: str, secret_lines: set[tuple[str, int]]) -> dict:
+    """A non-secret hit keeps its text, unless the same line also holds a secret."""
+    if (path, line_number) in secret_lines:
+        return {"path": path, "line": line_number, "text_withheld": True}
+    return {"path": path, "line": line_number, "text": text.strip()}
+
+
 def collect_greps(repo: Path, sha: str, runner) -> dict:
+    secret_hits = grep_hits(repo, sha, SECRET_PATTERN, [], runner)
+    secret_lines = {(path, line_number) for path, line_number, _text in secret_hits}
     greps = {}
     for name, (pattern, paths) in GREP_PATTERNS.items():
         hits = grep_hits(repo, sha, pattern, paths, runner)
         if name == "region_strings":
             hits = [hit for hit in hits if any(found.group(0) != ALLOWED_REGION for found in REGION.finditer(hit[2]))]
         greps[name] = {
-            "hits": [{"path": path, "line": line_number, "text": text.strip()} for path, line_number, text in hits],
+            "hits": [hit_entry(path, line_number, text, secret_lines) for path, line_number, text in hits],
             "source": f"git grep -E '{pattern}' {sha[:7]}",
         }
-    secret_hits = grep_hits(repo, sha, SECRET_PATTERN, [], runner)
     greps["secrets"] = {
         "hits": [{"path": path, "line": line_number} for path, line_number, _text in secret_hits],
         "source": f"git grep -E <secret patterns> {sha[:7]} (matched text withheld)",
@@ -286,9 +312,9 @@ def collect_prs(github_repo: str, repo: Path, runner) -> dict:
     return {"items": items, "source": f"gh pr list --repo {github_repo} --state all"}
 
 
-def parse_pytest(output: str, returncode: int, sha: str) -> dict:
+def parse_pytest(output: str, returncode: int, sha: str, duration_s: float | None = None) -> dict:
     passed, failed, errors = (PASSED.search(output), FAILED.search(output), ERRORS.search(output))
-    if not (passed or failed):
+    if not (passed or failed or errors):
         return unavailable(f"pytest output not recognised (exit {returncode}): {first_line(output[-300:])}")
     coverage = COVERAGE_TOTAL.search(output)
     return {
@@ -296,6 +322,7 @@ def parse_pytest(output: str, returncode: int, sha: str) -> dict:
         "failed": int(failed.group(1)) if failed else 0,
         "errors": int(errors.group(1)) if errors else 0,
         "coverage_total": int(coverage.group(1)) if coverage else None,
+        "duration_s": round(duration_s, 1) if duration_s is not None else None,
         "exit_code": returncode,
         "source": f"uv run --locked pytest in a throwaway worktree of {sha[:7]}",
     }
@@ -309,15 +336,16 @@ def collect_tests(repo: Path, sha: str, runner) -> dict:
         env = {key: value for key, value in os.environ.items() if not key.startswith(DROPPED_ENV_PREFIXES)}
         # No explicit -q: the product's pyproject addopts already sets -q, and a second one
         # suppresses the "N passed" summary line that parse_pytest reads.
+        started = time.perf_counter()
         result = runner(["uv", "run", "--locked", "pytest"], worktree, TESTS_TIMEOUT_S, env)
+        duration_s = time.perf_counter() - started
         if result.returncode == TIMEOUT_EXIT_CODE:
             return unavailable(f"pytest {result.stderr}")
-        return parse_pytest(result.stdout + result.stderr, result.returncode, sha)
+        return parse_pytest(result.stdout + result.stderr, result.returncode, sha, duration_s)
     except Unavailable as error:
         return unavailable(str(error))
     finally:
         runner(["git", "worktree", "remove", "--force", str(worktree)], repo, GIT_TIMEOUT_S)
-        runner(["git", "worktree", "prune"], repo, GIT_TIMEOUT_S)
         shutil.rmtree(temp_root, ignore_errors=True)
 
 
@@ -355,11 +383,20 @@ def previous_report(vault: Path) -> str | None:
 
 
 def section(builder):
-    """Run one fact source; a failure becomes an `unavailable` section instead of stopping the run."""
+    """Run one fact source; any failure becomes an `unavailable` section instead of stopping the run."""
     try:
         return builder()
     except Unavailable as error:
         return unavailable(str(error))
+    except (OSError, ValueError) as error:
+        return unavailable(f"{type(error).__name__}: {first_line(str(error))}")
+
+
+def milestones_for(vault: Path, day1: datetime.date, now: datetime.datetime) -> dict:
+    build_order_path = vault / BUILD_ORDER
+    if not build_order_path.is_file():
+        return unavailable(f"{BUILD_ORDER} not found")
+    return parse_milestones(build_order_path.read_text(encoding="utf-8"), day1, now)
 
 
 def open_pr_commits(repo: Path, prs: dict, develop_sha: str, runner) -> dict:
@@ -378,8 +415,7 @@ def collect(config: Config, vault: Path, at: str | None, run_tests: bool, runner
     develop_sha = resolve_sha(config.repo, "origin/develop", runner)
     audited = resolve_sha(config.repo, at, runner) if at else develop_sha
     stamp = report_stamp(now)
-    build_order_path = vault / BUILD_ORDER
-    prs = collect_prs(config.github_repo, config.repo, runner) if config.use_gh else unavailable("gh disabled in local.json (use_gh: false)")
+    prs = section(lambda: collect_prs(config.github_repo, config.repo, runner)) if config.use_gh else unavailable("gh disabled in local.json (use_gh: false)")
     return {
         "run": {
             "now": now.isoformat(),
@@ -393,16 +429,16 @@ def collect(config: Config, vault: Path, at: str | None, run_tests: bool, runner
             "develop_sha": develop_sha,
             "at": audited,
         },
-        "milestones": parse_milestones(build_order_path.read_text(encoding="utf-8"), config.day1, now) if build_order_path.is_file() else unavailable(f"{BUILD_ORDER} not found"),
+        "milestones": section(lambda: milestones_for(vault, config.day1, now)),
         "tree": section(lambda: collect_tree(config.repo, audited, runner)),
         "commits": section(lambda: collect_commits(config.repo, audited, runner)),
         "open_pr_commits": open_pr_commits(config.repo, prs, develop_sha, runner),
         "prs": prs,
         "branches": section(lambda: collect_branches(config.repo, runner)),
         "greps": section(lambda: collect_greps(config.repo, audited, runner)),
-        "tests": collect_tests(config.repo, audited, runner) if run_tests else unavailable("skipped (--no-tests)"),
-        "vault": collect_vault(vault, runner),
-        "previous_report": previous_report(vault),
+        "tests": section(lambda: collect_tests(config.repo, audited, runner)) if run_tests else unavailable("skipped (--no-tests)"),
+        "vault": section(lambda: collect_vault(vault, runner)),
+        "previous_report": section(lambda: previous_report(vault)),
     }
 
 
@@ -411,12 +447,14 @@ def summary_lines(facts: dict, facts_path: Path) -> str:
     milestones = facts["milestones"]
     next_id = milestones.get("next") if "items" in milestones else None
     unavailable_sections = [name for name, value in facts.items() if isinstance(value, dict) and value.get("status") == "unavailable"]
+    previous = facts["previous_report"]
+    previous_text = "unavailable" if isinstance(previous, dict) else (previous or "none")
     lines = [
         f"facts: {facts_path}",
         f"report to write: {run['vault']}/{run['report_path']}",
         f"audited: {run['at'][:7]} (origin/develop {run['develop_sha'][:7]}; fetch {run['fetch']})",
         f"next milestone: {next_id or 'none'}",
-        f"previous report: {facts['previous_report'] or 'none'}",
+        f"previous report: {previous_text}",
         f"unavailable: {', '.join(unavailable_sections) or 'none'}",
     ]
     return "\n".join(lines)

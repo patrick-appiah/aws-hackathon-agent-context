@@ -1,17 +1,27 @@
 """Tests for the progress auditor's collector. Stdlib unittest; run from the vault root:
 python3 -m unittest discover -s .claude -p "test_*.py"
 """
+import contextlib
+import dataclasses
 import datetime
+import io
 import json
 import os
+import shutil
+import subprocess
 import tempfile
+import time
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from auditor import collect
 
 UTC = datetime.timezone.utc
 DAY1 = datetime.date(2026, 10, 14)
+# Built at runtime so no literal key-shaped string lives in this file (secret scanners).
+FAKE_KEY = "AKIA" + "ABCDEFGHIJKLMNOP"
+FAKE_ASIA_KEY = "ASIA" + "ABCDEFGHIJKLMNOP"
 
 BUILD_ORDER_SAMPLE = """# Build order
 Milestones (`docs/TEAM_PLAN.md` §4):
@@ -112,7 +122,7 @@ def build_repo(root):
     (repo / "business" / "business-case.md").write_text("Payback: [TBC]\n")
     (repo / "COST.md").write_text("# Cost\nTODO measure\n")
     (repo / "config.py").write_text(
-        'MODEL = "global.anthropic.claude-x"\nREGION = "eu-west-1"\nOTHER = "us-east-1"\nKEY = "AKIAABCDEFGHIJKLMNOP"\n'
+        f'MODEL = "global.anthropic.claude-x"\nREGION = "eu-west-1"\nOTHER = "us-east-1"\nKEY = "{FAKE_KEY}"\n'
     )
     git_in(repo, "add", ".")
     git_in(repo, "commit", "-q", "-m", "Add the business case and settings")
@@ -302,6 +312,221 @@ class VaultTests(unittest.TestCase):
 
     def test_previous_report_is_the_newest(self):
         self.assertEqual(collect.previous_report(self.vault), "08 Progress/2026-10-14 1300.md")
+
+
+class RunCommandTests(unittest.TestCase):
+    def test_timeout_returns_the_timeout_code_quickly(self):
+        started = time.monotonic()
+        result = collect.run_command(["sleep", "5"], Path("."), 1)
+        self.assertEqual(result.returncode, collect.TIMEOUT_EXIT_CODE)
+        self.assertLess(time.monotonic() - started, 3)
+
+    def test_timeout_kills_the_grandchildren_too(self):
+        self.assertIsNotNone(shutil.which("pgrep"), "pgrep is needed for this test")
+        result = collect.run_command(["sh", "-c", "sleep 30 & wait"], Path("."), 1)
+        self.assertEqual(result.returncode, collect.TIMEOUT_EXIT_CODE)
+        survivors = subprocess.run(["pgrep", "-f", "sleep 30"], capture_output=True, text=True)
+        self.assertNotEqual(survivors.returncode, 0, f"surviving processes: {survivors.stdout}")
+
+    def test_missing_working_directory_is_not_found(self):
+        result = collect.run_command(["true"], Path("/no-such-directory-for-audit"), 5)
+        self.assertEqual(result.returncode, collect.NOT_FOUND_EXIT_CODE)
+
+
+class SectionTests(unittest.TestCase):
+    def test_each_failure_kind_becomes_a_one_line_unavailable(self):
+        def raise_os_error():
+            raise OSError("disk\nfull")
+
+        def raise_value_error():
+            raise ValueError("bad milestone")
+
+        def raise_unavailable():
+            raise collect.Unavailable("git failed: boom")
+
+        self.assertEqual(collect.section(raise_os_error), {"status": "unavailable", "reason": "OSError: disk"})
+        self.assertEqual(collect.section(raise_value_error), {"status": "unavailable", "reason": "ValueError: bad milestone"})
+        self.assertEqual(collect.section(raise_unavailable), {"status": "unavailable", "reason": "git failed: boom"})
+        self.assertEqual(collect.section(lambda: 42), 42)
+
+
+class UseGhTypeTests(unittest.TestCase):
+    def test_string_false_is_refused(self):
+        with tempfile.TemporaryDirectory() as temp:
+            config_dir = Path(temp)
+            repo = config_dir / "repo"
+            (repo / ".git").mkdir(parents=True)
+            (config_dir / "timeline.json").write_text(json.dumps({"day1": "2026-10-14", "utc_offset": "+00:00"}))
+            (config_dir / "local.json").write_text(json.dumps({
+                "repo": str(repo), "github_repo": "Amali-Tech/cloud-9-hackathon", "use_gh": "false",
+            }))
+            with self.assertRaisesRegex(collect.ConfigError, "use_gh must be true or false"):
+                collect.load_config(config_dir)
+
+
+class PytestFixTests(unittest.TestCase):
+    def test_errors_only_are_reported_as_errors(self):
+        parsed = collect.parse_pytest("1 error in 0.5s\n", 2, "a" * 40)
+        self.assertNotIn("status", parsed)
+        self.assertEqual((parsed["passed"], parsed["failed"], parsed["errors"]), (0, 0, 1))
+
+    def test_duration_is_rounded_to_a_tenth(self):
+        parsed = collect.parse_pytest(PYTEST_OUTPUT, 0, "a" * 40, duration_s=12.34)
+        self.assertEqual(parsed["duration_s"], 12.3)
+
+
+class SecretLineTests(unittest.TestCase):
+    def test_a_secret_line_loses_the_text_of_other_hits(self):
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp) / "mixed"
+            repo.mkdir()
+            git_in(repo, "init", "-q", "-b", "develop")
+            (repo / "notes.md").write_text(f"Payback [TBC] key {FAKE_KEY}\nASIA line {FAKE_ASIA_KEY}\n")
+            git_in(repo, "add", ".")
+            git_in(repo, "commit", "-q", "-m", "Mixed lines")
+            sha = collect.resolve_sha(repo, "develop", collect.run_command)
+            greps = collect.collect_greps(repo, sha, collect.run_command)
+        self.assertEqual(greps["tbc"]["hits"], [{"path": "notes.md", "line": 1, "text_withheld": True}])
+        self.assertEqual(greps["secrets"]["hits"], [{"path": "notes.md", "line": 1}, {"path": "notes.md", "line": 2}])
+        self.assertNotIn(FAKE_KEY, json.dumps(greps))
+        self.assertNotIn(FAKE_ASIA_KEY, json.dumps(greps))
+
+
+def write_build_order(vault, text=None):
+    (vault / "07 Build").mkdir(parents=True, exist_ok=True)
+    body = text if text is not None else "- **M0** D1 10:30: contracts frozen.\n- **M1** D2 12:00: stacks deploy.\n"
+    (vault / "07 Build" / "Build order.md").write_bytes(body.encode("utf-8") if isinstance(body, str) else body)
+
+
+class OrchestrationTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        root = Path(self.temp.name)
+        origin = build_repo(root)
+        git_in(origin, "checkout", "-q", "feature/good-name")
+        (origin / "feature.txt").write_text("feature\n")
+        git_in(origin, "add", "feature.txt")
+        git_in(origin, "commit", "-q", "-m", "Feature work")
+        git_in(origin, "checkout", "-q", "develop")
+        self.clone = root / "clone"
+        subprocess.run(["git", "clone", "-q", str(origin), str(self.clone)], check=True, capture_output=True, text=True)
+        self.vault = root / "vault"
+        write_build_order(self.vault)
+        self.config = collect.Config(
+            repo=self.clone, github_repo="Amali-Tech/cloud-9-hackathon", use_gh=True,
+            day1=DAY1, utc_offset=datetime.timedelta(0),
+        )
+        self.now = datetime.datetime(2026, 10, 14, 15, 0, tzinfo=UTC)
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def run_collect(self, runner, config=None, run_tests=False):
+        return collect.collect(config or self.config, self.vault, None, run_tests, runner, self.now)
+
+    def test_gh_failure_leaves_the_other_sections_in_place(self):
+        runner = FakeRunner({("gh",): collect.CommandResult(4, "", "gh: not logged in")})
+        facts = self.run_collect(runner)
+        self.assertEqual(facts["prs"], {"status": "unavailable", "reason": "gh pr list failed: gh: not logged in"})
+        self.assertIn("paths", facts["tree"])
+        self.assertIn("items", facts["commits"])
+        self.assertEqual(len(facts["milestones"]["items"]), 2)
+        self.assertIn("hits", facts["greps"]["tbc"])
+        self.assertEqual(facts["tests"], {"status": "unavailable", "reason": "skipped (--no-tests)"})
+
+    def test_use_gh_false_never_calls_gh(self):
+        config = dataclasses.replace(self.config, use_gh=False)
+        runner = FakeRunner({})
+        facts = self.run_collect(runner, config=config)
+        self.assertIn("use_gh", facts["prs"]["reason"])
+        self.assertFalse(any(argv[0] == "gh" for argv, _env in runner.calls))
+
+    def test_pytest_runs_with_the_plain_argv_and_no_prune(self):
+        runner = FakeRunner({("uv",): collect.CommandResult(0, PYTEST_OUTPUT, "")})
+        sha = collect.resolve_sha(self.clone, "origin/develop", collect.run_command)
+        tests = collect.collect_tests(self.clone, sha, runner)
+        uv_calls = [argv for argv, _env in runner.calls if argv[0] == "uv"]
+        self.assertEqual(uv_calls, [["uv", "run", "--locked", "pytest"]])
+        self.assertNotIn(["git", "worktree", "prune"], [argv for argv, _env in runner.calls])
+        self.assertIsInstance(tests["duration_s"], float)
+
+    def test_summary_names_the_unavailable_sections(self):
+        runner = FakeRunner({("gh",): collect.CommandResult(4, "", "gh: not logged in")})
+        facts = self.run_collect(runner)
+        lines = collect.summary_lines(facts, Path("runs/x.json")).splitlines()
+        unavailable_line = [line for line in lines if line.startswith("unavailable:")][0]
+        self.assertIn("prs", unavailable_line)
+        self.assertIn("tests", unavailable_line)
+        self.assertNotIn("tree", unavailable_line)
+
+    def test_open_pr_commits_lists_the_branch_commits(self):
+        runner = FakeRunner({})
+        develop_sha = collect.resolve_sha(self.clone, "origin/develop", runner)
+        prs = {"items": [
+            {"number": 8, "state": "OPEN", "head": "feature/good-name"},
+            {"number": 9, "state": "MERGED", "head": "seat3/bad-name"},
+        ]}
+        by_pr = collect.open_pr_commits(self.clone, prs, develop_sha, runner)
+        self.assertEqual(list(by_pr), ["8"])
+        self.assertEqual([item["subject"] for item in by_pr["8"]["items"]], ["Feature work"])
+
+    def test_missing_build_order_is_unavailable_and_the_run_continues(self):
+        (self.vault / "07 Build" / "Build order.md").unlink()
+        facts = self.run_collect(FakeRunner({("gh",): collect.CommandResult(4, "", "no gh")}))
+        self.assertEqual(facts["milestones"], {"status": "unavailable", "reason": "07 Build/Build order.md not found"})
+        self.assertIn("paths", facts["tree"])
+
+    def test_undecodable_build_order_is_unavailable_and_the_run_continues(self):
+        write_build_order(self.vault, text=b"\xff\xfe not utf-8")
+        facts = self.run_collect(FakeRunner({("gh",): collect.CommandResult(4, "", "no gh")}))
+        self.assertEqual(facts["milestones"]["status"], "unavailable")
+        self.assertIn("paths", facts["tree"])
+
+
+class MainExitTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        root = Path(self.temp.name)
+        self.config_dir = root / "auditor"
+        self.config_dir.mkdir()
+        self.vault = root / "vault"
+        write_build_order(self.vault)
+        self.repo = build_repo(root)
+        (self.config_dir / "timeline.json").write_text(json.dumps({"day1": "2026-10-14", "utc_offset": "+00:00"}))
+        for name, value in (("VAULT", self.vault), ("CONFIG_DIR", self.config_dir)):
+            patcher = mock.patch.object(collect, name, value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def run_main(self, argv):
+        with contextlib.redirect_stderr(io.StringIO()), contextlib.redirect_stdout(io.StringIO()):
+            return collect.main(argv)
+
+    def write_local(self):
+        (self.config_dir / "local.json").write_text(json.dumps({
+            "repo": str(self.repo), "github_repo": "Amali-Tech/cloud-9-hackathon", "use_gh": False,
+        }))
+
+    def test_missing_local_json_exits_2(self):
+        self.assertEqual(self.run_main(["--no-tests"]), 2)
+
+    def test_bad_at_sha_exits_4(self):
+        self.write_local()
+        self.assertEqual(self.run_main(["--at", "zzz"]), 4)
+
+    def test_existing_report_for_this_minute_exits_3(self):
+        self.write_local()
+        for _attempt in range(2):
+            now = datetime.datetime.now(UTC).replace(microsecond=0)
+            report = self.vault / "08 Progress" / f"{collect.report_stamp(now)}.md"
+            report.parent.mkdir(exist_ok=True)
+            report.write_text("existing\n")
+            if self.run_main(["--no-tests"]) == 3:
+                return
+        self.fail("main() did not exit 3 for an existing report in the current minute")
 
 
 if __name__ == "__main__":
