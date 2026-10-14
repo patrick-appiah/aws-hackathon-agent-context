@@ -77,10 +77,10 @@ Work in parallel: an item starts as soon as its dependencies are merged into `de
 | M2 | `infra/app.py` *(new)* + DataStack + LedgerStack; CDK in its own `infra` dependency group; Node 22 in CI | Michael | C1, M1 (edits the Jenkinsfile) | M1 → M2 | **merged** (PR #37, 307da7c) | [[M2 - App, DataStack and LedgerStack - spec]] · [[M2 - App, DataStack and LedgerStack - plan]] |
 | M3a | GuardrailStack | Michael | M2 | M1 → M3 | **merged** (PR #38, 18f98ae) | [[M3a - GuardrailStack - spec]] · [[M3a - GuardrailStack - plan]] |
 | M3b | AuthStack (Cognito) | Michael | M2, A2 | M1 → M3 | **merged** (PR #44, 8ccf8d7) | [[M3b - AuthStack - spec]] · [[M3b - AuthStack - plan]] |
-| M4a | WebStack (S3 + CloudFront, `/api/*`) and the Cognito callback fix | Michael | M2; app wiring needs M3b and Y1 | M1 → M2 | in review (PR #54) | [[M4a - WebStack - spec]] · [[M4a - WebStack - plan]] |
+| M4a | WebStack (S3 + CloudFront, `/api/*`) and the Cognito callback fix | Michael | M2; app wiring needs M3b and Y1 | M1 → M2 | **merged** (PR #54, 9b5d3b7) | [[M4a - WebStack - spec]] · [[M4a - WebStack - plan]] |
 | M4b | Observability (dashboards, alarms) | Michael | M2; app wiring needs Y1, Y2a and M4a | M2 | spec + plan ready | [[M4b - Observability - spec]] · [[M4b - Observability - plan]] |
 | M5 | Clean-deploy runbook (with Patrick) | Michael | all stacks | M2, M4 | spec + plan ready | [[M5 - Clean-deploy runbook - spec]] · [[M5 - Clean-deploy runbook - plan]] |
-| Y1 | ApiStack (HTTP API v2, JWT authorizer, routes) | Yaw | M3a, M3b | M1 → M2 | in review (PR #51) | [[Y1 - ApiStack - spec]] · [[Y1 - ApiStack - plan]] |
+| Y1 | ApiStack (HTTP API v2, JWT authorizer, routes) | Yaw | M3a, M3b | M1 → M2 | **merged** (PR #51, f17622a) | [[Y1 - ApiStack - spec]] · [[Y1 - ApiStack - plan]] |
 | Y2a | Express ask spine + `/ask` | Yaw | Y1; Task 6 needs H2b and L3 | M1 → M3 | spec + plan ready | [[Y2a - Express ask spine - spec]] · [[Y2a - Express ask spine - plan]] |
 | Y2b | Standard publish flow + `/publish`, `/approve` | Yaw | Y2a; Task 5 needs H4 and L3 | M3 | spec + plan ready | [[Y2b - Standard publish flow - spec]] · [[Y2b - Standard publish flow - plan]] |
 | Y3a | AgentCore runtime (code zip, no Docker) | Yaw | Y2a, H2b | M2 | spec + plan ready | [[Y3a - AgentCore runtime - spec]] · [[Y3a - AgentCore runtime - plan]] |
