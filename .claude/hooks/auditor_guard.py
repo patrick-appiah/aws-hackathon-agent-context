@@ -117,6 +117,10 @@ ALWAYS_REFUSED = set("$`")
 TAB = "\t"
 WORD_START_CHARACTERS = set(" \t|&;()<>")
 INDEX_NAME = "Progress.md"
+# The guard is registered in the vault's .claude/settings.json (so it also runs in -p sessions, where a
+# project agent's frontmatter hooks are skipped) and therefore sees every session's tool calls.
+# It judges only calls made inside the progress-auditor subagent; Claude Code sets agent_type there.
+AUDITOR_AGENT_TYPE = "progress-auditor"
 
 
 class Denied(Exception):
@@ -669,6 +673,8 @@ def decide(payload, roots):
 def main():
     try:
         payload = json.load(sys.stdin)
+        if payload.get("agent_type") != AUDITOR_AGENT_TYPE:
+            sys.exit(0)
         roots = load_roots()
         decide(payload, roots)
     except Denied as refusal:

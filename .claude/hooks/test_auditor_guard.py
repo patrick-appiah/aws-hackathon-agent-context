@@ -52,7 +52,7 @@ class GuardTestCase(unittest.TestCase):
         cls.temp.cleanup()
 
     def decide(self, tool_name, tool_input, raw=None, env_vault=True):
-        payload = raw if raw is not None else json.dumps({"tool_name": tool_name, "tool_input": tool_input, "cwd": str(self.vault)})
+        payload = raw if raw is not None else json.dumps({"tool_name": tool_name, "tool_input": tool_input, "cwd": str(self.vault), "agent_type": "progress-auditor"})
         env = {key: value for key, value in os.environ.items() if key != "CLAUDE_PROJECT_DIR"}
         if env_vault:
             env["CLAUDE_PROJECT_DIR"] = str(self.vault)
@@ -243,13 +243,13 @@ class AllowlistTests(GuardTestCase):
         payload = json.dumps({
             "tool_name": "Write",
             "tool_input": {"file_path": "08 Progress/2026-10-14 1530.md", "content": "x"},
-            "cwd": str(self.vault),
+            "cwd": str(self.vault), "agent_type": "progress-auditor",
         })
         self.assertEqual(self.decide("Write", {}, raw=payload), "allow")
         elsewhere = json.dumps({
             "tool_name": "Write",
             "tool_input": {"file_path": "08 Progress/2026-10-14 1530.md", "content": "x"},
-            "cwd": str(self.repo),
+            "cwd": str(self.repo), "agent_type": "progress-auditor",
         })
         self.assertEqual(self.decide("Write", {}, raw=elsewhere), "deny")
 
@@ -278,7 +278,7 @@ class RoundTwoTests(GuardTestCase):
         ])
 
     def test_cwd_outside_roots_refused(self):
-        payload = json.dumps({"tool_name": "Bash", "tool_input": {"command": "ls"}, "cwd": "/etc"})
+        payload = json.dumps({"tool_name": "Bash", "tool_input": {"command": "ls"}, "cwd": "/etc", "agent_type": "progress-auditor"})
         self.assertEqual(self.decide("Bash", {}, raw=payload), "deny")
 
     def test_still_allowed(self):
@@ -420,7 +420,7 @@ class RoundFourTests(GuardTestCase):
                 output = io.StringIO()
                 with mock.patch.object(auditor_guard, "decide", side_effect=error), \
                         mock.patch.object(auditor_guard, "load_roots", return_value=None), \
-                        mock.patch.object(sys, "stdin", io.StringIO("{}")), \
+                        mock.patch.object(sys, "stdin", io.StringIO('{"agent_type": "progress-auditor"}')), \
                         mock.patch.object(sys, "stdout", output):
                     with self.assertRaises(SystemExit) as exit_context:
                         auditor_guard.main()
@@ -497,6 +497,16 @@ class FileToolTests(GuardTestCase):
         self.assertEqual(self.decide("NotebookEdit", {"notebook_path": "x"}), "deny")
         self.assertEqual(self.decide("Bash", {}, raw="{not json"), "deny")
         self.assertEqual(self.decide("Read", {"file_path": f"{self.vault}/06 Workstreams/Brief.md"}, env_vault=False), "deny")
+
+
+class OtherAgentTests(GuardTestCase):
+    def test_calls_outside_the_auditor_pass_through(self):
+        for agent_type in (None, "Explore"):
+            with self.subTest(agent_type=agent_type):
+                fields = {"tool_name": "Bash", "tool_input": {"command": "cat /etc/passwd"}, "cwd": str(self.vault)}
+                if agent_type:
+                    fields["agent_type"] = agent_type
+                self.assertEqual(self.decide("Bash", {}, raw=json.dumps(fields)), "allow")
 
 
 class NoGhTests(GuardTestCase):

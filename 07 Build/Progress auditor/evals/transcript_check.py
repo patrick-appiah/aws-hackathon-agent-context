@@ -47,7 +47,7 @@ def guard_refuses(tool_name, tool_input, vault):
     guard = os.path.join(vault, ".claude", "hooks", "auditor_guard.py")
     if not os.path.isfile(guard):
         return "the guard is missing from the vault"
-    payload = json.dumps({"tool_name": tool_name, "tool_input": tool_input, "cwd": vault})
+    payload = json.dumps({"tool_name": tool_name, "tool_input": tool_input, "cwd": vault, "agent_type": "progress-auditor"})
     env = {key: value for key, value in os.environ.items() if key != "CLAUDE_PROJECT_DIR"}
     env["CLAUDE_PROJECT_DIR"] = vault
     run = subprocess.run([sys.executable, "-I", guard], input=payload, capture_output=True, text=True, env=env, check=False)
