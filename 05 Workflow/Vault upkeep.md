@@ -18,6 +18,7 @@ Latest [[Sessions]] note (top line: **Next command**) → [[Open follow-ups]] �
 - End every note with `Related: [[<its MOC>]]`. Use aliases for long names.
 - Today's [[Sessions]] note: what shipped, what's half done, and the exact next command.
 - No client/company/system names, no PII, no passwords or keys.
+- **File names must work on Windows:** no `: * ? " < > | \ /` in note names (Windows can't check them out; the vault is a shared git repo). Write times as `1400`, not `14:00`; use an alias for the display text: `[[Code freeze is Day 2 1400|… 14:00]]`.
 - **Team plan has three copies:** the repo's `docs/TEAM_PLAN.md` is canonical. After any change to it, regenerate [[Team plan]] from it (the note records `synced_from_commit`) and republish the shared team page.
 
 Related: [[Workflow]], [[Team plan]]
