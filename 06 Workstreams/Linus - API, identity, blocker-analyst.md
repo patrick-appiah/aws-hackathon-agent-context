@@ -83,9 +83,9 @@ Each task has a spec and plan first (superpowers), test-first code, and a PR to 
   - `CsvRepository`, `InMemoryLedger` and the real agents;
   - for Q08/Q09, Huvison's fault doubles (`evals/doubles.py`), chosen by the input's `fault` field. That field is read **only** by the runner.
 - **Scoring:**
-  - `must_cite` (every `artefact:row_id` appears in the answer's citations);
-  - `must_not_say` (case-insensitive);
-  - `expect` (`answer` / `partial` / `refused`);
+  - `must_cite` (every `artefact:row_id` appears in the answer's citations); `should_cite` is reported, not failed;
+  - `must_say` and `must_not_say` (case-insensitive; decide whole-phrase matching with Abdul so "not ready" doesn't trip "ready");
+  - `expect` (`answer` / `partial` / `refused` / `rejected`);
   - `target_only: true` → reported as "not run (target)".
 - **Output:** `evals/results/<YYYY-MM-DD>.json`, with the prompt versions (`load_prompt(name).provenance()` for each agent), the cost, pass/fail and the reasons, failures included. Abdul writes the `EVALS.md` results from it.
 - **The input format (agree it with Abdul at D1 10:30):**
@@ -93,7 +93,8 @@ Each task has a spec and plan first (superpowers), test-first code, and a PR to 
   {"id": "Q01", "question": "What is blocking cutover for E4?", "entity_id": "E4",
    "scope": {"role": "cfo", "tenant_id": "t-01", "entity_ids": ["*"]},
    "must_cite": ["reconciliation_results:RC-C3-E4-customers", "defect_log:DEF-0412", "cutover_runbook:E4#RB-010"],
-   "must_not_say": ["resolved"], "expect": "answer", "fault": null, "target_only": false, "source": "EVALS.md Q01"}
+   "should_cite": ["field_mappings:E4#CUSMST#TAXNO"], "must_say": [], "must_not_say": ["resolved"],
+   "expect": "answer", "fault": null, "target_only": false, "source": "EVALS.md Q01", "notes": "The planted chain"}
   ```
 
 ### 7. DevOps contact and mentoring
