@@ -1,33 +1,34 @@
 ---
 date: 2026-10-14
 source: repo docs/TEAM_PLAN.md (the repo copy is canonical; regenerate this note from it, never edit it by hand)
-synced_from_commit: 113cc18
+synced_from_commit: e8b86c6
 tags: [reference, area/team, area/process]
 ---
 # Team plan: 8 engineers, 2 days, a POC plus one target slice
 
-> **Read this first, then `AGENTS.md` and `ARCHITECTURE.md`.** If you're an AI assistant helping a teammate: stay inside that teammate's seat (§2). Don't change a contract in §3 without the lead's OK. Follow the rules in §6.
+> **Read this first, then `AGENTS.md` and `ARCHITECTURE.md`.** If you're an AI assistant helping a teammate: stay inside that teammate's workstream (§2). Don't change a contract in §3 without the lead's OK. Follow the rules in §6.
 
 ## 1. Strategy in four lines
 1. **Walking skeleton first.** By **Day 1 18:00** one thin path works end-to-end *in AWS*: dashboard numbers + one question answered with citations. Everything else plugs into it.
 2. **POC plus one target slice; the rest is a 90-day roadmap** (D-015). We build the POC (`ARCHITECTURE.md` §3) and one target layer end-to-end: Cognito sign-in with entity scope. Everything else in the target (§3b) is drawn and planned in `docs/ROADMAP.md`, not built. If the slice isn't green by **Day 2 12:00**, switch `AUTH_MODE=none`, demo the rest, and say so in `HANDOFF.md`.
 3. **Contracts before code.** The interfaces in §3 are frozen at **Day 1 10:30**. After that, everyone builds against them in parallel, mocking whatever isn't ready.
-4. **Half the score is documents.** Pitch deck 20 + business case 20 + spec 10, and the repo's 50 is mostly the markdown files and agent definitions. One seat is fully on the business documents; every seat writes its own section of the repo docs.
+4. **Half the score is documents.** Pitch deck 20 + business case 20 + spec 10, and the repo's 50 is mostly the markdown files and agent definitions. One owner is fully on the business documents; every workstream writes its own section of the repo docs.
 
-## 2. Seats
+## 2. Workstreams
 
-| # | Seat | Owns (folders) | Builds | Done when |
-|---|---|---|---|---|
-| 1 | **Lead / integrator** | `infra/app.py`, `config.py`, the shared core contracts (`tools/models.py`, `tools/ports.py`, `tools/constants.py`, `tools/evidence.py`), `ARCHITECTURE.md`, `DECISIONS.md`, `README.md`, `docs/` | Freezes contracts; reviews and merges PRs; runs the clean-account deploy check; stand-ups; drives the demo | `cdk deploy --all` from clean works twice (D1 18:00, D2 13:00); README runs in 5 commands |
-| 2 | **ERP-layer dataset (generator, planted scenarios), CSV adapter, evals and worked examples** | `scripts/`, `demo/data/erp/`, `adapters/csv_repo.py`, `evals/`, `EVALS.md`, `infra/data_stack.py` | S3 artefacts bucket + upload of the synthetic data; the 14 eval questions as runnable inputs with expected outputs; the eval runner (records prompt versions); one worked example per agent in `evals/expected/` | `evals` run with one command and write results, failures included; every agent has a committed worked example |
-| 3 | **KPI service, API, cost & roadmap** | `tools/metrics.py`, `tools/queries.py`, `api/`, `COST.md`, `docs/ROADMAP.md` | KPI Lambda + API Gateway routes; scope filtering; cost per question measured from the ledger, at pilot and full scale; the 90-day roadmap with phases, client dependencies, top-3 risks and go/no-go criteria | `/summary` serves the one screen; `COST.md` has measured numbers; `ROADMAP.md` reviewed by the lead and seat 8 |
-| 4 | **Identity slice & target design** | `auth/`, `infra/auth_stack.py`, `docs/architecture-target-*.png` | Cognito user pool + groups (cfo, sponsor, delivery_lead, entity_lead) with `tenant_id`/`entity_ids` claims; API Gateway JWT authorizer; scope built from the token for every request; the target architecture diagram v2 (Verified Permissions, Lake Formation, connectors, CloudTrail) matching `ARCHITECTURE.md` §3b | Entity lead for E4 is refused E2 (EVALS Q11); CFO sees all; target diagram v2 committed |
-| 5 | **Agents: plan & evidence** | `agents/orchestrator.py`, `agents/retriever.py`, `agents/blocker_analyst.py`, `tools/agent_tools.py`, `tools/claims.py`, `infra/agent_stack.py`, `agents/prompts/{orchestrator,retriever,blocker_analyst}.txt` | Strands agents on AgentCore Runtime; retriever and analyst tools wired to `tools/`; scope-aware tool calls | Q01 (what blocks E4?) returns claims with correct citations in the ledger |
-| 6 | **Trust & flow** | `agents/critic.py`, `agents/writer.py`, `adapters/*_ledger.py`, `infra/flow_stack.py`, `infra/guardrail_stack.py`, `agents/prompts/{critic,writer}.txt`, `agents/prompt_loader.py` | DynamoDB run ledger + rejected records; Step Functions Express ask spine (budget check → orchestrator → critic per claim → retry `Choice` reading the ledger → writer); Standard publish + `waitForTaskToken`; Bedrock Guardrail; budget ceiling | Critic rejects the DEF-0398 decoy live; Q09 hits the retry limit and lands in rejected records; publish waits for approval |
-| 7 | **Portal front end** | `web/`, `infra/web_stack.py` | React/Vite on S3 + CloudFront; Cognito sign-in; the one screen (source → target, timeline, capacity, % complete); ask panel with clickable citations; "could not verify" list; publish + approve screens; role-based views | All five KPIs on one screen; clicking a number shows its source rows |
-| 8 | **Business case & pitch** | `business/` (deck, business case, product spec) | Validates with the problem owner and oversight; named executive (CFO); baseline vs target numbers with stated assumptions; reuse across portfolio companies; spec (must-dos, priorities, user stories, success measures); 10-min pitch | All three documents reviewed by the lead by D2 15:00 |
+Four teams: back end (4), front end (2), DevOps (2), and the business documents. Each workstream owns its folders; a change to another workstream's folder goes through its owner.
 
-**Pairing:** seats 5 + 6 sit together (they share the ledger and the agent contract); 2 + 6 (evals ↔ critic); 3 + 8 (cost and roadmap ↔ business case); 4 + 7 (sign-in ↔ portal). Seat 8 interviews the others for the "why it's agentic" and cost numbers.
+| # | Workstream | Owner | Owns (folders) | Builds | Done when |
+|---|---|---|---|---|---|
+| 1 | **Lead: contracts, orchestrator and retriever** | Patrick | `config.py`, the shared core contracts (`tools/models.py`, `tools/ports.py`, `tools/constants.py`, `tools/evidence.py`), the API schema, `agents/orchestrator.py`, `agents/retriever.py`, `agents/prompts/{orchestrator,retriever}.txt`, `scripts/ask.py`, `ARCHITECTURE.md`, `DECISIONS.md`, `README.md`, `docs/` | Freezes the contracts first: API response shapes (`/summary`, `/entity`, `/rows`, `/ask`, `/publish`, `/approve`, error body), the ask-spine step inputs and outputs, new `config.py` settings (`AUTH_MODE`, tables, bucket, state machines, user pool), and the DevOps handover (handlers, environment, IAM, bundling including prompts). Then the orchestrator and retriever on Strands; reviews contract files; merges PRs; runs the clean-deploy check with DevOps; drives the demo | Contracts merged before any handler code; Q07 returns a `PartialAnswer`; the retriever cites rows for Q01; `cdk deploy --all` from clean works twice (D1 18:00, D2 13:00) |
+| 2 | **Trust and flow** | Huvison | `agents/critic.py`, `agents/writer.py`, `agents/prompts/{critic,writer}.txt`, `agents/prompt_loader.py`, `adapters/*_ledger.py`, the ask-spine and publish handlers | Writer agent; the `/ask` step handlers (budget check, claims to the ledger, critic per claim, retry guard reading the ledger, writer); `/publish` + `/approve` with the task token and the status-pack write to S3; ledger extensions (rejected records, read methods, `STEP#n`, token totals, task tokens); cost per run from token counts × a price table in code; the Q08/Q09 fault hook; the Guardrail configuration (DevOps deploys it); times a full `/ask` against API Gateway's 29 s limit and picks the fallback | Q08 and Q09 pass; a rejected claim lands in rejected records with all its verdicts; a status pack publishes only after approval; cost per run recorded |
+| 3 | **API, identity and the blocker-analyst** | Linus (with Abdul) | `api/`, `auth/` (Python side), `tools/metrics.py`, `tools/queries.py`, `tools/agent_tools.py`, `tools/claims.py`, `agents/blocker_analyst.py`, `agents/prompts/blocker_analyst.txt`, `scripts/export_summary.py`, the eval runner | `/summary`, `/entity/{id}`, `/rows` handlers on `metrics`; scope built from the token (`AUTH_MODE=none` fallback); the `/ask` scope refusal before a run starts (Q11) and the error body; `export_summary.py` so the front end's fixtures come from the real summary; the blocker-analyst (figures from `make_analyst_tools`, validated by `tools/claims.py`); the eval runner on Day 2 (records prompt versions, writes failures). Main back-end contact for DevOps | `/summary` serves the one screen; an entity lead is refused another entity; Q01, Q02 and Q06 claims pass `tools/claims.py`; evals run with one command |
+| 4 | **Evals, Cognito and documentation** | Abdul (with Linus) | `evals/inputs/`, `evals/expected/`, `EVALS.md` results, `COST.md`, `HANDOFF.md`, `docs/architecture-target-*.png`, the API request collection | The 14 eval questions as JSON inputs with expected outputs; API request collection and example responses; Cognito groups (cfo, sponsor, delivery_lead, entity_lead), `tenant_id`/`entity_ids` claims and test users per role (with DevOps); Bedrock eu-west-1 price research for `COST.md`; worked examples per agent captured from real runs; the EVALS results and "what still fails"; target diagram v2; DEMO and HANDOFF lines; wording review of the agent prompts | Q01–Q14 inputs committed; every route has an example response; test users exist per role; `COST.md` and EVALS results filled honestly |
+| 5 | **DevOps** | Michael, Yaw | `infra/` (all CDK stacks and `infra/app.py`), `Jenkinsfile` | Data (S3 artefacts + upload of `demo/data/erp/output/migration`), API Gateway + JWT authorizer, Lambdas, Step Functions definitions (from the step I/O contract), AgentCore Runtime (or the Lambda fallback), DynamoDB ledger, Guardrail, Cognito, web hosting (S3 + CloudFront), least-privilege roles, logs and traces; CI | Every stack deploys from a clean account; CI green on every PR |
+| 6 | **Portal front end** | Mildred, Clement | `web/` | Angular 22 (D-020): the one screen, ask panel with clickable citations, "could not verify" list, publish + approve screens, role-based views; types from the API schema | All five KPIs on one screen from `/summary`; clicking a number shows its source rows |
+| 7 | **Business case & pitch** | to be confirmed | `business/` (deck, business case, product spec) | Validates with the problem owner and oversight; named executive (CFO); baseline vs target numbers with stated assumptions; reuse across portfolio companies; spec (must-dos, priorities, user stories, success measures); 10-min pitch | All three documents reviewed by the lead by D2 15:00 |
+
+**Pairing:** Patrick + Huvison (the agent contract and the ledger); Linus + Abdul (API, identity, evals); Linus + Mildred/Clement (the API schema and fixtures); Huvison + Michael/Yaw (Step Functions, Guardrail, AgentCore); Abdul + DevOps (Cognito users). The business-case owner interviews the others for the "why it's agentic" and cost numbers.
 
 ## 3. Contracts (frozen D1 10:30, changes only via the lead)
 
@@ -91,19 +92,19 @@ Switches and every other deployment setting are read in one place, `config.py` (
 
 | When | Everyone | Milestone |
 |---|---|---|
-| **D1 09:00–09:30** | Kick-off: read this, `AGENTS.md`, `ARCHITECTURE.md`; confirm seats | |
-| **D1 09:30–10:30** | Each seat drafts its part of the contracts; seat 8 books 15 min with the problem owner | **10:30 contracts frozen** (lead) |
-| **D1 10:30–12:00** | Seats 2 + 6: the 14 eval questions as runnable inputs with expected outputs. Others: CDK stack skeletons, deployable empty | Every stack deploys empty |
+| **D1 09:00–09:30** | Kick-off: read this, `AGENTS.md`, `ARCHITECTURE.md`; confirm workstreams | |
+| **D1 09:30–10:30** | Each workstream drafts its part of the contracts (the lead freezes them); the business-case owner books 15 min with the problem owner | **10:30 contracts frozen** (lead) |
+| **D1 10:30–12:00** | Abdul (with Huvison): the 14 eval questions as runnable inputs with expected outputs. DevOps: CDK stack skeletons, deployable empty | Every stack deploys empty |
 | **D1 12:00–16:00** | Tools before agents: everyone builds and unit-tests their deterministic parts against mocks of the others | `uv run --locked pytest` green; each stack deploys |
 | **D1 16:00–18:00** | Integrate the **walking skeleton**: portal → `/summary` (CSV) and `/ask` → orchestrator → retriever → ledger → writer (critic stubbed to pass) | **18:00 skeleton live in AWS**; first clean deploy check |
-| D1 evening | Optional: seat 8 drafts the business case; seats 3 + 4 draft `docs/ROADMAP.md` and the target diagram v2; lead updates docs | |
-| **D2 09:00–12:00** | Cognito slice end-to-end (seats 4 + 7); real critic + retry guard; publish flow. Evals after each merge | **12:00 go/no-go for the Cognito slice**: green stays on, otherwise `AUTH_MODE=none` and `HANDOFF.md` says so |
+| D1 evening | Optional: the business-case owner drafts the business case; Linus + Abdul draft `docs/ROADMAP.md` and the target diagram v2; lead updates docs | |
+| **D2 09:00–12:00** | Cognito slice end-to-end (Linus + Abdul with the front end and DevOps); real critic + retry guard; publish flow. Evals after each merge | **12:00 go/no-go for the Cognito slice**: green stays on, otherwise `AUTH_MODE=none` and `HANDOFF.md` says so |
 | **D2 12:00–14:00** | Guardrails on, budget ceiling, human approval end-to-end; worked example per agent committed | |
 | **D2 14:00** | **CODE FREEZE** | |
-| **D2 14:00–16:00** | Each seat writes its docs (§6); evals recorded with failures; COST.md measured; ROADMAP final; clean deploy check #2 | Lead + seat 8 review the documents at 15:00 |
+| **D2 14:00–16:00** | Each workstream writes its docs (§6); evals recorded with failures; COST.md measured; ROADMAP final; clean deploy check #2 | Lead + the business-case owner review the documents at 15:00 |
 | **D2 16:00–17:00** | Rehearse twice from cold, on the clock; record backup video | |
 
-**Stand-ups:** 09:00, 13:00, 17:00 each day, 10 minutes. Each seat says: done, next, blocked, contract changes needed.
+**Stand-ups:** 09:00, 13:00, 17:00 each day, 10 minutes. Each workstream says: done, next, blocked, contract changes needed.
 
 ## 5. Risk register
 
@@ -114,7 +115,7 @@ Switches and every other deployment setting are read in one place, `config.py` (
 | AgentCore Runtime deployment issues | Medium | Agents also runnable as a Lambda (same Strands code) as a fallback |
 | Clean-account deploy fails (hard gate) | Medium | Lead deploys with a fresh stack prefix twice; no console-clicked resources |
 | Integration chaos with 8 people | High | Folder ownership, frozen contracts, small PRs, lead merges |
-| Docs left late (half the score) | High | 14:00 freeze; seat 8 full-time on business docs; each seat owns its rows |
+| Docs left late (half the score) | High | 14:00 freeze; the business-case owner full-time on business docs; each workstream owns its rows |
 | Haiku access still pending | Low | Nova Lite for the retriever |
 
 ## 6. Working rules (for humans and their AI assistants)
@@ -124,7 +125,7 @@ Switches and every other deployment setting are read in one place, `config.py` (
 - **How we build a feature (superpowers):** brainstorm → written spec → written plan → test-first implementation (red, then green) → review of the whole branch → PR. Specs and plans live in `docs/superpowers/` (local, gitignored); the decisions they lead to go in `DECISIONS.md`. Small fixes skip the spec but still go test-first.
 - **Security findings:** confirm the finding against the code, reproduce it with a failing test, fix it, check sibling modules for the same gap, and record a `DECISIONS.md` entry. Never weaken a security rule (scope gate, create-once ledger, fail-closed critic, data escaping) to make a test pass.
 - **Hexagonal rule:** `tools/` is the core: no boto3, no Strands, no `adapters` imports (`tests/test_architecture.py` fails the build). AWS code goes in `adapters/` behind a port; agents call data only through `tools/agent_tools.py`.
-- **Stay in your folders.** Need something from another seat? Mock it against the contract and tell them.
+- **Stay in your folders.** Need something from another workstream? Mock it against the contract and tell them.
 - **Commit small and often** with clear messages; history is graded. Branch `<type>/<short-topic>` **from `develop`**, where type is `feature/`, `fix/`, `chore/`, `docs/`, `refactor/` or `test/` (e.g. `feature/blocker-analyst`, `fix/ledger-budget`), PR **to `develop`**, the lead merges. `develop` is the integration branch; `main` only receives reviewed releases from `develop` (e.g. the demo and submission builds), via a PR the lead opens.
 - **Clean code, enforced by tests where possible:**
   - **DRY:** a rule or check lives in one place (e.g. `tools/evidence.py` is the only citation and scope gate).
@@ -136,5 +137,5 @@ Switches and every other deployment setting are read in one place, `config.py` (
 - **Every deterministic function gets a unit test in `tests/`, mirroring the code** (`tests/tools/…` for `tools/…`; never next to the code, a guard test fails the build). Every agent gets one worked example in `evals/expected/<agent>.json`.
 - **No real names or data**, `eu-west-1` only, `eu.*` models only, no secrets in code (SSM/Secrets Manager).
 - **No console-only resources.** If it isn't in CDK, it doesn't exist (clean-deploy gate).
-- **Your docs:** seats 5 and 6 own their `AGENTS.md` rows; every seat adds its `DECISIONS.md` entries and its real/faked/breaks-first lines to `HANDOFF.md`; seat 3 owns `EVALS.md` and `COST.md`; seat 7 and the lead own `DEMO.md`.
-- **AI assistants:** read this file, `AGENTS.md` and `ARCHITECTURE.md` before writing code, and use the superpowers skills (brainstorming, writing-plans, test-driven-development); don't edit another seat's folder or a §3 contract; run `uv run --locked pytest` before every commit.
+- **Your docs:** Patrick, Huvison and Linus own their agents' `AGENTS.md` rows; every workstream adds its `DECISIONS.md` entries and its real/faked/breaks-first lines to `HANDOFF.md`; Abdul owns the `EVALS.md` results and `COST.md`; the front end and the lead own `DEMO.md`.
+- **AI assistants:** read this file, `AGENTS.md` and `ARCHITECTURE.md` before writing code, and use the superpowers skills (brainstorming, writing-plans, test-driven-development); don't edit another workstream's folder or a §3 contract; run `uv run --locked pytest` before every commit.

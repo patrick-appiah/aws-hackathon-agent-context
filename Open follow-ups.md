@@ -27,7 +27,7 @@ Tick with the commit/run id that closed it; never delete.
 - [ ] Write the CDK skeleton (S3, ledger, guardrail, Step Functions approval) #area/infra
 
 - [ ] Tell Michael Part A (DEF-0462 + calendar.csv) is done on `feature/erp-planted-scenarios`; his brief is now informational
-- [ ] Merge order: `feature/erp-planted-scenarios` then `refactor/erp-dataset-contract` (B is built on A); CI branch owns D-018, ours is D-019
+- [x] (PRs #10, #11 merged) Merge order: `feature/erp-planted-scenarios` then `refactor/erp-dataset-contract` (B is built on A); CI branch owns D-018, ours is D-019
 - [ ] UI shows whole-number percentages from counts (58 %, 89 %, 103 %); handles final_cutover = None and records_sent 0
 - [ ] Athena adapter must use `tools.queries.row_id` for identical citations
 - [ ] Republish the team page with the new TEAM_PLAN §3 table
@@ -35,5 +35,8 @@ Tick with the commit/run id that closed it; never delete.
 - [ ] Share the read-only npm token privately with teammates who build `web/` (never in Slack or the repo)
 - [ ] Mildred: `web/scripts/build-fixtures.mjs` reads `kpis.json`, deleted in PR #11; regenerate fixtures from `metrics.portfolio_summary` instead (small spec)
 - [ ] Front-end API types still follow the old summary shape (pass_rate_by_cycle, open_defects_by_age, capacity in hours); align with the new `portfolio_summary`
+- [ ] Name the business-case and pitch owner (TEAM_PLAN §2 workstream 7 says "to be confirmed")
+- [ ] Write the contracts spec (Patrick, first): API shapes incl. /rows, /entity, rejected[], partial_reason, trace, /approve statuses, error body; ask-spine step I/O; new config.py settings; DevOps handover
+- [ ] Draft one GitHub issue per workstream's first milestone and a project board
 
 Related: [[00 Home]]
