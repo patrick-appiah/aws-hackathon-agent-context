@@ -246,6 +246,41 @@ class AllowlistTests(GuardTestCase):
         self.assertEqual(self.decide("Write", {}, raw=elsewhere), "deny")
 
 
+class RoundTwoTests(GuardTestCase):
+    """Fix round 2: option values, dash-leading paths, git only in the repo, minors."""
+
+    def test_refused(self):
+        vault, repo = self.vault, self.repo
+        self.assert_bash("deny", [
+            f"git -C {repo} log -1 --pretty --output=/home/noblet/.bashrc --pretty=format:x",
+            f"git -C {repo} log --format --output=/tmp/x",
+            f"git -C {repo} log --since --output=/tmp/x",
+            f"git -C {repo} log --since=/etc/passwd",
+            'sed -n 1p "-ew .claude/settings.json"',
+            'sed -n 1p "-f/tmp/x"',
+            'git show "HEAD:07 Build/Progress auditor/evals/cases/c1.md"',
+            "git log -1",
+            f'grep -Rn x "{vault}/06 Workstreams"',
+            "gh pr list --repo A/B --json number --jq env",
+            "gh pr list --repo A/B --json number -q .env",
+            "gh api repos/../user",
+            f'grep --include=~/x y "{vault}/06 Workstreams/Brief.md"',
+            f'cat "" "{vault}/06 Workstreams/Brief.md"',
+            f'head -n -5 "{vault}/06 Workstreams/Brief.md"',
+        ])
+
+    def test_cwd_outside_roots_refused(self):
+        payload = json.dumps({"tool_name": "Bash", "tool_input": {"command": "ls"}, "cwd": "/etc"})
+        self.assertEqual(self.decide("Bash", {}, raw=payload), "deny")
+
+    def test_still_allowed(self):
+        repo = self.repo
+        self.assert_bash("allow", [
+            f"git -C {repo} log -1 --pretty=format:x",
+            f"git -C {repo} log --format=%h -n5",
+        ])
+
+
 class FileToolTests(GuardTestCase):
     def test_reads(self):
         self.assertEqual(self.decide("Read", {"file_path": f"{self.vault}/06 Workstreams/Brief.md"}), "allow")

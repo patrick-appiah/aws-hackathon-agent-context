@@ -30,7 +30,7 @@ OPTION_TABLE = {
     "head": (set(), set("nc"), set(), set()),
     "tail": (set(), set("nc"), set(), set()),
     "wc": (set("lwcm"), set(), set(), set()),
-    "grep": (set("nicloLhHEFwxvrRsq"), set("mABCe"), {"recursive"}, {"include", "exclude", "exclude-dir"}),
+    "grep": (set("nicloLhHEFwxvrsq"), set("mABCe"), {"recursive"}, {"include", "exclude", "exclude-dir"}),
     "sort": (set("nrufb"), set("kt"), set(), set()),
     "uniq": (set("cdui"), set(), set(), set()),
     "diff": (set("uqr"), set(), {"brief"}, set()),
@@ -68,6 +68,8 @@ GIT_OPTION_TABLE = {
     "cat-file": (set("tspe"), set(), set(), set()),
     "fetch": (set(), set(), {"prune", "quiet"}, set()),
 }
+# git option values that are patterns, never paths
+GIT_PATTERN_VALUES = {"format", "pretty", "grep", "author", "date"}
 GIT_COUNT_OPTION = re.compile(r"-n?\d+")
 # gh: (subcommand words) -> {option: takes a value}
 GH_OPTION_TABLE = {
@@ -82,6 +84,8 @@ GH_OPTION_TABLE = {
     ("api",): {"--jq": True, "-q": True, "--paginate": False, "--cache": True},
 }
 GH_API_ENDPOINT_PREFIX = "repos/"
+GH_JQ_OPTIONS = {"--jq", "-q"}
+GH_JQ_REFUSED = "env"
 SEGMENT_OPERATORS = {"|", "||", "&&", ";"}
 PUNCTUATION = set("();<>|&")
 STDERR_TO_NULL = re.compile(r"(?<=\s)2>/dev/null(?=\s|$)")
@@ -231,8 +235,12 @@ def check_recursive(start_tokens, cwd, roots):
             deny(f"a recursive search from {token} could reach a refused directory; start lower")
 
 
-def check_options(program, args, short_flags, short_with_value, long_flags, long_with_value, allow_numeric=False):
-    """Match every option against exact allowlists; return positionals, option values and flags seen."""
+def check_options(program, args, short_flags, short_with_value, long_flags, long_with_value, allow_numeric=False, inline_values_only=False):
+    """Match every option against exact allowlists; return positionals, (name, value) pairs and flags seen.
+
+    A value taken from the next token may never start with "-" (it would be a hidden option).
+    With inline_values_only, long options take values only as --name=value.
+    """
     parsed = ParsedOptions()
     index, options_ended = 0, False
 
@@ -241,7 +249,10 @@ def check_options(program, args, short_flags, short_with_value, long_flags, long
         if index >= len(args):
             deny(f"{program} option {name} needs a value")
         index += 1
-        return args[index - 1]
+        value = args[index - 1]
+        if value.startswith("-"):
+            deny(f"{program} option {name} cannot take a dash-leading value")
+        return value
 
     while index < len(args):
         token = args[index]
@@ -255,7 +266,9 @@ def check_options(program, args, short_flags, short_with_value, long_flags, long
             if name in long_flags and not has_value:
                 parsed.flags.add(name)
             elif name in long_with_value:
-                parsed.values.append(value if has_value else take_value(token))
+                if not has_value and inline_values_only:
+                    deny(f"{program} option {token} needs --name=value")
+                parsed.values.append((name, value if has_value else take_value(token)))
                 parsed.flags.add(name)
             else:
                 deny(f"{program} option {token} is not allowed")
@@ -267,7 +280,7 @@ def check_options(program, args, short_flags, short_with_value, long_flags, long
                 if letter in short_flags:
                     parsed.flags.add(letter)
                 elif letter in short_with_value:
-                    parsed.values.append(body[position + 1:] or take_value(token))
+                    parsed.values.append((letter, body[position + 1:] or take_value(token)))
                     parsed.flags.add(letter)
                     break
                 else:
@@ -277,14 +290,12 @@ def check_options(program, args, short_flags, short_with_value, long_flags, long
 
 def check_git(tokens, cwd, roots):
     args = tokens[1:]
-    work_dir = cwd
-    if args[:1] == ["-C"]:
-        if len(args) < 2:
-            deny("git -C needs a path")
-        work_dir = resolved(args[1], cwd)
-        args = args[2:]
-    if work_dir not in roots.readable():
-        deny("git runs only in the vault or as git -C <repo>")
+    if args[:1] != ["-C"] or len(args) < 2:
+        deny("git runs only as git -C <repo>")
+    work_dir = resolved(args[1], cwd)
+    args = args[2:]
+    if not roots.repo or work_dir != roots.repo:
+        deny("git runs only as git -C <repo>")
     if args[:1] == ["--no-pager"]:
         args = args[1:]
     if not args or args[0].startswith("-"):
@@ -297,7 +308,8 @@ def check_git(tokens, cwd, roots):
             deny("'..' path components are refused")
     if subcommand == "log":
         rest = [token for token in rest if not GIT_COUNT_OPTION.fullmatch(token)]
-    parsed = check_options(f"git {subcommand}", rest, *GIT_OPTION_TABLE[subcommand])
+    parsed = check_options(f"git {subcommand}", rest, *GIT_OPTION_TABLE[subcommand], inline_values_only=True)
+    check_path_tokens([value for name, value in parsed.values if "/" in value and name not in GIT_PATTERN_VALUES], cwd, roots)
     for token in parsed.positionals:
         if token.startswith(("/", "~")):
             deny("git paths outside the repository are refused")
@@ -322,19 +334,26 @@ def check_gh(tokens, roots):
         if not token.startswith("-") or token == "-":
             positionals.append(token)
             continue
-        name, has_value, _ = token.partition("=") if token.startswith("--") else (token, "", "")
+        name, separator, inline_value = token.partition("=") if token.startswith("--") else (token, "", "")
         if name not in allowed:
             deny(f"gh option {token} is not allowed")
-        if allowed[name] and not has_value:
-            if index >= len(rest):
+        if not allowed[name]:
+            if separator:
+                deny(f"gh option {name} takes no value")
+            continue
+        value = inline_value
+        if not separator:
+            if index >= len(rest) or rest[index].startswith("-"):
                 deny(f"gh option {name} needs a value")
+            value = rest[index]
             index += 1
-        elif not allowed[name] and has_value:
-            deny(f"gh option {name} takes no value")
+        if name in GH_JQ_OPTIONS and GH_JQ_REFUSED in value:
+            deny("gh jq filters that mention env are refused")
     if key == ("api",) and (
         len(positionals) != 1
         or not positionals[0].startswith(GH_API_ENDPOINT_PREFIX)
         or "graphql" in positionals[0]
+        or ".." in positionals[0]
     ):
         deny("gh api takes one repos/... endpoint, never graphql")
 
@@ -396,7 +415,7 @@ def check_listed_program(program, args, cwd, roots):
         check_recursive(positionals, cwd, roots)
     check_path_tokens(positionals, cwd, roots)
     if program not in PATTERN_VALUE_PROGRAMS:
-        check_path_tokens([value for value in parsed.values if "/" in value], cwd, roots)
+        check_path_tokens([value for name, value in parsed.values if "/" in value], cwd, roots)
 
 
 def check_segment(tokens, cwd, roots):
@@ -416,6 +435,8 @@ def check_segment(tokens, cwd, roots):
     elif program == "sed":
         if not (len(args) == 3 and args[0] == "-n" and SED_RANGE.fullmatch(args[1])):
             deny("sed is allowed only as sed -n 'START,ENDp' <file>")
+        if args[2].startswith("-"):
+            deny("sed's file argument cannot start with a dash")
         check_path_tokens(args[2:], cwd, roots)
     elif program == "test":
         if len(args) != 2 or args[0] not in TEST_PRIMARIES:
@@ -439,6 +460,10 @@ def check_bash(command, cwd, roots):
         deny("unparseable command")
     segment = []
     for token in tokens:
+        if token == "":
+            deny("empty argument")
+        if "=~" in token:
+            deny("'=~' is refused (tilde expansion)")
         if token in SEGMENT_OPERATORS:
             check_segment(segment, cwd, roots)
             segment = []
@@ -468,6 +493,8 @@ def decide(payload, roots):
     tool_name = payload["tool_name"]
     tool_input = payload.get("tool_input") or {}
     cwd = os.path.realpath(payload.get("cwd") or roots.vault)
+    if not any(under(cwd, root) for root in roots.readable()):
+        deny("the working directory is outside the vault and the repo")
     if tool_name == "Bash":
         check_bash(str(tool_input["command"]), cwd, roots)
     elif tool_name == "Read":
