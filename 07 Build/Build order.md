@@ -74,9 +74,9 @@ Work in parallel: an item starts as soon as its dependencies are merged into `de
 | ID | Item | Owner | Depends on | Milestone | Status | Spec / plan |
 |---|---|---|---|---|---|---|
 | M1 | Jenkins CI: PR #8 reviewed and merged; bandit list extended | Michael | (none) | M0 | spec + plan ready | [[M1 - Jenkins CI - spec]] · [[M1 - Jenkins CI - plan]] |
-| M2 | `infra/app.py` *(new)* + DataStack + LedgerStack; CDK in its own `infra` dependency group; Node 22 in CI | Michael | C1, M1 (edits the Jenkinsfile) | M1 → M2 | spec + plan ready | [[M2 - App, DataStack and LedgerStack - spec]] · [[M2 - App, DataStack and LedgerStack - plan]] |
-| M3a | GuardrailStack | Michael | M2 | M1 → M3 | spec + plan ready | [[M3a - GuardrailStack - spec]] · [[M3a - GuardrailStack - plan]] |
-| M3b | AuthStack (Cognito) | Michael | M2, A2 | M1 → M3 | spec + plan ready | [[M3b - AuthStack - spec]] · [[M3b - AuthStack - plan]] |
+| M2 | `infra/app.py` *(new)* + DataStack + LedgerStack; CDK in its own `infra` dependency group; Node 22 in CI | Michael | C1, M1 (edits the Jenkinsfile) | M1 → M2 | **merged** (PR #37, 307da7c) | [[M2 - App, DataStack and LedgerStack - spec]] · [[M2 - App, DataStack and LedgerStack - plan]] |
+| M3a | GuardrailStack | Michael | M2 | M1 → M3 | **merged** (PR #38, 18f98ae) | [[M3a - GuardrailStack - spec]] · [[M3a - GuardrailStack - plan]] |
+| M3b | AuthStack (Cognito) | Michael | M2, A2 | M1 → M3 | **merged** (PR #44, 8ccf8d7) | [[M3b - AuthStack - spec]] · [[M3b - AuthStack - plan]] |
 | M4a | WebStack (S3 + CloudFront, `/api/*`) and the Cognito callback fix | Michael | M2; app wiring needs M3b and Y1 | M1 → M2 | spec + plan ready | [[M4a - WebStack - spec]] · [[M4a - WebStack - plan]] |
 | M4b | Observability (dashboards, alarms) | Michael | M2; app wiring needs Y1, Y2a and M4a | M2 | spec + plan ready | [[M4b - Observability - spec]] · [[M4b - Observability - plan]] |
 | M5 | Clean-deploy runbook (with Patrick) | Michael | all stacks | M2, M4 | spec + plan ready | [[M5 - Clean-deploy runbook - spec]] · [[M5 - Clean-deploy runbook - plan]] |
