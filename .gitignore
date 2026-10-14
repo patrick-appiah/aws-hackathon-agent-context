@@ -7,3 +7,10 @@
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Progress auditor: per-machine config and collector output
+.claude/auditor/local.json
+.claude/auditor/runs/
+.claude/settings.local.json
+.superpowers/
+__pycache__/
