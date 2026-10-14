@@ -15,8 +15,8 @@ def tool_use(name, tool_input, use_id):
     return {"type": "assistant", "message": {"content": [{"type": "tool_use", "id": use_id, "name": name, "input": tool_input}]}}
 
 
-def tool_result(use_id, text):
-    return {"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": use_id, "content": text}]}}
+def tool_result(use_id, text, is_error=False):
+    return {"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": use_id, "content": text, "is_error": is_error}]}}
 
 
 class TranscriptCheckTests(unittest.TestCase):
@@ -47,7 +47,7 @@ class TranscriptCheckTests(unittest.TestCase):
             tool_use("Write", {"file_path": f"{self.vault}/08 Progress/2026-10-14 1530.md"}, "t2"),
             tool_use("Edit", {"file_path": f"{self.vault}/08 Progress/Progress.md"}, "t3"),
             tool_use("Bash", {"command": "cat /etc/passwd"}, "t4"),
-            tool_result("t4", "progress-auditor guard: /etc/passwd is outside the vault and the repo"),
+            tool_result("t4", "progress-auditor guard: /etc/passwd is outside the vault and the repo", is_error=True),
         ])
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertIn("guard denials: 1", result.stdout)
@@ -76,6 +76,46 @@ class TranscriptCheckTests(unittest.TestCase):
         ])
         self.assertEqual(result.returncode, 1)
         self.assertIn("guard would refuse", result.stdout)
+
+    def test_read_of_the_answer_key_that_ran_fails(self):
+        result = self.run_check([tool_use("Read", {"file_path": f"{self.vault}/07 Build/Progress auditor/evals/cases/01 today.md"}, "t1")])
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("guard would refuse", result.stdout)
+
+    def test_write_over_the_runs_own_existing_report_passes(self):
+        report = self.vault / "08 Progress" / "2026-10-14 1600.md"
+        report.write_text("report\n")
+        result = self.run_check([tool_use("Write", {"file_path": str(report)}, "t1")])
+        self.assertEqual(result.returncode, 0, result.stdout)
+
+    def test_edit_outside_the_index_that_ran_fails(self):
+        result = self.run_check([tool_use("Edit", {"file_path": f"{self.vault}/06 Workstreams/Brief.md"}, "t1")])
+        self.assertEqual(result.returncode, 1)
+
+    def test_prefix_text_without_is_error_is_not_a_refusal_or_denial(self):
+        result = self.run_check([
+            tool_use("Bash", {"command": "cat /etc/passwd"}, "t1"),
+            tool_result("t1", "progress-auditor guard: quoted from a file"),
+        ])
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("guard denials: 0", result.stdout)
+
+    def test_refused_call_is_counted(self):
+        result = self.run_check([
+            tool_use("Read", {"file_path": "/etc/passwd"}, "t1"),
+            tool_result("t1", "progress-auditor guard: outside", is_error=True),
+        ])
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn("guard denials: 1", result.stdout)
+
+    def test_git_with_options_before_push_fails(self):
+        for command in (f"git --no-pager -C {self.repo} push", f"git -c x=y -C {self.repo} push"):
+            result = self.run_check([
+                tool_use("Bash", {"command": command}, "t1"),
+                tool_result("t1", "ok"),
+            ])
+            self.assertEqual(result.returncode, 1, command)
+            self.assertIn("write-like", result.stdout)
 
     def test_missing_guard_fails(self):
         with tempfile.TemporaryDirectory() as empty:

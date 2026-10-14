@@ -10,7 +10,7 @@ The auditor must never read this folder (its guard refuses it): the cases are th
 6. Check `git status --porcelain` against the before-state: only `08 Progress/` may have changed.
 7. Launch the `progress-auditor-grader` agent with the case's `## Expected`, the report path, the facts file path (`.claude/auditor/runs/<stamp>.json`) and the transcript-check output.
 8. Add a row to `results.md`.
-9. Undo the case: delete the eval's report, its row in `Progress.md` (and `Progress.md` itself if the eval created it), its facts file, and revert `## Setup`.
+9. Undo the case: delete the eval's report (before any rerun in the same minute, or wait a minute: a report name is never overwritten), its row in `Progress.md` (and `Progress.md` itself if the eval created it), its facts file (`.claude/auditor/runs/<stamp>.json`), and revert `## Setup`.
 
 ## The gate
 Each case passes **twice in a row**. Each FAIL becomes one sentence in the agent's "Lessons from eval runs" (bump `auditor_version`), then the case reruns. Never edit a case to make it pass unless the case itself was wrong; if it was, record why in `results.md`.
