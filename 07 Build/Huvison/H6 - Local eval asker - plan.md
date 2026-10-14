@@ -20,7 +20,7 @@ The vault is the context space for this work (clone `git@github.com:patrick-appi
 
 When something here is unclear, look in the vault (`04 Reference/`, `03 Sessions/`, `Open follow-ups.md`) before guessing. If the vault doesn't answer it, stop and ask Huvison.
 
-**Goal:** `infra.functions.local.ask` runs every eval question through the real ask spine in-process and plants Q08's and Q09's faults; the eval runner scores them.
+**Goal:** `infra.functions.local:ask` runs every eval question through the real ask spine in-process and plants Q08's and Q09's faults; the eval runner scores them.
 
 **Architecture:** a thin module over `infra.functions.spine.run_spine`: a fresh in-memory ledger per question (Q08's strips `claim-1`'s citations), and an orchestrator wrapper for Q09. Seams (`make_orchestrator`, `make_critic_agent`, `make_writer`, `ledger_for`) let the tests use stand-ins.
 
@@ -48,7 +48,7 @@ When something here is unclear, look in the vault (`04 Reference/`, `03 Sessions
 
 **Files:** Create `infra/functions/local.py` *(new)*, `tests/infra/functions/test_local.py` *(new)*
 
-**Produces:** in `infra.functions.local`: the constants of spec §3; `CitationStrippingLedger`, `WithUnsupportableClaim`, `make_orchestrator()`, `make_critic_agent()`, `make_writer()`, `ledger_for(inject)`, `ask(case_input, scope: Scope, repository: ArtefactRepository) -> dict`. **Consumes:** `infra.functions.spine.SpineAgents`, `run_spine`; `infra.functions.steps.OrchestratorAgent`, `Writer`, `question_for`, `real_orchestrator`, `real_writer` (H2a/H2b); `tools.constants.CLAIM_ID_PREFIX` (P2); `evals.run.load_cases`, `run_case`, `Status` (exist, tests only). **Consumed by:** the eval runner (`--asker infra.functions.local.ask`), A5a/A5b (Abdul), P3 (optional).
+**Produces:** in `infra.functions.local`: the constants of spec §3; `CitationStrippingLedger`, `WithUnsupportableClaim`, `make_orchestrator()`, `make_critic_agent()`, `make_writer()`, `ledger_for(inject)`, `ask(case_input, scope: Scope, repository: ArtefactRepository) -> dict`. **Consumes:** `infra.functions.spine.SpineAgents`, `run_spine`; `infra.functions.steps.OrchestratorAgent`, `Writer`, `question_for`, `real_orchestrator`, `real_writer` (H2a/H2b); `tools.constants.CLAIM_ID_PREFIX` (P2); `evals.run.load_cases`, `run_case`, `Status` (exist, tests only). **Consumed by:** the eval runner (`--asker infra.functions.local:ask`), A5a/A5b (Abdul), P3 (optional).
 
 - [ ] **Step 1: Branch and baseline**
 ```bash
@@ -182,7 +182,7 @@ def test_q09_the_forced_claim_is_rejected_after_one_retry_with_two_verdicts(agen
 ```python
 """The eval runner's local asker: the ask spine in-process with the real agents, plus the planted faults.
 
-    uv run python -m evals.run --asker infra.functions.local.ask
+    uv run python -m evals.run --asker infra.functions.local:ask
 
 ask() has the asker contract in evals/run.py: (case_input, scope, repository) -> the /ask response as a dict, or
 {"refused": true, "status_code": 403} when the scope refuses the entity (nothing is written then). It runs
@@ -299,19 +299,19 @@ Expected: all passed; start + 11 (dry-run `325 passed`), `TOTAL ... 98%`, `infra
 **Task done when:** `uv run --locked pytest tests/infra/functions/test_local.py --no-cov -k q09 2>&1 | tail -1 | cut -d, -f1` prints `2 passed` (the Q09 test and the runner's Q09 case; `-k` ignores case), and `uv run --locked pytest tests/infra/functions/test_local.py --no-cov -k scores 2>&1 | tail -1 | cut -d, -f1` prints `5 passed`.
 
 ### Task 2: The live eval run, docs, review and PR
-- [ ] **Step 1: `HANDOFF.md`.** Under `## What's real`, add: `- The local eval asker (\`infra/functions/local.py\`): \`uv run python -m evals.run --asker infra.functions.local.ask\` asks the 14 questions through the real ask spine; it alone plants Q08's uncited claim and Q09's unsupportable claim (rejected after 2 attempts, 2 verdicts). No fault switch exists in the API or config.`
+- [ ] **Step 1: `HANDOFF.md`.** Under `## What's real`, add: `- The local eval asker (\`infra/functions/local.py\`): \`uv run python -m evals.run --asker infra.functions.local:ask\` asks the 14 questions through the real ask spine; it alone plants Q08's uncited claim and Q09's unsupportable claim (rejected after 2 attempts, 2 verdicts). No fault switch exists in the API or config.`
 - [ ] **Step 2: Commit:** `git add HANDOFF.md && git commit -m "HANDOFF: the local eval asker and its planted faults"`; then `uv run --locked pytest tests/test_dependencies.py --no-cov 2>&1 | tail -1`. Expected: `4 passed`.
 - [ ] **Step 3:** Review Focus by hand; results in `.superpowers/ledger-H6.md`.
 - [ ] **Step 4: Verify in AWS (the live run).** Needs P1, P2, L5, H3 merged and Bedrock access:
 ```bash
 export AWS_PROFILE=hackathon AWS_REGION=eu-west-1
-uv run python -m evals.run --asker infra.functions.local.ask; echo "exit $?"
+uv run python -m evals.run --asker infra.functions.local:ask; echo "exit $?"
 ls -t evals/results/ | head -1
 ```
 Expected: one line per question (`Q01 PASS|FAIL …` with seconds), a summary line, `Results written to evals/results/run-<stamp>.json`, and an exit code (0 if no question failed, 1 otherwise; both are acceptable outcomes to record). In that file, Q09's answer has a rejected claim whose `verdicts` has 2 entries; Q08's rejected claim's verdicts have no `prompt` (code rejected it). Copy the summary line and the Q08, Q09, Q12 lines into the ledger file. Hand the results file to Abdul (A5a); do **not** commit it unless Abdul asks for that run.
 - [ ] **Step 5:** `git diff develop --stat`. Expected: `HANDOFF.md`, `infra/functions/local.py`, `tests/infra/functions/test_local.py` (3 files).
 - [ ] **Step 6: With Huvison's OK only:** push `feature/local-eval-asker`, PR to `develop` ("Local eval asker with the Q08 and Q09 faults (H6)"), body with the count, the Q09 rule (2 attempts, 2 verdicts), the live-run summary (or "pending AWS"), and the rulings. No attribution lines.
-- [ ] **Step 7:** [[Build order]] row H6 → `in review (PR #nn)`, then `merged`. Tell Abdul (A5a and A5b can run `--asker infra.functions.local.ask`; Q09 shows 2 verdicts) and Patrick (P3 may call `infra.functions.local.ask` or `infra.functions.spine.run_spine`).
+- [ ] **Step 7:** [[Build order]] row H6 → `in review (PR #nn)`, then `merged`. Tell Abdul (A5a and A5b can run `--asker infra.functions.local:ask`; Q09 shows 2 verdicts) and Patrick (P3 may call `infra.functions.local:ask` or `infra.functions.spine.run_spine`).
 
 **Task done when:** the PR is open with the Q09 rule and the live-run summary (or "pending AWS") in its body.
 

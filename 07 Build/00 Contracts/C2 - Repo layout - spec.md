@@ -44,7 +44,7 @@ When this spec is silent, look in the vault (`04 Reference/`, `03 Sessions/`, `O
 | **api/handlers.py** | `infra/functions/api.py` *(new)* | `api.handlers` → `infra.functions.api` *(new)*; Lambda handler `api.handlers:summary` → `infra.functions.api.summary` *(new)* (same for `entity`, `rows`, `ask`, `publish`, `approve`) | Linus (L1–L3) |
 | **flow/steps.py** | `infra/functions/steps.py` *(new)* | `flow.steps` → `infra.functions.steps` *(new)* | Huvison (H2a, H2b) |
 | **flow/spine.py** | `infra/functions/spine.py` *(new)* | `flow.spine` → `infra.functions.spine` *(new)* | Huvison (H2b) |
-| **flow/local.py** | `infra/functions/local.py` *(new)* | `flow.local` → `infra.functions.local` *(new)* (`flow.local:ask` → `infra.functions.local.ask` *(new)*) | Huvison (H2b) |
+| **flow/local.py** | `infra/functions/local.py` *(new)* | `flow.local` → `infra.functions.local` *(new)* (`flow.local:ask` → `infra.functions.local:ask` *(new)*) | Huvison (H2b) |
 | **flow/handlers.py** | `infra/functions/states.py` *(new)* (the Step Functions state handlers; renamed so it isn't confused with `api.py`) | `flow.handlers` → `infra.functions.states` *(new)* | Huvison (H2b, H4) |
 | **flow/publish.py** | `infra/functions/publish.py` *(new)* | `flow.publish` → `infra.functions.publish` *(new)* | Huvison (H4) |
 | **api/__init__.py**, **auth/__init__.py**, **flow/__init__.py** | `infra/__init__.py` *(new)* and `infra/functions/__init__.py` *(new)* (docstring only), created by whichever item lands first | | first item to land |

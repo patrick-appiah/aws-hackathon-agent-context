@@ -279,7 +279,7 @@ an AUTH_MODE=none deployment answers. ID tokens expire after an hour: fetch fres
 
 Replies: 200 → the AskResponse body. 403 out_of_scope → that body plus "refused": true and "status_code": 403 (Q11).
 Any other status raises AskFailed. Questions this asker can't send raise before anything is sent, so the runner records
-them as failed: an `inject` condition (Q08, Q09; the API has no fault switch, by design: use infra.functions.local.ask) and a
+them as failed: an `inject` condition (Q08, Q09; the API has no fault switch, by design: use infra.functions.local:ask) and a
 question without an entity (POST /ask needs one).
 """
 import json
@@ -310,7 +310,7 @@ class DeployedApiCannotAsk(ValueError):
 
 
 class InjectNeedsTheLocalAsker(DeployedApiCannotAsk):
-    """Q08 and Q09 plant a fault; only the local asker (infra.functions.local.ask) can, because the API has no fault switch."""
+    """Q08 and Q09 plant a fault; only the local asker (infra.functions.local:ask) can, because the API has no fault switch."""
 
 
 class NoEntityToAsk(DeployedApiCannotAsk):
@@ -354,7 +354,7 @@ def post_ask(url: str, body: bytes, id_token: str | None) -> tuple[int, dict]:
 def ask(case_input: EvalInput, scope: Scope, _repository) -> dict:
     """The asker contract (evals/run.py): the /ask response, or "refused": true when the scope gate refused it."""
     if case_input.inject:
-        raise InjectNeedsTheLocalAsker(f"{case_input.id} plants '{case_input.inject}': run it with infra.functions.local.ask")
+        raise InjectNeedsTheLocalAsker(f"{case_input.id} plants '{case_input.inject}': run it with infra.functions.local:ask")
     if case_input.entity_id is None:
         raise NoEntityToAsk(f"{case_input.id} names no entity, and POST /ask needs one")
     base_url = get_settings().eval_api_base_url or ""

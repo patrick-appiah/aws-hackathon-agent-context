@@ -229,14 +229,14 @@ Expected: `1`; the headings in order end `## Bundling`, `## Guardrail settings`,
 
 **Files:** none in the repo; raw results in `.superpowers/latency-local/` and `.superpowers/latency-deployed/` (ignored by git).
 
-**Consumes:** `evals/run.py` (`--asker`, `--results-dir`, per-case `seconds`; exists), `infra.functions.local.ask` (H6), the deployed ask machine (Y2a output `AskStateMachineArn` on `demo-FlowStack`), the Guardrail (M3a). **Produces:** the figures for D-023.
+**Consumes:** `evals/run.py` (`--asker`, `--results-dir`, per-case `seconds`; exists), `infra.functions.local:ask` (H6), the deployed ask machine (Y2a output `AskStateMachineArn` on `demo-FlowStack`), the Guardrail (M3a). **Produces:** the figures for D-023.
 
 - [ ] **Step 1: Local runs, with the Guardrail on (verify in AWS: calls Bedrock).** Ask Huvison first; three eval passes cost about three times one eval run (COST.md). From the repo root on an up-to-date `develop`:
 ```bash
 export AWS_PROFILE=hackathon AWS_REGION=eu-west-1
 export GUARDRAIL_ID=$(aws cloudformation describe-stacks --stack-name demo-GuardrailStack --query "Stacks[0].Outputs[?OutputKey=='GuardrailId'].OutputValue" --output text)
 export GUARDRAIL_VERSION=$(aws cloudformation describe-stacks --stack-name demo-GuardrailStack --query "Stacks[0].Outputs[?OutputKey=='GuardrailVersion'].OutputValue" --output text)
-for pass_number in 1 2 3; do uv run python -m evals.run --asker infra.functions.local.ask --results-dir .superpowers/latency-local; done
+for pass_number in 1 2 3; do uv run python -m evals.run --asker infra.functions.local:ask --results-dir .superpowers/latency-local; done
 ```
 Expected: three reports, each ending `Results written to .superpowers/latency-local/run-<timestamp>.json`; every asked question shows its time (`  12.3 s`). Q12's line reads `PASS`. If Q12 fails with a guardrail block, **don't change the filter**; write "Q12 blocked by the Guardrail; critic failed closed" in the ledger for D-023 and tell Patrick (Review Focus 3).
 

@@ -24,7 +24,7 @@ The team vault is the shared context space for this project. Clone it from `git@
 **What:**
 1. **The Guardrail settings**, written once in `docs/DEVOPS_HANDOVER.md` (a new section "Guardrail settings"), matching the constants M3a deploys (§3 table).
 2. **Every agent's model through `bedrock_model`:** `agents/critic.py` `make_agent` builds its model with `agents.agent_support.bedrock_model(settings.critic_model_id)` instead of its own `BedrockModel` call (same behaviour, one place). A new test, `tests/agents/test_guardrail_wiring.py` *(new)*, finds every module in `agents/` that defines `make_agent` and checks that it builds its model through `bedrock_model`, and that the model carries `guardrail_id` and `guardrail_version` when `GUARDRAIL_ID` is set and none when it isn't.
-3. **The latency check:** time a full ask with one retry locally (the eval runner with `infra.functions.local.ask`, Q09 is the one-retry run) and, once deployed, the Express execution; apply the decision rule (§2); record the decision in `DECISIONS.md` as D-023.
+3. **The latency check:** time a full ask with one retry locally (the eval runner with `infra.functions.local:ask`, Q09 is the one-retry run) and, once deployed, the Express execution; apply the decision rule (§2); record the decision in `DECISIONS.md` as D-023.
 
 **Why:**
 - `ARCHITECTURE.md` §7 lists the Guardrail's prompt-attack filter as defence 2 of 5 against prompt injection; EVALS Q12 (`DEF-0462`) tests that artefact text stays data. A Guardrail that one agent forgets to attach protects nothing on that agent's calls.
@@ -42,7 +42,7 @@ The team vault is the shared context space for this project. Clone it from `git@
 - Every agent's `make_agent` takes the prompt first and, after it, only tool maps (`dict[str, Callable]`): true for the critic and the writer (prompt only), the retriever, the orchestrator and the analyst (prompt, tools). An agent whose `make_agent` breaks this fails the test loudly; fix the test's `build_agent`, not the agent.
 - **Michael (M3a)** deploys exactly the values in §3 (his constants `GUARDRAIL_PROMPT_ATTACK_STRENGTH`, `GUARDRAIL_BLOCKED_PII_TYPES`, `GUARDRAIL_MASKED_PII_TYPES`). M3a's spec calls this item "H8 Guardrail settings"; it is H7.
 - **Yaw (Y2a)** §6 describes the async DevOps change (ask Lambda `states:StartExecution`, route `GET /ask/{run_id}`, `write_answer` storing the response). Y2a names the decision "D-022" and a ~25 s threshold; D-022 is already the Q09 verdict-count decision, so this one is **D-023**, and the lead set the threshold at **20 s**.
-- **H6** is merged for the local one-retry timing (`infra.functions.local.ask` plants Q09's forced claim). Without H6, time `scripts/ask.py` *(new)* only and note that no retry was forced.
+- **H6** is merged for the local one-retry timing (`infra.functions.local:ask` plants Q09's forced claim). Without H6, time `scripts/ask.py` *(new)* only and note that no retry was forced.
 
 ## 2. Decisions
 | Question | Decision | Rejected |

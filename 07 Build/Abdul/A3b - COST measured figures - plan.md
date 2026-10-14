@@ -52,7 +52,7 @@ cd ~/amalitech/aws-hackathon/erp-migration-portal && git switch develop && git p
 mkdir -p .superpowers && printf '# Ledger: A3b measured cost\n' > .superpowers/ledger-A3b.md
 ```
   Open the results file Linus sent in VS Code. At the top, note `"run_at"`, `"commit"`, `"asker"`.
-Expected: `"asker"` is not `null` (for example `"infra.functions.local.ask"`). If it's `null`, the run has no costs: stop and ask Linus for the recorded run with an asker.
+Expected: `"asker"` is not `null` (for example `"infra.functions.local:ask"`). If it's `null`, the run has no costs: stop and ask Linus for the recorded run with an asker.
 
 - [ ] **Step 2: List every case's cost.** Ctrl+F `"cost_usd"`. For each of the 14 cases, note `id`, `status` and `cost_usd` (press Enter in the find box to jump to the next match; the case `id` is a few lines above).
 Expected: 14 matches (one per case) plus any inside `answer` objects (the `/ask` response also carries `cost_usd`; use the case-level one, which is next to `"seconds"`). Q10 `manual`, Q13 and Q14 `not applicable` show `null`. Q11 may show `0` or `null`. The rest show a number. Ledger: one line per case, `Q01 pass 0.0xxx`.

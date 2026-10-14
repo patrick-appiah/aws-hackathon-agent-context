@@ -437,7 +437,7 @@ Expected: `15 passed`; then `245 passed`.
 - [ ] `uv run python scripts/lock_prompts.py --check` prints `prompts.lock is up to date`, and the lock lists `blocker_analyst` at `1.0.0`. *Verify:* run it; `grep -A2 "^blocker_analyst:" agents/prompts/prompts.lock`.
 - [ ] The Q01 chain claim and the Q02 conflict claim pass, and a wrong figure is dropped. *Verify:* `uv run --locked pytest tests/agents/test_blocker_analyst.py -k "chain or decoy or wrong_figure" --no-cov` prints `3 passed, 9 deselected`.
 - [ ] `AGENTS.md`'s blocker-analyst row names `agents/blocker_analyst.py`, the prompt v1.0.0 and the drop-and-log failure mode. *Verify:* `grep -n "blocker_analyst.py" AGENTS.md`.
-- [ ] Once the loop runs (P2 + H2): Q01, Q02, Q03 and Q06 results for this agent are in an `evals/results/run-*.json` file, failures included. *Verify:* `uv run python -m evals.run --asker infra.functions.local.ask` and open the newest results file.
+- [ ] Once the loop runs (P2 + H2): Q01, Q02, Q03 and Q06 results for this agent are in an `evals/results/run-*.json` file, failures included. *Verify:* `uv run python -m evals.run --asker infra.functions.local:ask` and open the newest results file.
 - [ ] PR open or merged, no attribution lines; [[Build order]] row L5 updated. *Verify:* `gh pr view <nn> --json state`; open the note.
 
 ## Never

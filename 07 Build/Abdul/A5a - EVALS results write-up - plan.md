@@ -22,7 +22,7 @@ When something here is unclear, look in the vault (`04 Reference/`, `03 Sessions
 
 **Goal:** every recorded eval run is committed with an honest `EVALS.md` row, and "What still fails" describes the latest run.
 
-**Architecture:** `uv run python -m evals.run --asker infra.functions.local.ask` (Linus) → `evals/results/run-*.json` (the folder `evals/results/` *(new)* is created by the eval runner's first committed run, your first PR) → you → `EVALS.md` + the file committed.
+**Architecture:** `uv run python -m evals.run --asker infra.functions.local:ask` (Linus) → `evals/results/run-*.json` (the folder `evals/results/` *(new)* is created by the eval runner's first committed run, your first PR) → you → `EVALS.md` + the file committed.
 
 **Tech stack:** VS Code (JSON search, Markdown preview), Git, GitHub.
 
@@ -45,7 +45,7 @@ When something here is unclear, look in the vault (`04 Reference/`, `03 Sessions
 
 **Files:** none yet.
 
-- [ ] **Step 1: Ask Linus for the run.** *"Please run `uv run python -m evals.run --asker infra.functions.local.ask` on develop (and the deployed-API asker if it's ready), plus `uv run --locked pytest 2>&1 | grep -E "[0-9]+ (passed|failed)|TOTAL"`, and send me the console output and the results file(s). Is this a recorded run?"*
+- [ ] **Step 1: Ask Linus for the run.** *"Please run `uv run python -m evals.run --asker infra.functions.local:ask` on develop (and the deployed-API asker if it's ready), plus `uv run --locked pytest 2>&1 | grep -E "[0-9]+ (passed|failed)|TOTAL"`, and send me the console output and the results file(s). Is this a recorded run?"*
 Expected: console output ending with a summary line such as `8 pass · 3 fail · 1 manual · 2 not applicable` and `Results written to evals/results/run-<yyyymmdd>-<hhmmss>.json`; the file; "recorded: yes"; the pytest lines.
 
 - [ ] **Step 2: Check the top of the file.**

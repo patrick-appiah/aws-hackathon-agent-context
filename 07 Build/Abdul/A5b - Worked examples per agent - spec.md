@@ -61,7 +61,7 @@ The team vault is the shared context space for this project: decisions, briefs, 
     "run_id": "<run_id of the run>",
     "commit": "<short commit hash the run used>",
     "captured_at": "<UTC time, e.g. 2026-10-15T11:40:00+00:00>",
-    "captured_by": "Linus printed it from <scripts/ask.py | infra.functions.local.ask>; Abdul recorded it unchanged"
+    "captured_by": "Linus printed it from <scripts/ask.py | infra.functions.local:ask>; Abdul recorded it unchanged"
   },
   "prompt": {"agent": "<agent>", "version": "<version>", "sha256": "<sha256>"},
   "model_id": "<the model ID the call used, e.g. eu.anthropic.claude-sonnet-4-6>",

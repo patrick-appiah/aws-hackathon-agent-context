@@ -6,7 +6,7 @@ status: awaiting review
 updated: 2026-10-14
 ---
 # H6: The local eval asker, `infra/functions/local.py` (spec)
-> **The eval runner's way into the agent loop:** `uv run python -m evals.run --asker infra.functions.local.ask` asks all 14 questions through the real ask spine in-process, and plants the two faults Q08 and Q09 need. Only this asker can plant them. Repo: `Amali-Tech/cloud-9-hackathon`, branch from `develop` once H2b and **P2** are merged. The repo is the source of truth for code; the vault is the source of context.
+> **The eval runner's way into the agent loop:** `uv run python -m evals.run --asker infra.functions.local:ask` asks all 14 questions through the real ask spine in-process, and plants the two faults Q08 and Q09 need. Only this asker can plant them. Repo: `Amali-Tech/cloud-9-hackathon`, branch from `develop` once H2b and **P2** are merged. The repo is the source of truth for code; the vault is the source of context.
 
 ## 0. Context: read the vault first
 The team vault is the shared context space for this project. Clone it from `git@github.com:patrick-appiah/aws-hackathon-agent-context.git` (lead's machine: `/mnt/c/dev/aws-hackathon/aws-hackathon/`) and run `git pull` first. **Before writing any code, read, in this order:**
@@ -35,13 +35,13 @@ The team vault is the shared context space for this project. Clone it from `git@
 **Why:** Q08 and Q09 are the evals that prove the critic rejects and the retry guard bounds the loop (rubric: "a blind critic that actually rejects, a ledger-bounded retry"); they need a planted fault, and no fault switch may exist in the API, the state machine or `config.py` (brief). The same asker is how Abdul's results (A5a) and the worked examples (A5b) are produced.
 
 **Success means:**
-- With stand-in agents, the eval runner scores Q01, Q07, Q08, Q09 and Q11 as `pass` through `infra.functions.local.ask`.
+- With stand-in agents, the eval runner scores Q01, Q07, Q08, Q09 and Q11 as `pass` through `infra.functions.local:ask`.
 - Q08: `claim-1` is rejected and the critic model is never asked.
 - Q09: exactly one rejected record for the forced claim, with **2 verdicts**, after exactly one re-plan of it.
 - Q11: `{"refused": true, "status_code": 403}`, and no run in the ledger.
 - No `inject`: the plain spine (Q01's claim passes and is the answer's one bullet).
 - `uv run --locked pytest`: start + **11 passed**; coverage not lower.
-- With AWS credentials (verify in AWS): `uv run python -m evals.run --asker infra.functions.local.ask` runs all 14, writes `evals/results/run-*.json`, and Q08, Q09, Q12 pass (or their failures are recorded honestly for A5a).
+- With AWS credentials (verify in AWS): `uv run python -m evals.run --asker infra.functions.local:ask` runs all 14, writes `evals/results/run-*.json`, and Q08, Q09, Q12 pass (or their failures are recorded honestly for A5a).
 
 **Assumptions:**
 - P2 is merged: `tools.constants.CLAIM_ID_PREFIX = "claim-"`, `agents.orchestrator.orchestrate` / `replan` with the signatures in [[H2b - Agent states, local spine and Lambda handlers - spec]] §1, and claim IDs numbered from `claim-1`.
@@ -71,7 +71,7 @@ Constants: `INJECT_STRIP_CITATIONS`, `INJECT_FORCE_UNSUPPORTABLE_CLAIM`, `KNOWN_
 | `ask(case_input, scope: Scope, repository: ArtefactRepository) -> dict` | §1 |
 
 ## 4. Tests (`tests/infra/functions/test_local.py` *(new)*, 11; stand-in agents, no Bedrock)
-- The eval runner (`evals.run.run_case`) scores Q01, Q07, Q08, Q09, Q11 as `pass` with `infra.functions.local.ask` (×5).
+- The eval runner (`evals.run.run_case`) scores Q01, Q07, Q08, Q09, Q11 as `pass` with `infra.functions.local:ask` (×5).
 - Q08 strips `claim-1`'s citations, and the critic stand-in is never called.
 - Q11 is refused and no ledger the asker built has a run.
 - No inject: the plain spine.
