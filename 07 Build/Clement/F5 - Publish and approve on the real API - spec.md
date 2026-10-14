@@ -14,10 +14,11 @@ The vault is the context space for this work (clone `git@github.com:patrick-appi
 2. [[Workstreams]] (§3 the code already built, §7 the rules) and your brief, [[Clement - front end]].
 3. [[Build order]]: every item in this one's "Depends on" column must be `merged` before you start.
 4. [[C1 - API and spine contracts - spec]]: the API shapes this item builds on (`web/src/app/core/api/schema/*.schema.json` are generated from them).
-5. [[L3 - Ask, publish and approve entry points - spec]] (Linus) and [[Huvison - trust and flow]] (H4: `flow/publish.py` *(new)*, the task token, the status-pack write).
+5. [[L3 - Ask, publish and approve entry points - spec]] (Linus) and [[Huvison - trust and flow]] (H4: `infra/functions/publish.py` *(new)*, the task token, the status-pack write).
 6. `01 Decisions/` [[2026-10-13 Ask spine is Step Functions Express, publish is Standard]].
 7. `DEMO.md` (repo): the 2:15–2:35 publish → approve beat.
 8. [[Dev loop]] and [[Working with AI assistants]] (`05 Workflow/`).
+9. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 **When this document is silent or unclear, look in the vault before guessing:** `04 Reference/` (the brief, the rubrics, the guideline), `03 Sessions/` (what happened when) and `Open follow-ups.md` (known open questions). If it is still unclear, **stop and ask the owner** named in the frontmatter. Never invent a name, a shape or a rule.
 
@@ -61,6 +62,6 @@ The vault is the context space for this work (clone `git@github.com:patrick-appi
 
 ## 4. Out of scope
 - The publish flow, the task token and the status-pack write (H4, Y2); sign-in (F3a).
-- Who may publish (decided in `flow.publish`); the UI lets every signed-in role press "Send for approval".
+- Who may publish (decided in `infra.functions.publish`); the UI lets every signed-in role press "Send for approval".
 
 Related: [[F5 - Publish and approve on the real API - plan]], [[Build order]], [[Clement - front end]]

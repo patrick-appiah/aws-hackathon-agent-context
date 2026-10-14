@@ -16,6 +16,7 @@ The vault is the context space for this work (clone `git@github.com:patrick-appi
 2. [[M4a - WebStack - spec]]: **the authority.** Where this plan and the spec disagree, the spec wins; record the conflict in the ledger.
 3. [[M2 - App, DataStack and LedgerStack - spec]], [[M3b - AuthStack - spec]], [[Y1 - ApiStack - spec]]; [[Michael - DevOps]], [[Clement - front end]], [[Mildred - front end]].
 4. [[2026-10-13 Front end]], [[2026-10-13 Scope from the token, enforced twice]] and [[Working with AI assistants]].
+5. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 When something here is unclear, look in the vault (`04 Reference/`, `03 Sessions/`, `Open follow-ups.md`) before guessing. If the vault doesn't answer it, stop and ask Michael (or Yaw for the API, Clement for sign-in).
 
@@ -36,7 +37,7 @@ When something here is unclear, look in the vault (`04 Reference/`, `03 Sessions
 - Tests in `tests/`, mirroring the code; `uv run --locked pytest` from the repo root; coverage must not drop (96%).
 - Deploys are manual (D-018); CI builds and tests only. `export AWS_PROFILE=hackathon AWS_REGION=eu-west-1` before any `aws` or `cdk deploy` command.
 - PR to `develop`; Patrick merges; never push to `develop` or `main`; **no `Co-Authored-By` and no "Generated with" lines**.
-- Stay in DevOps's files: `infra/`, `tests/infra/` *(new)*. The web build is read, never changed.
+- Stay in DevOps's files: `infra/` (not Linus's `api.py` and `scope.py` or Huvison's `steps`, `spine`, `local`, `states` and `publish` modules in `infra/functions/`), `tests/infra/` *(new)* (not `tests/infra/functions/` *(new)*). The web build is read, never changed.
 - No layout or "meta" guard tests.
 
 ## Review Focus (what the tests don't fully cover; check by hand at the end)
@@ -654,7 +655,7 @@ for portal_path in / /entity/E4 /portal-config.json; do
 done
 curl -s "${PORTAL_URL}/portal-config.json"; echo
 ```
-Expected: `/ 200 text/html`, `/entity/E4 200 text/html`, `/portal-config.json 200 application/json`, then `{"apiBaseUrl":"/api","userPoolId":"<UserPoolId>","userPoolClientId":"<UserPoolClientId>","managedLoginDomain":"https://demo-erp-portal-486128667962.auth.eu-west-1.amazoncognito.com","redirectUrl":"<PortalUrl>"}`.
+Expected: `/ 200 text/html`, `/entity/E4 200 text/html`, `/portal-config.json 200 application/json`, then `{"apiBaseUrl":"/api","userPoolId":"<UserPoolId>","userPoolClientId":"<UserPoolClientId>","managedLoginDomain":"https://demo-erp-portal-796973512193.auth.eu-west-1.amazoncognito.com","redirectUrl":"<PortalUrl>"}`.
 
 - [ ] **Step 4: The callback merge added the portal and kept the rest (verify in AWS; Review Focus 3)**
 ```bash

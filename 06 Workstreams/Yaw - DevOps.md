@@ -18,7 +18,8 @@ The ask spine is what makes the agent loop "genuinely run" in AWS, which is what
 
 ## Shared DevOps context (same in Michael's brief)
 - **CDK in Python:** `infra/app.py` *(new)* defines every stack; the stack list and resources are in `infra/README.md`.
-- **Bootstrap once:** `npx cdk bootstrap aws://486128667962/eu-west-1`. **`eu-west-1` only.** Profile `AWS_PROFILE=hackathon`; your IAM user is `yaw.mintah`.
+- **DevOps owns** `infra/app.py` *(new)*, `infra/stacks/` *(new)*, `infra/agent_runtime/` *(new)* and `infra/functions/agent_shim.py` *(new)*. The repo uses the brief's five folders (`agents/`, `tools/`, `evals/`, `infra/`, `demo/`); don't create new top-level folders (D-024).
+- **Bootstrap once:** `npx cdk bootstrap aws://796973512193/eu-west-1`. **`eu-west-1` only.** Profile `AWS_PROFILE=hackathon`; you sign in through the sign-in URL with your own AmaliTech email (no shared IAM users or passwords).
 - **Stack names take a prefix** for the clean-deploy check (`-c prefix=demo2`).
 - **Deploys are manual from the README** (`cd infra && npx cdk deploy --all`). CI builds and tests only (D-018, which lands with PR #8).
 - **Least privilege** (`ARCHITECTURE.md` §7): one role per Lambda / runtime / state machine, scoped to its S3 prefix, its table and **specific** Bedrock model ARNs (`eu.anthropic.claude-sonnet-4-6`, `eu.amazon.nova-lite-v1:0`). No `*`.
@@ -29,11 +30,11 @@ The ask spine is what makes the agent loop "genuinely run" in AWS, which is what
 ## Where you sit in the architecture
 ```
  CloudFront /api/* (Michael) ─▶ ★API Gateway HTTP API (v2) + JWT authorizer★ (issuer: Michael's pool, audience: app client ID)
-   ├─ GET /summary · /entity/{id} · /rows ─▶ ★Lambda★ api.handlers:summary|entity|rows (Linus)
-   ├─ POST /ask ─▶ ★Lambda★ api.handlers:ask ─▶ ★Express state machine★ (StartSyncExecution)
+   ├─ GET /summary · /entity/{id} · /rows ─▶ ★Lambda★ infra.functions.api.summary|entity|rows (Linus)
+   ├─ POST /ask ─▶ ★Lambda★ infra.functions.api.ask ─▶ ★Express state machine★ (StartSyncExecution)
    │      check_budget ─▶ run_orchestrator ─▶ store_claims ─▶ judge_claim ─▶ retry Choice ─▶ write_answer | record_rejection
-   │      (each state = one ★Lambda★ from Huvison's flow/steps.py; agents run on ★AgentCore★ or in the Lambda)
-   └─ POST /publish · /approve ─▶ ★Lambda★ api.handlers:publish|approve ─▶ ★Standard state machine★ (waitForTaskToken)
+   │      (each state = one ★Lambda★ from Huvison's infra/functions/steps.py; agents run on ★AgentCore★ or in the Lambda)
+   └─ POST /publish · /approve ─▶ ★Lambda★ infra.functions.api.publish|approve ─▶ ★Standard state machine★ (waitForTaskToken)
 ```
 
 ## What you own
@@ -45,9 +46,9 @@ The ask spine is what makes the agent loop "genuinely run" in AWS, which is what
 | IAM | one role per function and state machine; Bedrock `InvokeModel` only on the specific model ARNs and the Guardrail ARN; S3 read on `artefacts/`, write only on `status-packs/` for the publish writer; DynamoDB only on the ledger and rejected tables; `states:StartSyncExecution` only on the ask machine for the `ask` Lambda |
 
 ## What you build
-1. **`ApiStack` with a stub `/summary` Lambda, deploying empty** (D1 12:00). Then the real handlers from `api/handlers.py` *(new, Linus)*. Acceptance: `curl` with an ID token on `/api/summary` returns the summary JSON; without a token it returns 401.
+1. **`ApiStack` with a stub `/summary` Lambda, deploying empty** (D1 12:00). Then the real handlers from `infra/functions/api.py` *(new, Linus)*. Acceptance: `curl` with an ID token on `/api/summary` returns the summary JSON; without a token it returns 401.
 2. **JWT authorizer:** issuer `https://cognito-idp.eu-west-1.amazonaws.com/<pool id>`, audience = the app client ID (Michael's outputs). Acceptance: the E4 lead's token reaches the Lambda with `cognito:groups` and `custom:entity_ids` in `event.requestContext.authorizer.jwt.claims`.
-3. **`FlowStack` Express ask spine** from Patrick's step contract and Huvison's `flow/steps.py` *(new)*. One Lambda per state; pass JSON matching the step models; the `Choice` on `retry_decision`'s result. Acceptance: one E4 question runs end to end in AWS (D1 18:00, critic stubbed to pass).
+3. **`FlowStack` Express ask spine** from Patrick's step contract and Huvison's `infra/functions/steps.py` *(new)*. One Lambda per state; pass JSON matching the step models; the `Choice` on `retry_decision`'s result. Acceptance: one E4 question runs end to end in AWS (D1 18:00, critic stubbed to pass).
 4. **The 29-second limit:** API Gateway cuts synchronous integrations at 29 s. Work with Huvison's timing (D1 18:00). If a run with retries is too slow, implement the agreed async fallback: `POST /ask` starts the execution and returns `run_id`; `GET /ask/{run_id}` polls.
 5. **`FlowStack` Standard publish** with `waitForTaskToken` (Huvison's `start_publish` / `decide`). Acceptance: publish waits until `/approve` as the delivery lead, then the status pack appears in `s3://<bucket>/status-packs/`.
 6. **`AgentStack`:** AgentCore Runtime + shim, and the Lambda fallback behind a config switch. Acceptance: the same question gives the same claims through both paths.
@@ -57,8 +58,8 @@ The ask spine is what makes the agent loop "genuinely run" in AWS, which is what
 | You consume | From |
 |---|---|
 | `docs/DEVOPS_HANDOVER.md` (entry points, environment, IAM), step models | Patrick |
-| `api/handlers.py` entry points | Linus |
-| `flow/steps.py`, `flow/publish.py` *(new)* functions | Huvison |
+| `infra/functions/api.py` entry points | Linus |
+| `infra/functions/steps.py`, `infra/functions/publish.py` *(new)* functions | Huvison |
 | Bucket, ledger and rejected tables, guardrail ID, user pool + client IDs, CloudFront | Michael (stack outputs) |
 
 | You produce | For |

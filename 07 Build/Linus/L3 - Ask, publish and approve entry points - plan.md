@@ -14,21 +14,22 @@ updated: 2026-10-14
 The vault is the context space for this work (clone `git@github.com:patrick-appiah/aws-hackathon-agent-context.git`, then `git pull`). Read before Task 1:
 1. [[How to execute a plan]].
 2. [[L3 - Ask, publish and approve entry points - spec]]: **the authority**, including its Assumptions and interfaces for H2b, H4 and Y2.
-3. [[L2 - Entity and rows handlers - plan]]: the state of `api/handlers.py` *(new)* and `tests/api/test_handlers.py` *(new)* you start from.
+3. [[L2 - Entity and rows handlers - plan]]: the state of `infra/functions/api.py` *(new)* and `tests/infra/functions/test_api.py` *(new)* you start from.
 4. [[Huvison - trust and flow]] §3, §5 and §9; [[H2b - Agent states, local spine and Lambda handlers - spec]] (the ask machine's input and output) and [[H4 - Publish and approve - plan]] (`start_publish`, `decide` and their errors). Their names win over this plan; record any difference in the ledger.
 5. [[Linus - API, identity, blocker-analyst]] §3, and [[Handling security findings]].
+6. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 **Whenever this note is silent or unclear, look in the vault before guessing:** `04 Reference/` for the brief, the rubrics and the guideline ([[Problem statement]], [[Judging rubric]], [[Pitch track grading rubric]], [[Hackathon guideline]]); `03 Sessions/` for what happened when; `Open follow-ups.md` for known open questions. If the vault doesn't answer it either, stop and ask Linus. Never invent a name, a shape or a rule.
 
 **Goal:** `POST /ask` refuses out-of-scope questions before any run starts and otherwise runs the ask spine; `POST /publish` and `POST /approve` hand the token's scope to Huvison's publish flow.
 
-**Architecture:** three more thin handlers in `api/handlers.py`. The ask handler is the only one with an AWS call: `stepfunctions.start_sync_execution`, through `ask_spine_client()` so tests use a fake. The publish handlers reach `flow.publish` through `publish_flow()`, imported on first use.
+**Architecture:** three more thin handlers in `infra/functions/api.py`. The ask handler is the only one with an AWS call: `stepfunctions.start_sync_execution`, through `ask_spine_client()` so tests use a fake. The publish handlers reach `infra.functions.publish` through `publish_flow()`, imported on first use.
 
-**Tech stack:** Python 3.11, pydantic 2, boto3 (Step Functions client, created lazily), pytest, uv. **Dry-run status:** every step ran on C1 + L1 + L2 plus H4's `flow/publish.py` *(new)* (Huvison's dry-run copy, so the tests import its real exception classes), with fakes for the ask machine (H2b) and for `start_publish` / `decide` (no Step Functions); the counts below are real.
+**Tech stack:** Python 3.11, pydantic 2, boto3 (Step Functions client, created lazily), pytest, uv. **Dry-run status:** every step ran on C1 + L1 + L2 plus H4's `infra/functions/publish.py` *(new)* (Huvison's dry-run copy, so the tests import its real exception classes), with fakes for the ask machine (H2b) and for `start_publish` / `decide` (no Step Functions); the counts below are real.
 
 ## Global Constraints
-- **Repo:** `~/amalitech/aws-hackathon/erp-migration-portal`. Branch: **`feature/api-ask-publish-approve`** from an up-to-date `develop` **after L1, L2, H2b and H4 are merged** ([[Build order]]: L3 ← L1, H2b, H4). The tests import H4's exception classes from `flow.publish`; the ask machine and the publish calls are still fakes, so no AWS is touched.
-- **Start state:** `uv run --locked pytest` passes with `TOTAL` **97%** or more; write the count in the ledger as START. Every `N passed` below is START + the same increase (the dry-run base, C1 at 213 + L1 + L2 + H4's `flow/publish.py`, was **255 passed**; a higher START is fine, what must match is the number each step adds). If `api/handlers.py` has no `def rows(`, L2 isn't merged; if `uv run python -c "from flow.publish import NoPendingApproval, NothingToPublish, PublishForbidden, RunNotFound"` fails, H4 isn't merged: stop.
+- **Repo:** `~/amalitech/aws-hackathon/erp-migration-portal`. Branch: **`feature/api-ask-publish-approve`** from an up-to-date `develop` **after L1, L2, H2b and H4 are merged** ([[Build order]]: L3 ← L1, H2b, H4). The tests import H4's exception classes from `infra.functions.publish`; the ask machine and the publish calls are still fakes, so no AWS is touched.
+- **Start state:** `uv run --locked pytest` passes with `TOTAL` **97%** or more; write the count in the ledger as START. Every `N passed` below is START + the same increase (the dry-run base, C1 at 213 + L1 + L2 + H4's `infra/functions/publish.py`, was **255 passed**; a higher START is fine, what must match is the number each step adds). If `infra/functions/api.py` has no `def rows(`, L2 isn't merged; if `uv run python -c "from infra.functions.publish import NoPendingApproval, NothingToPublish, PublishForbidden, RunNotFound"` fails, H4 isn't merged: stop.
 - **AWS:** `eu-west-1` only; Bedrock `eu.*` inference profiles only, never `global.*` (D-002). Synthetic data only. **No secrets** anywhere: code, tests, fixtures, the repo, the vault, Slack, commit messages.
 - **Clean code (enforced by tests):** no single-character names anywhere (comprehensions, lambdas and `except ... as` included); no magic numbers or strings, so every limit, code and key is a named constant; settings only in `config.py`; domain constants only in `tools/constants.py`; descriptive names.
 - **The core (`tools/`) never imports** boto3, Strands, `adapters`, `config` or `os` (`tests/test_architecture.py`).
@@ -36,7 +37,7 @@ The vault is the context space for this work (clone `git@github.com:patrick-appi
 - **Never weaken a security rule** (the scope gate, the create-once ledger, the fail-closed critic, the `<evidence>` escaping) to make a test pass.
 - **Tests** live in `tests/`, mirroring the code; run `uv run --locked pytest` from the repo root. Coverage must not drop below the start state. **No layout or "meta" guard tests**: test behaviour, not where files sit.
 - **Git:** small commits, one per task, with the messages given. **No `Co-Authored-By` and no "Generated with" lines.** Never push to `develop` or `main`; the PR goes to `develop` after the owner's OK, and Patrick merges.
-- **Stay in your folders** (`docs/TEAM_PLAN.md` §2, workstream 3: `api/`, `auth/`, `tools/metrics.py`, `tools/queries.py`, `tools/agent_tools.py`, `tools/claims.py`, `agents/blocker_analyst.py` *(new)*, `agents/prompts/blocker_analyst.txt` *(new)*, `scripts/export_summary.py` *(new)*, the eval runner). Any other file this plan touches is named in its task, with the owner who must review it.
+- **Stay in your folders** (`docs/TEAM_PLAN.md` §2, workstream 3: `infra/functions/api.py`, `infra/functions/scope.py` *(new)*, `tests/infra/functions/` *(new)*, `tools/metrics.py`, `tools/queries.py`, `tools/agent_tools.py`, `tools/claims.py`, `agents/blocker_analyst.py` *(new)*, `agents/prompts/blocker_analyst.txt` *(new)*, `scripts/export_summary.py` *(new)*, the eval runner). Any other file this plan touches is named in its task, with the owner who must review it.
 - **Q11 is a security rule.** `scope.require(request.entity_id)` stays before the ARN check, the client and the `Question`. Never move it later, never catch `OutOfScope` around it.
 - **Scope only from the token.** `AskRequest`, `PublishRequest` and `ApproveRequest` forbid extra keys (C1), so a `scope` in the body is a 400; keep it that way.
 - **This handler builds its own `Question`** (lead decision): server-made `run_id`, the token's scope, `budget_usd = settings.run_budget_usd`, `max_attempts = settings.max_claim_attempts`. The execution input is the bare `Question` JSON, and the execution output is the `AskResponse` JSON with no wrapper key (H2b spec).
@@ -45,7 +46,7 @@ The vault is the context space for this work (clone `git@github.com:patrick-appi
 1. **Refusal before anything starts.** Read `ask` top to bottom: scope → body → `scope.require` → ARN check → `Question` → client. Nothing before `scope.require` touches AWS, the ledger or a model.
 2. **The run ID is server-made** (`new_run_id()`), and the execution is named with it. Nothing from the body reaches `Question` except `entity_id` and `question`.
 3. **A failed run is 500 `internal` with the contract body.** C1 added `ERROR_INTERNAL` (500) for exactly this; `AskSpineFailed` maps to it, so F4 gets `{error: "internal", detail}`. Check with Clement that F4a shows it as a failure with Retry, not a refusal, and that `detail` (the run ID, the status and the Step Functions error name) leaks nothing. Write the answer in the ledger.
-4. **H4's errors map exactly.** `PublishForbidden` (a `PermissionError`) → 403 `forbidden`; `RunNotFound` and `NoPendingApproval` (`KeyError`s) → 404 `not_found`; `NothingToPublish` (a `ValueError`) → 400 `invalid_input`; `PublishNotConfigured` (a `RuntimeError`) propagates → 500. Read `flow/publish.py` on `develop`: the four classes still subclass those bases, and `start_publish(run_id, requester, *, ...)` / `decide(run_id, decision, note, approver, *, ...)` still take the token's `Scope` positionally as the second / fourth argument, as `FakePublishFlow` does.
+4. **H4's errors map exactly.** `PublishForbidden` (a `PermissionError`) → 403 `forbidden`; `RunNotFound` and `NoPendingApproval` (`KeyError`s) → 404 `not_found`; `NothingToPublish` (a `ValueError`) → 400 `invalid_input`; `PublishNotConfigured` (a `RuntimeError`) propagates → 500. Read `infra/functions/publish.py` on `develop`: the four classes still subclass those bases, and `start_publish(run_id, requester, *, ...)` / `decide(run_id, decision, note, approver, *, ...)` still take the token's `Scope` positionally as the second / fourth argument, as `FakePublishFlow` does.
 5. **Express sync limits.** `StartSyncExecution` returns `status` and `output` (a JSON string) or `error` and `cause`. Confirm with Yaw that the ASL's last state outputs exactly the `AskResponse` JSON (no wrapper key), and that the ask Lambda's timeout is at least API Gateway's 29 seconds.
 
 ---
@@ -53,9 +54,9 @@ The vault is the context space for this work (clone `git@github.com:patrick-appi
 ### Task 1: `POST /ask`, `POST /publish`, `POST /approve`
 
 **Files:**
-- Modify: `api/handlers.py`, `tests/api/test_handlers.py`
+- Modify: `infra/functions/api.py`, `tests/infra/functions/test_api.py`
 
-**Produces:** `api.handlers.ask`, `publish`, `approve` (each `(event: dict, context: object) -> dict`); `AskSpineFailed`; `body_text(event: dict) -> str`; `new_run_id() -> str`; `ask_spine_client()`; `publish_flow()`. **Consumes:** L1/L2 helpers; C1's `AskRequest`, `AskResponse`, `PublishRequest`, `PublishResponse`, `ApproveRequest`, `ApproveResponse`, `tools.models.Question`; `config.Settings.ask_state_machine_arn`, `run_budget_usd`, `max_claim_attempts`, `aws_region`; Huvison's H4: `flow.publish.start_publish(run_id: str, requester: Scope, *, ledger=None, stepfunctions=None, state_machine_arn=None) -> PublishResponse`, `decide(run_id: str, decision: str, note: str, approver: Scope, *, ledger=None, stepfunctions=None) -> ApproveResponse`, and its errors `PublishForbidden(PermissionError)`, `RunNotFound(KeyError)`, `NoPendingApproval(KeyError)`, `NothingToPublish(ValueError)`; H2b's ask machine contract (input: the bare `Question` JSON; output: the `AskResponse` JSON, no wrapper key). **Consumed by:** Yaw (Y1/Y2 routes), Clement (F4, F5), L6 (the deployed-API asker calls `/ask`).
+**Produces:** `infra.functions.api.ask`, `publish`, `approve` (each `(event: dict, context: object) -> dict`); `AskSpineFailed`; `body_text(event: dict) -> str`; `new_run_id() -> str`; `ask_spine_client()`; `publish_flow()`. **Consumes:** L1/L2 helpers; C1's `AskRequest`, `AskResponse`, `PublishRequest`, `PublishResponse`, `ApproveRequest`, `ApproveResponse`, `tools.models.Question`; `config.Settings.ask_state_machine_arn`, `run_budget_usd`, `max_claim_attempts`, `aws_region`; Huvison's H4: `infra.functions.publish.start_publish(run_id: str, requester: Scope, *, ledger=None, stepfunctions=None, state_machine_arn=None) -> PublishResponse`, `decide(run_id: str, decision: str, note: str, approver: Scope, *, ledger=None, stepfunctions=None) -> ApproveResponse`, and its errors `PublishForbidden(PermissionError)`, `RunNotFound(KeyError)`, `NoPendingApproval(KeyError)`, `NothingToPublish(ValueError)`; H2b's ask machine contract (input: the bare `Question` JSON; output: the `AskResponse` JSON, no wrapper key). **Consumed by:** Yaw (Y1/Y2 routes), Clement (F4, F5), L6 (the deployed-API asker calls `/ask`).
 
 - [ ] **Step 1: Branch and baseline**
 ```bash
@@ -66,7 +67,7 @@ mkdir -p .superpowers && printf '# Ledger: L3 ask, publish and approve entry poi
 ```
 Expected: `243 passed` (or your START), `TOTAL ... 97%`.
 
-- [ ] **Step 2: Write the failing tests.** In `tests/api/test_handlers.py`:
+- [ ] **Step 2: Write the failing tests.** In `tests/infra/functions/test_api.py`:
   - replace the import block at the top (everything from `import json` to the `from tools.api_schema import ...` line) with:
 ```python
 import base64
@@ -77,7 +78,7 @@ import pytest
 from adapters.memory_ledger import InMemoryLedger
 from api import handlers
 from config import DEFAULT_TENANT_ID, get_settings
-from flow.publish import NoPendingApproval, NothingToPublish, PublishForbidden, RunNotFound
+from infra.functions.publish import NoPendingApproval, NothingToPublish, PublishForbidden, RunNotFound
 from tools.api_schema import (ERROR_STATUS_CODES, ApproveResponse, AskResponse, EntityResponse, ErrorResponse,
                               PublishResponse, RowsResponse, SummaryResponse)
 from tools.models import Answer, Bullet, Citation, Question
@@ -181,7 +182,7 @@ def test_the_ask_spine_client_is_in_the_configured_region():
 
 
 class FakePublishFlow:
-    """Stands in for flow/publish.py (H4): its start_publish and decide signatures, return models and exceptions,
+    """Stands in for infra/functions/publish.py (H4): its start_publish and decide signatures, return models and exceptions,
     without Step Functions or the ledger."""
 
     def __init__(self):
@@ -266,20 +267,20 @@ def test_publish_and_approve_with_a_bad_body_are_400_and_call_nothing(publish_fl
 
 - [ ] **Step 3: Run them and watch them fail**
 ```bash
-uv run --locked pytest tests/api/test_handlers.py --no-cov 2>&1 | tail -1
-uv run --locked pytest tests/api/test_handlers.py --no-cov 2>&1 | grep -E "^E  "
+uv run --locked pytest tests/infra/functions/test_api.py --no-cov 2>&1 | tail -1
+uv run --locked pytest tests/infra/functions/test_api.py --no-cov 2>&1 | grep -E "^E  "
 ```
-Expected: `1 error` (at collection); `E   AttributeError: module 'api.handlers' has no attribute 'publish'` (the parametrised test names `handlers.publish`).
+Expected: `1 error` (at collection); `E   AttributeError: module 'infra.functions.api' has no attribute 'publish'` (the parametrised test names `handlers.publish`).
 
-- [ ] **Step 4: Implement.** Replace the whole of `api/handlers.py` with the following. Compared with L2's version it adds the `base64`, `importlib` and `uuid` imports, `ApproveRequest`, `AskRequest`, `AskResponse`, `PublishRequest` and `Question` to the imports, five constants, `ERROR_INTERNAL` (C1) to the imports, `AskSpineFailed` above the mapping table, the `PermissionError` and `(AskSpineFailed, ERROR_INTERNAL)` rows (and the comments naming H4's errors on the `KeyError` and `ValueError` rows), and everything from `body_text` down; the L1 and L2 code is unchanged. `publish` and `approve` return H4's `PublishResponse` / `ApproveResponse` as they are.
+- [ ] **Step 4: Implement.** Replace the whole of `infra/functions/api.py` with the following. Compared with L2's version it adds the `base64`, `importlib` and `uuid` imports, `ApproveRequest`, `AskRequest`, `AskResponse`, `PublishRequest` and `Question` to the imports, five constants, `ERROR_INTERNAL` (C1) to the imports, `AskSpineFailed` above the mapping table, the `PermissionError` and `(AskSpineFailed, ERROR_INTERNAL)` rows (and the comments naming H4's errors on the `KeyError` and `ValueError` rows), and everything from `body_text` down; the L1 and L2 code is unchanged. `publish` and `approve` return H4's `PublishResponse` / `ApproveResponse` as they are.
 ```python
 """API Gateway HTTP API (v2) Lambda handlers: thin adapters from HTTP to the core (docs/TEAM_PLAN.md §3, D-021).
 
 Every handler does the same three things:
-  1. the scope from the token's claims (auth/scope.py), never from the body or the query string;
+  1. the scope from the token's claims (infra/functions/scope.py), never from the body or the query string;
   2. one builder from tools/api_schema.py, which calls tools/metrics.py and tools/queries.py;
   3. the contract model as JSON, or the contract error body ErrorResponse {error, detail}.
-No business logic and no arithmetic here (D-001). DevOps entry points: api.handlers:<route> (docs/DEVOPS_HANDOVER.md).
+No business logic and no arithmetic here (D-001). DevOps entry points: infra.functions.api:<route> (docs/DEVOPS_HANDOVER.md).
 """
 import base64
 import functools
@@ -291,7 +292,7 @@ from typing import Callable
 from pydantic import BaseModel
 
 from adapters import repository_from_settings
-from auth.scope import ScopeRefused, Unauthenticated, scope_from_event
+from infra.functions.scope import ScopeRefused, Unauthenticated, scope_from_event
 from config import get_settings
 from tools.agent_tools import ERROR_INVALID_INPUT, ERROR_OUT_OF_SCOPE
 from tools.api_schema import (ERROR_FORBIDDEN, ERROR_INTERNAL, ERROR_NOT_FOUND, ERROR_STATUS_CODES, ERROR_UNAUTHORIZED,
@@ -308,7 +309,7 @@ BODY_ENCODING = "utf-8"
 RUN_ID_PREFIX = "run-"
 STEP_FUNCTIONS_SERVICE = "stepfunctions"
 EXECUTION_SUCCEEDED = "SUCCEEDED"
-PUBLISH_FLOW_MODULE = "flow.publish"   # Huvison's H4: start_publish and decide
+PUBLISH_FLOW_MODULE = "infra.functions.publish"   # Huvison's H4: start_publish and decide
 
 
 class AskSpineFailed(RuntimeError):
@@ -320,9 +321,9 @@ ERROR_CODE_BY_EXCEPTION: tuple[tuple[type[Exception], str], ...] = (
     (Unauthenticated, ERROR_UNAUTHORIZED),
     (ScopeRefused, ERROR_FORBIDDEN),
     (OutOfScope, ERROR_OUT_OF_SCOPE),
-    (PermissionError, ERROR_FORBIDDEN),  # flow.publish.PublishForbidden: not the asker, or not a delivery lead
-    (KeyError, ERROR_NOT_FOUND),         # flow.publish.RunNotFound and NoPendingApproval included
-    (ValueError, ERROR_INVALID_INPUT),   # pydantic's ValidationError and flow.publish.NothingToPublish included
+    (PermissionError, ERROR_FORBIDDEN),  # infra.functions.publish.PublishForbidden: not the asker, or not a delivery lead
+    (KeyError, ERROR_NOT_FOUND),         # infra.functions.publish.RunNotFound and NoPendingApproval included
+    (ValueError, ERROR_INVALID_INPUT),   # pydantic's ValidationError and infra.functions.publish.NothingToPublish included
     (AskSpineFailed, ERROR_INTERNAL),    # a failed, timed-out or unconfigured ask run: the request was fine
 )
 LambdaHandler = Callable[..., dict]   # (event: dict, context: object) -> dict, the Lambda handler shape
@@ -402,7 +403,7 @@ def ask_spine_client():
 
 
 def publish_flow():
-    """Huvison's flow/publish.py (H4), imported on first use so the other routes run without it."""
+    """Huvison's infra/functions/publish.py (H4), imported on first use so the other routes run without it."""
     return importlib.import_module(PUBLISH_FLOW_MODULE)
 
 
@@ -442,19 +443,19 @@ def approve(event: dict, context: object) -> dict:
 
 - [ ] **Step 5: Run them and watch them pass**
 ```bash
-uv run --locked pytest tests/api/test_handlers.py --no-cov 2>&1 | tail -1
+uv run --locked pytest tests/infra/functions/test_api.py --no-cov 2>&1 | tail -1
 ```
 Expected: `46 passed`.
 
 - [ ] **Step 6: Full suite and commit**
 ```bash
-uv run --locked pytest 2>&1 | grep -E "[0-9]+ (passed|failed)|TOTAL|api/"
-git add api/handlers.py tests/api/test_handlers.py
+uv run --locked pytest 2>&1 | grep -E "[0-9]+ (passed|failed)|TOTAL|infra/functions/api.py"
+git add infra/functions/api.py tests/infra/functions/test_api.py
 git commit -m "POST /ask refuses out-of-scope entities before any run starts (Q11); /publish and /approve call the flow"
 ```
-Expected: START + 24 passed (`279 passed` on the dry-run base), `TOTAL ... 97%`, and `api/handlers.py ... 99%` with one line missed: the body of `publish_flow()` (the real `flow.publish` import; the tests replace it with `FakePublishFlow`).
+Expected: START + 24 passed (`279 passed` on the dry-run base), `TOTAL ... 97%`, and `infra/functions/api.py ... 99%` with one line missed: the body of `publish_flow()` (the real `infra.functions.publish` import; the tests replace it with `FakePublishFlow`).
 
-**Task done when:** `uv run --locked pytest tests/api/test_handlers.py -k "q11" --no-cov` prints `1 passed, 45 deselected`; `uv run --locked pytest tests/api/test_handlers.py -k "start_publish_error or no_pending" --no-cov` prints `4 passed, 42 deselected`; the full suite is START + 24; the commit is on the branch.
+**Task done when:** `uv run --locked pytest tests/infra/functions/test_api.py -k "q11" --no-cov` prints `1 passed, 45 deselected`; `uv run --locked pytest tests/infra/functions/test_api.py -k "start_publish_error or no_pending" --no-cov` prints `4 passed, 42 deselected`; the full suite is START + 24; the commit is on the branch.
 
 ### Task 2: Handover and HANDOFF
 
@@ -462,12 +463,12 @@ Expected: START + 24 passed (`279 passed` on the dry-run base), `TOTAL ... 97%`,
 - Modify: `docs/DEVOPS_HANDOVER.md` (your two rows), `HANDOFF.md` (your lines)
 
 - [ ] **Step 1: `docs/DEVOPS_HANDOVER.md`.** Two exact replacements:
-  - `` | `ask` | `api.handlers:ask` *(planned)* | API Gateway `POST /ask` | as above, plus `ASK_STATE_MACHINE_ARN` | `` → `` | `ask` | `api.handlers:ask` (built) | API Gateway `POST /ask` | as above, plus `ASK_STATE_MACHINE_ARN`, `RUN_BUDGET_USD`, `MAX_CLAIM_ATTEMPTS` (the handler puts them on the `Question`) | ``
-  - `` `api.handlers:publish` / `approve` *(planned)* `` → `` `api.handlers:publish` / `approve` (built; the bundle also needs `flow/`, because they call `flow.publish`) ``
+  - `` | `ask` | `infra.functions.api.ask` *(planned)* | API Gateway `POST /ask` | as above, plus `ASK_STATE_MACHINE_ARN` | `` → `` | `ask` | `infra.functions.api.ask` (built) | API Gateway `POST /ask` | as above, plus `ASK_STATE_MACHINE_ARN`, `RUN_BUDGET_USD`, `MAX_CLAIM_ATTEMPTS` (the handler puts them on the `Question`) | ``
+  - `` `infra.functions.api.publish` / `approve` *(planned)* `` → `` `infra.functions.api.publish` / `approve` (built; they call `infra.functions.publish`, which is in the same `infra/functions/` *(new)* bundle) ``
 - [ ] **Step 2: `HANDOFF.md`.**
   - Under "What's real", directly above `- TODO: agent loop, critic, ledger, approval flow, as each lands.`, add:
     ```markdown
-    - `POST /ask` refuses an entity outside the user's scope with 403 **before** any run starts (EVALS Q11: no ledger row, no model call), then runs the Express ask spine synchronously. `POST /publish` and `POST /approve` call `flow.publish.start_publish` and `decide`.
+    - `POST /ask` refuses an entity outside the user's scope with 403 **before** any run starts (EVALS Q11: no ledger row, no model call), then runs the Express ask spine synchronously. `POST /publish` and `POST /approve` call `infra.functions.publish.start_publish` and `decide`.
     ```
   - Directly under the heading `## What breaks first`, add:
     ```markdown
@@ -486,7 +487,7 @@ Expected: `15 passed`; then START + 24 passed (`279` on the dry-run base), `TOTA
 
 ### Task 3: Review, then PR (after Linus's OK)
 - [ ] **Step 1:** Work through the Review Focus; write each result in the ledger. Lines 3 and 5 need Patrick, Clement and Yaw: write their answers, or "asked <name>, <time>".
-- [ ] **Step 2:** `git diff develop --stat` lists only `api/handlers.py`, `tests/api/test_handlers.py`, `docs/DEVOPS_HANDOVER.md`, `HANDOFF.md`. Expected: `4 files changed`.
+- [ ] **Step 2:** `git diff develop --stat` lists only `infra/functions/api.py`, `tests/infra/functions/test_api.py`, `docs/DEVOPS_HANDOVER.md`, `HANDOFF.md`. Expected: `4 files changed`.
 - [ ] **Step 3:** A fresh reviewer checks the diff against the spec, **with the security focus**: the order in `ask`, scope only from the token. Fix critical and important findings test-first.
 - [ ] **Step 4: With the OK only:** `git push -u origin feature/api-ask-publish-approve`; PR to `develop`, titled "/ask, /publish and /approve entry points, Q11 refused before any run (L3)". The body: the counts, the H4 error mapping (Review Focus 4), the Y2 assumption from the spec, the rulings. No attribution lines.
 - [ ] **Step 5:** L3's [[Build order]] row → `in review (PR #nn)`. Tell Yaw the entry points and the `ask` Lambda's environment; tell Huvison the exact `start_publish` / `decide` calls; tell Clement the error cases.
@@ -495,11 +496,11 @@ Expected: `15 passed`; then START + 24 passed (`279` on the dry-run base), `TOTA
 
 ## Done means (checklist)
 - [ ] `uv run --locked pytest` prints START + 24 passed (279 on the dry-run base) and `TOTAL` ≥ 97%. *Verify:* run it.
-- [ ] The Q11 test passes: the E4 lead's `/ask` about E2 is 403 `out_of_scope`, the fake state machine got no request and `ledger.runs == {}`. *Verify:* `uv run --locked pytest tests/api/test_handlers.py -k "q11" --no-cov` prints `1 passed`.
-- [ ] A failed or unconfigured ask run is 500 `internal` with the contract body. *Verify:* `uv run --locked pytest tests/api/test_handlers.py -k "internal" --no-cov` prints `2 passed, 44 deselected`.
-- [ ] Approval by a non-delivery lead is 403 `forbidden`. *Verify:* `uv run --locked pytest tests/api/test_handlers.py -k "anyone_else" --no-cov` prints `1 passed, 45 deselected`.
-- [ ] H4's errors map exactly: `PublishForbidden` → 403 `forbidden`, `RunNotFound` and `NoPendingApproval` → 404 `not_found`, `NothingToPublish` → 400 `invalid_input`. *Verify:* `uv run --locked pytest tests/api/test_handlers.py -k "start_publish_error or no_pending" --no-cov` prints `4 passed, 42 deselected`.
-- [ ] `docs/DEVOPS_HANDOVER.md` lists `RUN_BUDGET_USD` and `MAX_CLAIM_ATTEMPTS` for `ask`, and `flow/` in the publish/approve bundle. *Verify:* `grep -n "MAX_CLAIM_ATTEMPTS\|bundle also needs" docs/DEVOPS_HANDOVER.md`.
+- [ ] The Q11 test passes: the E4 lead's `/ask` about E2 is 403 `out_of_scope`, the fake state machine got no request and `ledger.runs == {}`. *Verify:* `uv run --locked pytest tests/infra/functions/test_api.py -k "q11" --no-cov` prints `1 passed`.
+- [ ] A failed or unconfigured ask run is 500 `internal` with the contract body. *Verify:* `uv run --locked pytest tests/infra/functions/test_api.py -k "internal" --no-cov` prints `2 passed, 44 deselected`.
+- [ ] Approval by a non-delivery lead is 403 `forbidden`. *Verify:* `uv run --locked pytest tests/infra/functions/test_api.py -k "anyone_else" --no-cov` prints `1 passed, 45 deselected`.
+- [ ] H4's errors map exactly: `PublishForbidden` → 403 `forbidden`, `RunNotFound` and `NoPendingApproval` → 404 `not_found`, `NothingToPublish` → 400 `invalid_input`. *Verify:* `uv run --locked pytest tests/infra/functions/test_api.py -k "start_publish_error or no_pending" --no-cov` prints `4 passed, 42 deselected`.
+- [ ] `docs/DEVOPS_HANDOVER.md` lists `RUN_BUDGET_USD` and `MAX_CLAIM_ATTEMPTS` for `ask`, and marks `infra.functions.api.publish` / `approve` as built. *Verify:* `grep -n "MAX_CLAIM_ATTEMPTS\|api.publish" docs/DEVOPS_HANDOVER.md`.
 - [ ] After H2/H4/Y2 are deployed: the E4 lead's `POST /api/ask` about E2 returns 403 with `"error": "out_of_scope"`, and the ledger table has no item for that request. *Verify (in AWS, with Yaw):* `curl -s -o /dev/stderr -w "%{http_code}" -X POST -H "Authorization: Bearer <E4 lead ID token>" -d '{"entity_id":"E2","question":"What is blocking cutover for E2?"}' https://<portal domain>/api/ask` prints `403`; L6's asker records Q11 as `pass`.
 - [ ] PR open or merged, no attribution lines; [[Build order]] row L3 updated. *Verify:* `gh pr view <nn> --json state`; open the note.
 

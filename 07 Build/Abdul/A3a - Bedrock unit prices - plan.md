@@ -16,12 +16,13 @@ The vault is the context space for this work (clone `git@github.com:patrick-appi
 2. [[A3a - Bedrock unit prices - spec]]: **the authority.** Where this plan and the spec disagree, the spec wins; record the conflict in your ledger.
 3. [[Abdul - evals, Cognito, docs]] §6 and [[Huvison - trust and flow]] §6.
 4. [[2026-10-13 Default models]] and [[2026-10-13 EU-only Bedrock inference profiles]].
+5. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 When something here is unclear, look in the vault (`04 Reference/`, `03 Sessions/`, `Open follow-ups.md`) before guessing. If it's still unclear, stop and ask Huvison or Patrick.
 
 **Goal:** `COST.md` has sourced, dated eu-west-1 unit prices for every model ID in `config.py` (plus Haiku 4.5 and AgentCore Runtime), and Huvison has them for the price table in code.
 
-**Architecture:** prices → `COST.md` "Unit prices" (you) → `tools/constants.py` `MODEL_PRICES_USD_PER_1K_TOKENS` (Huvison, H5) → `flow/cost.py` *(new)* (created by H5) `cost_usd(usage)` → `AskResponse.cost_usd` → the results file → [[A3b - COST measured figures - plan]].
+**Architecture:** prices → `COST.md` "Unit prices" (you) → `tools/constants.py` `MODEL_PRICES_USD_PER_1K_TOKENS` (Huvison, H5) → `tools/cost.py` *(new)* (created by H5) `cost_usd(usage)` → `AskResponse.cost_usd` → the results file → [[A3b - COST measured figures - plan]].
 
 **Tech stack:** a browser (AWS pricing pages; the AWS console read-only for the Haiku profile ID), a calculator, VS Code + Git.
 

@@ -12,10 +12,11 @@ updated: 2026-10-14
 The vault is the shared context space: decisions, briefs, rules, the build order and the reasons behind them. Clone `git@github.com:patrick-appiah/aws-hackathon-agent-context.git` (lead's machine: `/mnt/c/dev/aws-hackathon/aws-hackathon/`) and run `git pull` first. **Before writing any code, read, in this order:**
 1. [[How to execute a plan]] (`07 Build/`): the procedure every agent follows.
 2. [[Workstreams]] (`06 Workstreams/`): the architecture, the code already built, the contracts and the rules (§7).
-3. [[Michael - DevOps]] (step 5, `AuthStack`), [[Abdul - evals, Cognito, docs]] §5 (groups, attributes, test users), [[Linus - API, identity, blocker-analyst]] §1 (how `auth/scope.py` *(new)* reads the claims), [[Clement - front end]] (managed login + PKCE) and [[Yaw - DevOps]] (the JWT authorizer).
+3. [[Michael - DevOps]] (step 5, `AuthStack`), [[Abdul - evals, Cognito, docs]] §5 (groups, attributes, test users), [[Linus - API, identity, blocker-analyst]] §1 (how `infra/functions/scope.py` *(new)* reads the claims), [[Clement - front end]] (managed login + PKCE) and [[Yaw - DevOps]] (the JWT authorizer).
 4. [[M2 - App, DataStack and LedgerStack - spec]]: the CDK patterns this item follows.
 5. [[Build order]]: M3b depends on M2 and A2 (Abdul's users list).
 6. `01 Decisions/`: [[2026-10-13 Scope from the token, enforced twice]], [[2026-10-13 POC plus one target slice, target as 90-day roadmap]], [[2026-10-13 Team are admins, workload roles least-privilege]]; `05 Workflow/`: [[Deploy and demo checks]], [[Synthetic data rules]].
+7. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 **Whenever this spec is silent or unclear, look in the vault before guessing:** `04 Reference/` for the brief, the rubrics and the guideline; `03 Sessions/` for what happened when; `Open follow-ups.md` for known open questions. If the vault doesn't answer it either, stop and ask Michael (owner), Abdul (users) or Linus (claims). Never invent a name, a shape or a rule.
 
@@ -29,7 +30,7 @@ The vault is the shared context space: decisions, briefs, rules, the build order
 6. **Outputs** `UserPoolId`, `UserPoolClientId`, `IssuerUrl`, `ManagedLoginUrl`; attributes `user_pool`, `user_pool_client`, `issuer_url`, `managed_login_domain` for Yaw's JWT authorizer and Michael's WebStack.
 
 **Why:**
-- D-015: Cognito sign-in with entity scope is the one target slice. D-010: scope comes from the token; `auth/scope.py` (Linus) turns `cognito:groups`, `custom:tenant_id` and `custom:entity_ids` into a `Scope`.
+- D-015: Cognito sign-in with entity scope is the one target slice. D-010: scope comes from the token; `infra/functions/scope.py` (Linus) turns `cognito:groups`, `custom:tenant_id` and `custom:entity_ids` into a `Scope`.
 - **The ID token** carries the custom claims (the access token doesn't), so the portal sends it and Yaw's authorizer uses the app client ID as audience.
 - **The write restriction is a security control:** by default a Cognito app client may write every attribute, so a signed-in E4 lead could call `UpdateUserAttributes` and set `custom:entity_ids` to `*`. Restricting the client's write attributes to `name` closes that.
 
@@ -90,7 +91,7 @@ The vault is the shared context space: decisions, briefs, rules, the build order
 
 ## 5. Out of scope
 - The CloudFront callback URL and the portal's runtime config (M4a).
-- `auth/scope.py` (Linus, L1), the JWT authorizer (Yaw, Y1), the sign-in UI (Clement, F3).
+- `infra/functions/scope.py` (Linus, L1), the JWT authorizer (Yaw, Y1), the sign-in UI (Clement, F3).
 - MFA, federation and Verified Permissions (the 90-day roadmap, `docs/ROADMAP.md`).
 - Writing the users list into `HANDOFF.md` (Abdul).
 

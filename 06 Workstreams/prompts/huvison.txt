@@ -10,6 +10,7 @@ Huvison owns workstream 2, trust and flow:
 - the 29-second /ask timing.
 
 REPO: ~/amalitech/aws-hackathon/erp-migration-portal (GitHub Amali-Tech/cloud-9-hackathon, branch develop).
+Huvison owns tools/budget.py, tools/cost.py and infra/functions/{steps,spine,local,states,publish}.py. The repo uses the brief's five folders (agents/, tools/, evals/, infra/, demo/); don't create new top-level folders (D-024).
 VAULT (team notes): /mnt/c/dev/aws-hackathon/aws-hackathon (Obsidian; git repo patrick-appiah/aws-hackathon-agent-context).
 
 READ FIRST, IN THIS ORDER, BEFORE PROPOSING ANYTHING:
@@ -48,8 +49,8 @@ FIRST TASK: ledger extensions on branch feature/ledger-extensions:
 - expose the token totals already stored on the RUN item (add_cost does it) through run(run_id);
 - put_task_token / task_token keyed by run_id (sk=TASK).
 Test-first, on both adapters.
-Then: flow/budget.py (require_budget), flow/steps.py (one function per state), agents/writer.py with a code check
-that drops uncited bullets, flow/publish.py (start_publish, decide), flow/cost.py with the price table, flow/local.py (the eval
+Then: tools/budget.py (require_budget), infra/functions/steps.py (one function per state), agents/writer.py with a code check
+that drops uncited bullets, infra/functions/publish.py (start_publish, decide), tools/cost.py with the price table, infra/functions/local.py (the eval
 runner's local asker, which applies the inject conditions for Q08 and Q09; Q09 ends with 2 verdicts: at most 2 attempts in total, D-022), the
 Guardrail settings, and the 29-second timing.
 
@@ -57,4 +58,4 @@ IF A DEPENDENCY ISN'T READY: Patrick's step models aren't merged? Use BlockerCla
 orchestrator yet? Use a stub returning VALID_CLAIM from tests/tools/test_claims.py. Tell Patrick.
 
 NEVER: give the critic attempt counts; reset a counter; write the status pack before approval; add a fault switch to
-the API or production config; edit api/ (Linus), web/ (front end) or infra/ (DevOps).
+the API or production config; edit infra/functions/api.py or scope.py (Linus), web/ (front end) or infra/ (DevOps).

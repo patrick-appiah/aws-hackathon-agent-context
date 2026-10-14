@@ -19,6 +19,7 @@ The vault is the shared context space: decisions, briefs, rules, the build order
 5. [[Build order]]: what this item depends on and unblocks.
 6. [[M2 - App, DataStack and LedgerStack - spec]]: the CDK app, `build_stacks`, the prefix, the test fixtures and the patterns every DevOps item follows.
 7. Every stack's spec (listed in the Y4 spec §0) and [[M5 - Clean-deploy runbook - spec]].
+8. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 **Whenever this note is silent or unclear, look in the vault before guessing:** `04 Reference/` for the brief, the rubrics and the guideline; `03 Sessions/` for what happened when; `Open follow-ups.md` for known open questions. If the vault doesn't answer it either, stop and ask Yaw (owner) or Patrick (reviewer). Never invent a name, a shape or a rule.
 
@@ -40,7 +41,7 @@ The vault is the shared context space: decisions, briefs, rules, the build order
 - Tests in `tests/`, mirroring the code; `uv run --locked pytest` from the repo root; coverage must not drop (96%). CDK tests never bundle (`SKIP_ALL_BUNDLING`) and never call AWS.
 - **No AWS calls while building:** only `cdk synth` with credentials unset (`env -u AWS_PROFILE AWS_CONFIG_FILE=/dev/null AWS_SHARED_CREDENTIALS_FILE=/dev/null npx cdk synth -q`) and the tests. Steps marked **verify in AWS** run only after Yaw's OK, with `export AWS_PROFILE=hackathon AWS_REGION=eu-west-1`. Deploys are manual (D-018); CI never deploys.
 - Branch `<type>/<short-topic>` from `develop` after the dependencies are merged; PR to `develop`; Patrick merges; never push to `develop` or `main`; **no `Co-Authored-By` and no "Generated with" lines**.
-- Stay in DevOps's files: `infra/`, `tests/infra/` *(new)* (and `Jenkinsfile` *(new)*, Michael's). Need a change elsewhere (`config.py`, `api/`, `flow/`, `docs/`)? Ask its owner.
+- Stay in DevOps's files: `infra/` (`app.py`, `stacks/`, `agent_runtime/`, `bundling.py`, and in `infra/functions/` *(new)* only `agent_shim.py` and the stubs), `tests/infra/` *(new; `tests/infra/functions/` is Linus's and Huvison's)* (and `Jenkinsfile` *(new)*, Michael's). Need a change elsewhere (`config.py`, `tools/`, Linus's and Huvison's modules in `infra/functions/`, `docs/`)? Ask its owner.
 - No layout or "meta" guard tests: the tests check what the stacks synthesise and what the functions do.
 
 ## Review Focus (what the tests don't fully cover; check by hand at the end)

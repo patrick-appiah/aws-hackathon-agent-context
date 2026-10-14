@@ -16,6 +16,7 @@ The team vault is the shared context space for this project: decisions, briefs, 
 4. [[Huvison - trust and flow]] §6: his price table `MODEL_PRICES_USD_PER_1K_TOKENS = {model_id: (input, output)}` in `tools/constants.py` is built from your numbers (item H5).
 5. [[Build order]]: A3 → H5 → B1/B3 (the business case and the cost slide use `COST.md`).
 6. `01 Decisions/`: [[2026-10-13 Default models]] (D-004: Sonnet 4.6 for four agents, Nova Lite for the retriever until Haiku 4.5 activates), [[2026-10-13 EU-only Bedrock inference profiles]] (D-002). `04 Reference/`: [[Judging rubric]] (3.2 cost model, 9 points), [[Pitch track grading rubric]] ("COST.md: measured cost per run and at 100 runs/day").
+7. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 **Whenever this spec is silent or unclear, look in the vault before guessing:** `04 Reference/`, `03 Sessions/` (the Bedrock smoke test), `Open follow-ups.md` (Haiku re-test). If it's still unclear, stop and ask Huvison (prices in code) or Patrick. Never invent a price.
 
@@ -30,7 +31,7 @@ The team vault is the shared context space for this project: decisions, briefs, 
 | *(none yet)* | Claude Haiku 4.5, `eu.*` profile ID to copy from the Bedrock console | the retriever, if access activates (D-004) |
 
 **Why:**
-- "Cost per run" must be **measured** (rubric), and measuring needs a price per token. Huvison's `flow/cost.py` *(new)* (created by H5) multiplies tokens by your prices.
+- "Cost per run" must be **measured** (rubric), and measuring needs a price per token. Huvison's `tools/cost.py` *(new)* (created by H5) multiplies tokens by your prices.
 - Judges check sources. A price without a link and date is a guess.
 
 **Success means:**
@@ -82,7 +83,7 @@ No code. The checks:
 
 ## 5. Out of scope
 - The measured rows and the scale table ([[A3b - COST measured figures - spec]]).
-- The price table in code and `flow/cost.py` (Huvison, H5).
+- The price table in code and `tools/cost.py` (Huvison, H5).
 - The "Value side" TODO in `COST.md` (business case, B1).
 
 Related: [[Build order]], [[Abdul - evals, Cognito, docs]], [[A3a - Bedrock unit prices - plan]]

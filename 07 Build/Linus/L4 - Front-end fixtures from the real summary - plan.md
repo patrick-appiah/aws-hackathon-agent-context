@@ -16,6 +16,7 @@ The vault is the context space for this work (clone `git@github.com:patrick-appi
 2. [[L4 - Front-end fixtures from the real summary - spec]]: **the authority**, including the file-name and `rows.json` assumptions agreed with Mildred.
 3. [[C1 - API and spine contracts - plan]] Task 5: the export-script pattern this follows.
 4. [[Mildred - front end]] items 1–2, and [[Synthetic data rules]].
+5. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 **Whenever this note is silent or unclear, look in the vault before guessing:** `04 Reference/` for the brief, the rubrics and the guideline ([[Problem statement]], [[Judging rubric]], [[Pitch track grading rubric]], [[Hackathon guideline]]); `03 Sessions/` for what happened when; `Open follow-ups.md` for known open questions. If the vault doesn't answer it either, stop and ask Linus. Never invent a name, a shape or a rule.
 
@@ -35,7 +36,7 @@ The vault is the context space for this work (clone `git@github.com:patrick-appi
 - **Never weaken a security rule** (the scope gate, the create-once ledger, the fail-closed critic, the `<evidence>` escaping) to make a test pass.
 - **Tests** live in `tests/`, mirroring the code; run `uv run --locked pytest` from the repo root. Coverage must not drop below the start state. **No layout or "meta" guard tests**: test behaviour, not where files sit.
 - **Git:** small commits, one per task, with the messages given. **No `Co-Authored-By` and no "Generated with" lines.** Never push to `develop` or `main`; the PR goes to `develop` after the owner's OK, and Patrick merges.
-- **Stay in your folders** (`docs/TEAM_PLAN.md` §2, workstream 3: `api/`, `auth/`, `tools/metrics.py`, `tools/queries.py`, `tools/agent_tools.py`, `tools/claims.py`, `agents/blocker_analyst.py` *(new)*, `agents/prompts/blocker_analyst.txt` *(new)*, `scripts/export_summary.py` *(new)*, the eval runner). Any other file this plan touches is named in its task, with the owner who must review it.
+- **Stay in your folders** (`docs/TEAM_PLAN.md` §2, workstream 3: `infra/functions/api.py` *(new)*, `infra/functions/scope.py` *(new)*, `tests/infra/functions/` *(new)*, `tools/metrics.py`, `tools/queries.py`, `tools/agent_tools.py`, `tools/claims.py`, `agents/blocker_analyst.py` *(new)*, `agents/prompts/blocker_analyst.txt` *(new)*, `scripts/export_summary.py` *(new)*, the eval runner). Any other file this plan touches is named in its task, with the owner who must review it.
 - **`web/` is Mildred's and Clement's folder.** Tasks 1–2 write fixtures only into `tmp_path` (tests) or your working tree (to look at them). **Don't commit anything under `web/` in Tasks 1–2.** Task 3 commits the six generated files with Mildred's OK.
 - **Run the script only through uv:** `uv run python scripts/export_summary.py` (a test checks documented commands).
 

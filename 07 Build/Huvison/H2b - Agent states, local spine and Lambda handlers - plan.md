@@ -16,12 +16,13 @@ The vault is the context space for this work (clone `git@github.com:patrick-appi
 2. [[H2b - Agent states, local spine and Lambda handlers - spec]]: **the authority.** Where this plan and the spec disagree, the spec wins; ledger the conflict.
 3. [[H2a - Budget and ledger states - spec]], [[H3 - Writer agent - spec]], [[H5 - Cost per run - spec]]; Patrick's [[P2 - Orchestrator agent - spec]] and [[P3 - Local ask runner - spec]].
 4. `01 Decisions/` D-007, D-009, D-010 and the repo's D-012; [[Working with AI assistants]].
+5. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 When something here is unclear, look in the vault (`04 Reference/`, `03 Sessions/`, `Open follow-ups.md`) before guessing. If the vault doesn't answer it, stop and ask Huvison.
 
 **Goal:** the three agent-calling states, the whole ask spine in-process, and one JSON Lambda entry point per state, all tested with stub agents.
 
-**Architecture:** the states take `ledger=` and `repository=` keyword ports and optional agent stand-ins (`orchestrator=`, `critic_agent=`, `writer=`); `None` means the real agent (P2's module imported on first use; the Bedrock critic; H3's writer). The ledger is the only state: claims, verdicts and the run's scope are read from it. `flow/spine.py` sequences the states; `flow/handlers.py` wraps each for Step Functions.
+**Architecture:** the states take `ledger=` and `repository=` keyword ports and optional agent stand-ins (`orchestrator=`, `critic_agent=`, `writer=`); `None` means the real agent (P2's module imported on first use; the Bedrock critic; H3's writer). The ledger is the only state: claims, verdicts and the run's scope are read from it. `infra/functions/spine.py` sequences the states; `infra/functions/states.py` wraps each for Step Functions.
 
 **Tech stack:** Python 3.11, pydantic 2, pytest, uv. No Bedrock and no AWS in any test.
 
@@ -30,7 +31,7 @@ When something here is unclear, look in the vault (`04 Reference/`, `03 Sessions
 ## Global Constraints
 - **Repo:** `~/amalitech/aws-hackathon/erp-migration-portal`. Branch: `feature/ask-spine-agent-states` from an up-to-date `develop` after **H2a, H3 and H5** (and so C1, H1, P1) are merged.
 - **Start state:** the dry-run's start was **283 passed**, `TOTAL` 97%. Write your real number in the ledger file; the **deltas** must match (+3, +5, +4, +7, +4).
-- **Rules:** `eu-west-1`, `eu.*` models only; synthetic data; no secrets. Settings only in `config.py`; domain constants only in `tools/constants.py`; descriptive names, no single-character names, no magic numbers. The core imports no boto3, Strands, adapters, `config`, `os`. Agents reach data only through `tools/agent_tools.py`; **scope is never a tool argument**. **The critic stays blind and fails closed:** it sees only the stored claim and its cited rows, never the plan, the question, the attempt count or the orchestrator's reasoning; never catch a critic failure as a pass. **The retry is decided only by `retry_decision`** (2 attempts per claim, the lead's ruling). Never weaken a security rule. Tests in `tests/` mirroring the code; coverage must not drop; no layout or meta guard tests. Stay in your folders: `flow/`, `tests/flow/` *(new)*, and the doc lines in Task 6.
+- **Rules:** `eu-west-1`, `eu.*` models only; synthetic data; no secrets. Settings only in `config.py`; domain constants only in `tools/constants.py`; descriptive names, no single-character names, no magic numbers. The core imports no boto3, Strands, adapters, `config`, `os`. Agents reach data only through `tools/agent_tools.py`; **scope is never a tool argument**. **The critic stays blind and fails closed:** it sees only the stored claim and its cited rows, never the plan, the question, the attempt count or the orchestrator's reasoning; never catch a critic failure as a pass. **The retry is decided only by `retry_decision`** (2 attempts per claim, the lead's ruling). Never weaken a security rule. Tests in `tests/` mirroring the code; coverage must not drop; no layout or meta guard tests. Stay in your folders: `infra/functions/` *(new)*, `tests/infra/functions/` *(new)*, and the doc lines in Task 6.
 - **Commits:** one per task, the given messages, **no attribution lines**. Never push to `develop` or `main`.
 
 ## Review Focus
@@ -44,9 +45,9 @@ When something here is unclear, look in the vault (`04 Reference/`, `03 Sessions
 
 ### Task 1: `run_orchestrator`
 
-**Files:** Modify `flow/steps.py` *(new)*, `tests/flow/test_steps.py` *(new)*
+**Files:** Modify `infra/functions/steps.py` *(new)*, `tests/infra/functions/test_steps.py` *(new)*
 
-**Produces:** in `flow.steps`: `STEP_RUN_ORCHESTRATOR`, `STEP_JUDGE_CLAIM`, `STEP_WRITE_ANSWER`, `ORCHESTRATOR_AGENT_NAME`, `ORCHESTRATOR_MODULE`, `logger`, `OrchestratorAgent`, `Writer`, `prompt_ref(agent_name: str) -> PromptRef | None`, `real_orchestrator() -> OrchestratorAgent`, `run_orchestrator(question: Question, *, ledger: Ledger, repository: ArtefactRepository, rejected_claim: BlockerClaim | None = None, verdict: dict | None = None, orchestrator: OrchestratorAgent | None = None) -> OrchestratorResult`. **Consumes:** `flow.cost.record_usage` (H5); `agents.prompt_loader` (exists); P2's `orchestrate` / `replan` (at run time only). **Consumed by:** Task 4, H6, P3.
+**Produces:** in `infra.functions.steps`: `STEP_RUN_ORCHESTRATOR`, `STEP_JUDGE_CLAIM`, `STEP_WRITE_ANSWER`, `ORCHESTRATOR_AGENT_NAME`, `ORCHESTRATOR_MODULE`, `logger`, `OrchestratorAgent`, `Writer`, `prompt_ref(agent_name: str) -> PromptRef | None`, `real_orchestrator() -> OrchestratorAgent`, `run_orchestrator(question: Question, *, ledger: Ledger, repository: ArtefactRepository, rejected_claim: BlockerClaim | None = None, verdict: dict | None = None, orchestrator: OrchestratorAgent | None = None) -> OrchestratorResult`. **Consumes:** `tools.cost.record_usage` (H5); `agents.prompt_loader` (exists); P2's `orchestrate` / `replan` (at run time only). **Consumed by:** Task 4, H6, P3.
 
 - [ ] **Step 1: Branch and baseline**
 ```bash
@@ -56,8 +57,8 @@ git switch -c feature/ask-spine-agent-states
 mkdir -p .superpowers && printf '# Ledger: H2b Agent states, spine, handlers\n' > .superpowers/ledger-H2b.md
 ```
 Expected: your start count, `TOTAL ... 97%` (or 96%).
-- [ ] **Step 2: Failing tests.** In `tests/flow/test_steps.py`:
-  - change the first line (the module docstring) to `"""The ask-spine states (flow/steps.py): budget, claims, retry guard, rejections, and the states that call agents."""`;
+- [ ] **Step 2: Failing tests.** In `tests/infra/functions/test_steps.py`:
+  - change the first line (the module docstring) to `"""The ask-spine states (infra/functions/steps.py): budget, claims, retry guard, rejections, and the states that call agents."""`;
   - replace the import block (from `import pytest` to `from tools.ports import LedgerConflict`) with:
 ```python
 import json
@@ -70,9 +71,9 @@ from adapters.memory_ledger import InMemoryLedger
 from agents.prompt_loader import load_prompt
 from agents.writer import verbatim_answer
 from config import get_settings
-from flow import steps
-from flow.cost import cost_usd
-from flow.steps import (REJECT, RETRY, check_budget, question_for, record_rejection, retry_decision,
+from infra.functions import steps
+from tools.cost import cost_usd
+from infra.functions.steps import (REJECT, RETRY, check_budget, question_for, record_rejection, retry_decision,
                         store_claims)
 from tools.api_schema import AskRequest
 from tools.models import (BlockerClaim, OrchestratorResult, OutOfScope, PartialAnswer, Plan, Question, Usage,
@@ -169,13 +170,13 @@ def test_a_re_plan_gets_the_claim_and_the_critics_last_verdict_from_the_ledger(s
 def test_a_re_plan_keeps_only_a_claim_under_the_rejected_id(started, repository, cfo_scope, caplog):
     fresh = VALID_E4_CLAIM.model_copy(update={"claim_id": "claim-7"})
     orchestrator = StubOrchestrator(VALID_E4_CLAIM, replan_claims=[fresh, VALID_E4_CLAIM, VALID_E4_CLAIM])
-    with caplog.at_level(logging.WARNING, logger="flow.steps"):
+    with caplog.at_level(logging.WARNING, logger="infra.functions.steps"):
         result = steps.run_orchestrator(question(cfo_scope), ledger=started, repository=repository,
                                         rejected_claim=VALID_E4_CLAIM, verdict=REJECTION, orchestrator=orchestrator)
     assert result.claims == [VALID_E4_CLAIM] and "claim-7" in caplog.text
 ```
-- [ ] **Step 3: Run:** `uv run --locked pytest tests/flow/test_steps.py --no-cov 2>&1 | tail -1` and `... 2>&1 | grep -E "^E  " | sort -u | head -1`. Expected: `3 failed, 15 passed`; `E       AttributeError: module 'flow.steps' has no attribute 'run_orchestrator'`.
-- [ ] **Step 4: Implement.** In `flow/steps.py`:
+- [ ] **Step 3: Run:** `uv run --locked pytest tests/infra/functions/test_steps.py --no-cov 2>&1 | tail -1` and `... 2>&1 | grep -E "^E  " | sort -u | head -1`. Expected: `3 failed, 15 passed`; `E       AttributeError: module 'infra.functions.steps' has no attribute 'run_orchestrator'`.
+- [ ] **Step 4: Implement.** In `infra/functions/steps.py`:
   - replace everything from `from uuid import uuid4` down to (not including) `def question_for(` with:
 ```python
 import importlib
@@ -188,8 +189,8 @@ from agents.agent_support import usage_of
 from agents.prompt_loader import PROMPT_FILE_SUFFIX, PROMPTS_DIR, load_prompt
 from agents.writer import WRITER_AGENT_NAME
 from config import Settings, get_settings
-from flow.budget import require_budget
-from flow.cost import record_usage
+from tools.budget import require_budget
+from tools.cost import record_usage
 from tools.api_schema import AskRequest, AskResponse, PromptRef, RejectedClaim, TraceStep
 from tools.constants import ClaimStatus
 from tools.models import (BlockerClaim, OrchestratorResult, OutOfScope, PartialAnswer, Question, Scope, Verdict,
@@ -242,7 +243,7 @@ def prompt_ref(agent_name: str) -> PromptRef | None:
 
 
 def real_orchestrator() -> OrchestratorAgent:
-    """agents/orchestrator.py, imported on first use: it imports flow.budget, so flow must not import it at load."""
+    """agents/orchestrator.py, imported on first use: it imports tools.budget, so infra/functions/steps.py must not import it at load."""
     return importlib.import_module(ORCHESTRATOR_MODULE)
 
 
@@ -271,25 +272,25 @@ def run_orchestrator(question: Question, *, ledger: Ledger, repository: Artefact
                 prompt=prompt_ref(ORCHESTRATOR_AGENT_NAME))
     return result
 ```
-- [ ] **Step 5: Run:** `uv run --locked pytest tests/flow/test_steps.py --no-cov 2>&1 | tail -1`. Expected: `18 passed in …s`.
+- [ ] **Step 5: Run:** `uv run --locked pytest tests/infra/functions/test_steps.py --no-cov 2>&1 | tail -1`. Expected: `18 passed in …s`.
 - [ ] **Step 6: Full suite, no cycle, commit**
 ```bash
 uv run --locked pytest 2>&1 | grep -E "[0-9]+ (passed|failed)|TOTAL"
-uv run python -c "import flow.steps, sys; print('agents.orchestrator' in sys.modules)"
-git add flow/steps.py tests/flow/test_steps.py
+uv run python -c "import infra.functions.steps, sys; print('agents.orchestrator' in sys.modules)"
+git add infra/functions/steps.py tests/infra/functions/test_steps.py
 git commit -m "run_orchestrator state: first plan or re-plan of one claim under its own ID, cost and trace recorded"
 ```
 Expected: start + 3 (dry-run `286 passed`); `False` (the orchestrator isn't imported at load).
 
-**Task done when:** `uv run --locked pytest tests/flow/test_steps.py --no-cov -k re_plan 2>&1 | tail -1 | cut -d, -f1` prints `2 passed`.
+**Task done when:** `uv run --locked pytest tests/infra/functions/test_steps.py --no-cov -k re_plan 2>&1 | tail -1 | cut -d, -f1` prints `2 passed`.
 
 ### Task 2: `judge_claim`
 
-**Files:** Modify `flow/steps.py`, `tests/flow/test_steps.py`
+**Files:** Modify `infra/functions/steps.py`, `tests/infra/functions/test_steps.py`
 
-**Produces:** `flow.steps.judge_claim(run_id: str, claim: BlockerClaim, scope: Scope, *, ledger: Ledger, repository: ArtefactRepository, critic_agent: Callable | None = None) -> dict`. **Consumes:** `agents.critic.judge`, `make_agent`, `CRITIC_AGENT_NAME` (exist); `agents.agent_support.usage_of` (P1); `Ledger.claim`, `run`, `record_verdict` (H1). **Consumed by:** Task 4, H6, P3.
+**Produces:** `infra.functions.steps.judge_claim(run_id: str, claim: BlockerClaim, scope: Scope, *, ledger: Ledger, repository: ArtefactRepository, critic_agent: Callable | None = None) -> dict`. **Consumes:** `agents.critic.judge`, `make_agent`, `CRITIC_AGENT_NAME` (exist); `agents.agent_support.usage_of` (P1); `Ledger.claim`, `run`, `record_verdict` (H1). **Consumed by:** Task 4, H6, P3.
 
-- [ ] **Step 1: Failing tests.** Append to `tests/flow/test_steps.py`:
+- [ ] **Step 1: Failing tests.** Append to `tests/infra/functions/test_steps.py`:
 ```python
 
 
@@ -337,8 +338,8 @@ def test_an_out_of_scope_citation_is_rejected_without_a_model_call(ledger, repos
                                 critic_agent=critic)
     assert verdict["pass"] is False and not critic.prompts and ledger.steps(RUN_ID)[-1]["prompt"] is None
 ```
-- [ ] **Step 2: Run:** `uv run --locked pytest tests/flow/test_steps.py --no-cov 2>&1 | tail -1`. Expected: `5 failed, 18 passed`, with `AttributeError: module 'flow.steps' has no attribute 'judge_claim'`.
-- [ ] **Step 3: Implement.** Append to `flow/steps.py`:
+- [ ] **Step 2: Run:** `uv run --locked pytest tests/infra/functions/test_steps.py --no-cov 2>&1 | tail -1`. Expected: `5 failed, 18 passed`, with `AttributeError: module 'infra.functions.steps' has no attribute 'judge_claim'`.
+- [ ] **Step 3: Implement.** Append to `infra/functions/steps.py`:
 ```python
 
 
@@ -369,24 +370,24 @@ def judge_claim(run_id: str, claim: BlockerClaim, scope: Scope, *, ledger: Ledge
                 prompt=PromptRef(**verdict_prompt) if verdict_prompt else None)
     return verdict
 ```
-- [ ] **Step 4: Run:** `uv run --locked pytest tests/flow/test_steps.py --no-cov 2>&1 | tail -1`. Expected: `23 passed in …s`.
+- [ ] **Step 4: Run:** `uv run --locked pytest tests/infra/functions/test_steps.py --no-cov 2>&1 | tail -1`. Expected: `23 passed in …s`.
 - [ ] **Step 5: Full suite and commit**
 ```bash
 uv run --locked pytest 2>&1 | grep -E "[0-9]+ (passed|failed)|TOTAL"
-git add flow/steps.py tests/flow/test_steps.py
+git add infra/functions/steps.py tests/infra/functions/test_steps.py
 git commit -m "judge_claim state: the blind critic on the ledger's copy under the run's scope; verdict, cost and trace recorded"
 ```
 Expected: start + 8 (dry-run `291 passed`).
 
-**Task done when:** `uv run --locked pytest tests/flow/test_steps.py --no-cov -k judge_claim 2>&1 | tail -1 | cut -d, -f1` prints `4 passed`.
+**Task done when:** `uv run --locked pytest tests/infra/functions/test_steps.py --no-cov -k judge_claim 2>&1 | tail -1 | cut -d, -f1` prints `4 passed`.
 
 ### Task 3: `write_answer`
 
-**Files:** Modify `flow/steps.py`, `tests/flow/test_steps.py`
+**Files:** Modify `infra/functions/steps.py`, `tests/infra/functions/test_steps.py`
 
-**Produces:** `flow.steps.real_writer() -> Writer`, `write_answer(run_id: str, question: Question, passed_claims: list[BlockerClaim], *, ledger: Ledger, repository: ArtefactRepository | None = None, writer: Writer | None = None, partial: PartialAnswer | None = None) -> AskResponse`. **Consumes:** `agents.writer.write`, `WRITER_AGENT_NAME` (H3); `Ledger.claims`, `rejected`, `run`, `steps` (H1); `rejected_claim` (H2a). **Consumed by:** Task 4, Task 5, H6, P3, the `/ask` response (L3 returns the machine's output).
+**Produces:** `infra.functions.steps.real_writer() -> Writer`, `write_answer(run_id: str, question: Question, passed_claims: list[BlockerClaim], *, ledger: Ledger, repository: ArtefactRepository | None = None, writer: Writer | None = None, partial: PartialAnswer | None = None) -> AskResponse`. **Consumes:** `agents.writer.write`, `WRITER_AGENT_NAME` (H3); `Ledger.claims`, `rejected`, `run`, `steps` (H1); `rejected_claim` (H2a). **Consumed by:** Task 4, Task 5, H6, P3, the `/ask` response (L3 returns the machine's output).
 
-- [ ] **Step 1: Failing tests.** Append to `tests/flow/test_steps.py`:
+- [ ] **Step 1: Failing tests.** Append to `tests/infra/functions/test_steps.py`:
 ```python
 
 
@@ -424,8 +425,8 @@ def test_the_real_writer_is_the_default():
     from agents.writer import write
     assert steps.real_writer() is write
 ```
-- [ ] **Step 2: Run:** `uv run --locked pytest tests/flow/test_steps.py --no-cov 2>&1 | tail -1`. Expected: `4 failed, 23 passed`, with `AttributeError: module 'flow.steps' has no attribute 'write_answer'` (and `'real_writer'`).
-- [ ] **Step 3: Implement.** Append to `flow/steps.py`:
+- [ ] **Step 2: Run:** `uv run --locked pytest tests/infra/functions/test_steps.py --no-cov 2>&1 | tail -1`. Expected: `4 failed, 23 passed`, with `AttributeError: module 'infra.functions.steps' has no attribute 'write_answer'` (and `'real_writer'`).
+- [ ] **Step 3: Implement.** Append to `infra/functions/steps.py`:
 ```python
 
 
@@ -464,31 +465,31 @@ def write_answer(run_id: str, question: Question, passed_claims: list[BlockerCla
                        partial=partial is not None, partial_reason=partial.reason if partial else None,
                        trace=[TraceStep.model_validate(step) for step in ledger.steps(run_id)])
 ```
-- [ ] **Step 4: Run:** `uv run --locked pytest tests/flow/test_steps.py --no-cov 2>&1 | tail -1`. Expected: `27 passed in …s`.
+- [ ] **Step 4: Run:** `uv run --locked pytest tests/infra/functions/test_steps.py --no-cov 2>&1 | tail -1`. Expected: `27 passed in …s`.
 - [ ] **Step 5: Full suite and commit**
 ```bash
-uv run --locked pytest 2>&1 | grep -E "[0-9]+ (passed|failed)|TOTAL|flow/steps"
-git add flow/steps.py tests/flow/test_steps.py
+uv run --locked pytest 2>&1 | grep -E "[0-9]+ (passed|failed)|TOTAL|infra/functions/steps"
+git add infra/functions/steps.py tests/infra/functions/test_steps.py
 git commit -m "write_answer state: the writer on ledger-passed claims; rejected, cost and trace from the ledger"
 ```
-Expected: start + 12 (dry-run `295 passed`); `flow/steps.py ... 99%` with line 152 (`real_orchestrator`'s import, covered once P2 runs) the only miss.
+Expected: start + 12 (dry-run `295 passed`); `infra/functions/steps.py ... 99%` with line 152 (`real_orchestrator`'s import, covered once P2 runs) the only miss.
 
-**Task done when:** `uv run --locked pytest tests/flow/test_steps.py --no-cov -k write_answer 2>&1 | tail -1 | cut -d, -f1` prints `3 passed`.
+**Task done when:** `uv run --locked pytest tests/infra/functions/test_steps.py --no-cov -k write_answer 2>&1 | tail -1 | cut -d, -f1` prints `3 passed`.
 
-### Task 4: `flow/spine.py`, the whole ask spine in-process
+### Task 4: `infra/functions/spine.py`, the whole ask spine in-process
 
-**Files:** Create `flow/spine.py` *(new)*, `tests/flow/test_spine.py` *(new)*
+**Files:** Create `infra/functions/spine.py` *(new)*, `tests/infra/functions/test_spine.py` *(new)*
 
-**Produces:** `flow.spine.SpineAgents(orchestrator: OrchestratorAgent | None = None, writer: Writer | None = None, critic_agent: Callable | None = None)`, `settle_claim(question, claim, *, ledger, repository, agents) -> tuple[BlockerClaim | None, PartialAnswer | None]`, `run_spine(question: Question, *, ledger: Ledger, repository: ArtefactRepository, agents: SpineAgents = SpineAgents()) -> AskResponse`. **Consumes:** Tasks 1–3 and H2a. **Consumed by:** H6 (`flow/local.py` *(new)*), P3 (may call `run_spine`).
+**Produces:** `infra.functions.spine.SpineAgents(orchestrator: OrchestratorAgent | None = None, writer: Writer | None = None, critic_agent: Callable | None = None)`, `settle_claim(question, claim, *, ledger, repository, agents) -> tuple[BlockerClaim | None, PartialAnswer | None]`, `run_spine(question: Question, *, ledger: Ledger, repository: ArtefactRepository, agents: SpineAgents = SpineAgents()) -> AskResponse`. **Consumes:** Tasks 1–3 and H2a. **Consumed by:** H6 (`infra/functions/local.py` *(new)*), P3 (may call `run_spine`).
 
-- [ ] **Step 1: Failing tests.** Create `tests/flow/test_spine.py`:
+- [ ] **Step 1: Failing tests.** Create `tests/infra/functions/test_spine.py`:
 ```python
-"""The whole ask spine in-process (flow/spine.py), in the order the Step Functions machine runs it, with stubs."""
+"""The whole ask spine in-process (infra/functions/spine.py), in the order the Step Functions machine runs it, with stubs."""
 import json
 
 from adapters.memory_ledger import InMemoryLedger
 from agents.writer import verbatim_answer
-from flow.spine import SpineAgents, run_spine
+from infra.functions.spine import SpineAgents, run_spine
 from tools.models import (BlockerClaim, OrchestratorResult, PartialAnswer, Plan, Question, WriterInput,
                           WriterResult)
 
@@ -607,19 +608,19 @@ def test_a_spent_budget_at_the_start_answers_partial_without_any_agent(repositor
     response = run(cfo_scope, repository, orchestrator, critic_replying(True), LedgerWithNothingLeft())
     assert response.partial is True and "budget" in response.partial_reason and orchestrator.calls == []
 ```
-- [ ] **Step 2: Run:** `uv run --locked pytest tests/flow/test_spine.py --no-cov 2>&1 | grep -E "^E  " | head -1`. Expected: `E   ModuleNotFoundError: No module named 'flow.spine'`.
-- [ ] **Step 3: Implement.** Create `flow/spine.py`:
+- [ ] **Step 2: Run:** `uv run --locked pytest tests/infra/functions/test_spine.py --no-cov 2>&1 | grep -E "^E  " | head -1`. Expected: `E   ModuleNotFoundError: No module named 'infra.functions.spine'`.
+- [ ] **Step 3: Implement.** Create `infra/functions/spine.py`:
 ```python
-"""The ask spine in-process, in the order the Step Functions Express machine runs the states (flow/steps.py).
+"""The ask spine in-process, in the order the Step Functions Express machine runs the states (infra/functions/steps.py).
 
-Local runs (scripts/ask.py), the eval runner's local asker (flow/local.py) and the tests use run_spine; in AWS the
-state machine runs the same functions through flow/handlers.py. Every loop is bounded by the ledger's attempt
+Local runs (scripts/ask.py), the eval runner's local asker (infra/functions/local.py) and the tests use run_spine; in AWS the
+state machine runs the same functions through infra/functions/states.py. Every loop is bounded by the ledger's attempt
 counter (retry_decision), never by a model.
 """
 from dataclasses import dataclass
 from typing import Callable
 
-from flow.steps import (REJECT, OrchestratorAgent, Writer, check_budget, judge_claim, record_rejection,
+from infra.functions.steps import (REJECT, OrchestratorAgent, Writer, check_budget, judge_claim, record_rejection,
                         retry_decision, run_orchestrator, store_claims, write_answer)
 from tools.api_schema import AskResponse
 from tools.models import BlockerClaim, PartialAnswer, Question
@@ -679,26 +680,26 @@ def run_spine(question: Question, *, ledger: Ledger, repository: ArtefactReposit
     return write_answer(run_id, question, passed, ledger=ledger, repository=repository, writer=agents.writer,
                         partial=partial)
 ```
-- [ ] **Step 4: Run:** `uv run --locked pytest tests/flow/test_spine.py --no-cov 2>&1 | tail -1`. Expected: `7 passed in …s`.
+- [ ] **Step 4: Run:** `uv run --locked pytest tests/infra/functions/test_spine.py --no-cov 2>&1 | tail -1`. Expected: `7 passed in …s`.
 - [ ] **Step 5: Full suite and commit**
 ```bash
 uv run --locked pytest 2>&1 | grep -E "[0-9]+ (passed|failed)|TOTAL"
-git add flow/spine.py tests/flow/test_spine.py
+git add infra/functions/spine.py tests/infra/functions/test_spine.py
 git commit -m "The ask spine in-process: states in the machine's order, every loop bounded by the retry guard"
 ```
-Expected: start + 19 (dry-run `302 passed`), no `flow/spine.py` line (100%).
+Expected: start + 19 (dry-run `302 passed`), no `infra/functions/spine.py` line (100%).
 
-**Task done when:** `uv run --locked pytest tests/flow/test_spine.py --no-cov -k retry_limit 2>&1 | tail -1 | cut -d, -f1` prints `1 passed` (the claim the critic never passes ends with 2 verdicts).
+**Task done when:** `uv run --locked pytest tests/infra/functions/test_spine.py --no-cov -k retry_limit 2>&1 | tail -1 | cut -d, -f1` prints `1 passed` (the claim the critic never passes ends with 2 verdicts).
 
-### Task 5: `flow/handlers.py`, the ask machine's Lambda entry points
+### Task 5: `infra/functions/states.py`, the ask machine's Lambda entry points
 
-**Files:** Create `flow/handlers.py` *(new)*, `tests/flow/test_handlers.py` *(new)*
+**Files:** Create `infra/functions/states.py` *(new)*, `tests/infra/functions/test_states.py` *(new)*
 
-**Produces:** `flow.handlers.check_budget`, `run_orchestrator`, `store_claims`, `judge_claim`, `retry_decision`, `record_rejection`, `write_answer` (each `(event: dict, context) -> dict`); `StateIO`, `BudgetCheck`, `OrchestratorEvent`, `StoreClaimsEvent`, `ClaimEvent`, `RetryEvent`, `WriteAnswerEvent`; `make_ledger()`, `make_repository()`. **Consumes:** Tasks 1–3, H2a; `adapters.ledger_from_settings`, `repository_from_settings`. **Consumed by:** Yaw's FlowStack (Y2), H4 (adds the publish Lambdas here).
+**Produces:** `infra.functions.states.check_budget`, `run_orchestrator`, `store_claims`, `judge_claim`, `retry_decision`, `record_rejection`, `write_answer` (each `(event: dict, context) -> dict`); `StateIO`, `BudgetCheck`, `OrchestratorEvent`, `StoreClaimsEvent`, `ClaimEvent`, `RetryEvent`, `WriteAnswerEvent`; `make_ledger()`, `make_repository()`. **Consumes:** Tasks 1–3, H2a; `adapters.ledger_from_settings`, `repository_from_settings`. **Consumed by:** Yaw's FlowStack (Y2), H4 (adds the publish Lambdas here).
 
-- [ ] **Step 1: Failing tests.** Create `tests/flow/test_handlers.py`:
+- [ ] **Step 1: Failing tests.** Create `tests/infra/functions/test_states.py`:
 ```python
-"""The Lambda entry points (flow/handlers.py): JSON in, JSON out, one per state, driven as the machine would."""
+"""The Lambda entry points (infra/functions/states.py): JSON in, JSON out, one per state, driven as the machine would."""
 import json
 
 import pytest
@@ -706,7 +707,7 @@ from pydantic import ValidationError
 
 from adapters.memory_ledger import InMemoryLedger
 from agents.writer import verbatim_answer
-from flow import handlers, steps
+from infra.functions import states, steps
 from tools.models import BlockerClaim, OrchestratorResult, Plan, Question, WriterResult
 
 RUN_ID = "run-handlers"
@@ -738,8 +739,8 @@ def rejecting_critic(prompt):
 @pytest.fixture
 def ledger(monkeypatch, repository):
     ledger = InMemoryLedger()
-    monkeypatch.setattr(handlers, "make_ledger", lambda: ledger)
-    monkeypatch.setattr(handlers, "make_repository", lambda: repository)
+    monkeypatch.setattr(states, "make_ledger", lambda: ledger)
+    monkeypatch.setattr(states, "make_repository", lambda: repository)
     monkeypatch.setattr(steps, "real_orchestrator", StubOrchestrator)
     monkeypatch.setattr(steps.critic, "make_agent", lambda prompt: rejecting_critic)
     monkeypatch.setattr(steps, "real_writer", lambda: lambda writer_input: WriterResult(
@@ -755,52 +756,52 @@ def question_event(cfo_scope) -> dict:
 
 def test_the_states_chain_through_json_to_a_rejected_record(ledger, cfo_scope):
     question = question_event(cfo_scope)
-    assert as_state_machine_json(handlers.check_budget(question, None))["remaining_usd"] == 0.5
-    planned = as_state_machine_json(handlers.run_orchestrator({"question": question}, None))
-    stored = as_state_machine_json(handlers.store_claims({"run_id": RUN_ID, "claims": planned["claims"]}, None))
+    assert as_state_machine_json(states.check_budget(question, None))["remaining_usd"] == 0.5
+    planned = as_state_machine_json(states.run_orchestrator({"question": question}, None))
+    stored = as_state_machine_json(states.store_claims({"run_id": RUN_ID, "claims": planned["claims"]}, None))
     claim_id = stored["claims"][0]["claim_id"]
     decision = None
     while decision != "reject":
-        judged = as_state_machine_json(handlers.judge_claim({"run_id": RUN_ID, "claim_id": claim_id}, None))
+        judged = as_state_machine_json(states.judge_claim({"run_id": RUN_ID, "claim_id": claim_id}, None))
         assert judged["passed"] is False
-        decision = as_state_machine_json(handlers.retry_decision(
+        decision = as_state_machine_json(states.retry_decision(
             {"run_id": RUN_ID, "claim_id": claim_id, "max_attempts": MAX_ATTEMPTS}, None))["decision"]
         if decision == "retry":
-            replanned = handlers.run_orchestrator({"question": question, "claim_id": claim_id}, None)
-            handlers.store_claims({"run_id": RUN_ID, "claims": replanned["claims"]}, None)
-    rejected = as_state_machine_json(handlers.record_rejection({"run_id": RUN_ID, "claim_id": claim_id}, None))
+            replanned = states.run_orchestrator({"question": question, "claim_id": claim_id}, None)
+            states.store_claims({"run_id": RUN_ID, "claims": replanned["claims"]}, None)
+    rejected = as_state_machine_json(states.record_rejection({"run_id": RUN_ID, "claim_id": claim_id}, None))
     assert len(rejected["verdicts"]) == MAX_ATTEMPTS and rejected["verdicts"][0]["pass"] is False
-    response = as_state_machine_json(handlers.write_answer({"question": question}, None))
+    response = as_state_machine_json(states.write_answer({"question": question}, None))
     assert response["rejected"][0]["claim_id"] == claim_id and response["answer"]["rejected_count"] == 1
 
 
 def test_a_spent_budget_comes_back_as_a_partial(ledger, monkeypatch, cfo_scope):
     monkeypatch.setattr(ledger, "budget_remaining", lambda run_id: 0.0)
-    checked = handlers.check_budget(question_event(cfo_scope), None)
+    checked = states.check_budget(question_event(cfo_scope), None)
     assert checked["remaining_usd"] is None and "budget" in checked["partial"]["reason"]
 
 
 def test_an_event_with_unknown_keys_is_refused(ledger, cfo_scope):
     with pytest.raises(ValidationError):
-        handlers.judge_claim({"run_id": RUN_ID, "claim_id": "claim-1", "attempts": 0}, None)
+        states.judge_claim({"run_id": RUN_ID, "claim_id": "claim-1", "attempts": 0}, None)
     with pytest.raises(ValidationError):
-        handlers.check_budget({**question_event(cfo_scope), "max_attempts": 0}, None)
+        states.check_budget({**question_event(cfo_scope), "max_attempts": 0}, None)
 
 
 def test_dependencies_come_from_settings():
-    handlers.make_ledger.cache_clear()
-    assert isinstance(handlers.make_ledger(), InMemoryLedger)   # LEDGER_BACKEND defaults to memory
-    assert handlers.make_ledger() is handlers.make_ledger()     # one per Lambda container
-    assert handlers.make_repository().load("entities")
-    handlers.make_ledger.cache_clear()
+    states.make_ledger.cache_clear()
+    assert isinstance(states.make_ledger(), InMemoryLedger)   # LEDGER_BACKEND defaults to memory
+    assert states.make_ledger() is states.make_ledger()     # one per Lambda container
+    assert states.make_repository().load("entities")
+    states.make_ledger.cache_clear()
 ```
-- [ ] **Step 2: Run:** `uv run --locked pytest tests/flow/test_handlers.py --no-cov 2>&1 | grep -E "^E  " | head -1`. Expected: `E   ImportError: cannot import name 'handlers' from 'flow' (...)`.
-- [ ] **Step 3: Implement.** Create `flow/handlers.py`:
+- [ ] **Step 2: Run:** `uv run --locked pytest tests/infra/functions/test_states.py --no-cov 2>&1 | grep -E "^E  " | head -1`. Expected: `E   ImportError: cannot import name 'states' from 'infra.functions' (...)`.
+- [ ] **Step 3: Implement.** Create `infra/functions/states.py`:
 ```python
-"""Lambda entry points for the ask spine's states: `flow.handlers:<state>` (docs/DEVOPS_HANDOVER.md).
+"""Lambda entry points for the ask spine's states: `infra.functions.states.<state>` (docs/DEVOPS_HANDOVER.md).
 
 Each handler validates the state's JSON input against a strict model, reads what the state needs from the ledger
-(never from the event: claims, verdicts and the scope are the ledger's), calls its flow/steps.py function with the
+(never from the event: claims, verdicts and the scope are the ledger's), calls its infra/functions/steps.py function with the
 ledger, repository and agents built from config.py, and returns JSON for the next state:
 
   check_budget      Question                        -> {run_id, remaining_usd, partial}
@@ -816,7 +817,7 @@ from functools import lru_cache
 from pydantic import BaseModel, Field
 
 from adapters import ledger_from_settings, repository_from_settings
-from flow import steps
+from infra.functions import steps
 from tools.constants import ClaimStatus
 from tools.models import BlockerClaim, PartialAnswer, Question, Scope, StrictModel
 
@@ -927,22 +928,22 @@ def write_answer(event: dict, context) -> dict:
     return _as_json(steps.write_answer(run_id, request.question, passed, ledger=ledger,
                                        repository=make_repository(), partial=request.partial))
 ```
-- [ ] **Step 4: Run:** `uv run --locked pytest tests/flow/test_handlers.py --no-cov 2>&1 | tail -1`. Expected: `4 passed in …s`.
+- [ ] **Step 4: Run:** `uv run --locked pytest tests/infra/functions/test_states.py --no-cov 2>&1 | tail -1`. Expected: `4 passed in …s`.
 - [ ] **Step 5: Guards, full suite and commit**
 ```bash
 uv run --locked pytest tests/test_architecture.py tests/test_code_style.py --no-cov 2>&1 | tail -1
 uv run --locked pytest 2>&1 | grep -E "[0-9]+ (passed|failed)|TOTAL"
-git add flow/handlers.py tests/flow/test_handlers.py
+git add infra/functions/states.py tests/infra/functions/test_states.py
 git commit -m "Lambda entry points for the ask machine's states: strict JSON events, ledger-read claims and scope"
 ```
 Expected: guards pass; start + 23 (dry-run `306 passed`), `TOTAL ... 98%`.
 
-**Task done when:** `uv run --locked pytest tests/flow/test_handlers.py --no-cov -k chain 2>&1 | tail -1 | cut -d, -f1` prints `1 passed`.
+**Task done when:** `uv run --locked pytest tests/infra/functions/test_states.py --no-cov -k chain 2>&1 | tail -1 | cut -d, -f1` prints `1 passed`.
 
 ### Task 6: Handover, docs, review and PR
-- [ ] **Step 1: `docs/DEVOPS_HANDOVER.md`.** In the two rows whose entry point is `` `flow.steps:<name>` *(planned)* ``, change the entry point to `` `flow.handlers:<name>` `` (built), and add below the table a section:
+- [ ] **Step 1: `docs/DEVOPS_HANDOVER.md`.** In the two rows whose entry point is `` `infra.functions.steps.<name>` *(planned)* ``, change the entry point to `` `infra.functions.states.<name>` `` (built), and add below the table a section:
 ```markdown
-### Ask machine states (Huvison, `flow/handlers.py`)
+### Ask machine states (Huvison, `infra/functions/states.py`)
 | State | Event | Result |
 |---|---|---|
 | `check_budget` | the `Question` | `{run_id, remaining_usd, partial}`: go to `write_answer` with `partial` when it isn't null |
@@ -956,21 +957,21 @@ Expected: guards pass; start + 23 (dry-run `306 passed`), `TOTAL ... 98%`.
 Order: `check_budget` → `run_orchestrator` → `store_claims` → Map over the claims (one at a time): `judge_claim` → passed: done; else `retry_decision` → `retry`: `run_orchestrator` with `claim_id` → `store_claims` → `judge_claim`; `reject`: `record_rejection` → after the Map, `write_answer`. Claims, verdicts and the scope are read from the ledger by `run_id` and `claim_id`, never taken from the event.
 ```
   (`docs/DEVOPS_HANDOVER.md` is Patrick's: say so in the PR body.)
-- [ ] **Step 2: `HANDOFF.md`.** Under `## What's real`, add: `- The ask spine end to end in-process (\`flow/spine.py\`) and as one Lambda per Step Functions state (\`flow/handlers.py\`): the blind critic judges the stored claim under the run's scope; a rejected claim is re-planned under its own ID; after 2 attempts it lands in the rejected records; only ledger-passed claims reach the writer; every model call's cost is on the run.`
+- [ ] **Step 2: `HANDOFF.md`.** Under `## What's real`, add: `- The ask spine end to end in-process (\`infra/functions/spine.py\`) and as one Lambda per Step Functions state (\`infra/functions/states.py\`): the blind critic judges the stored claim under the run's scope; a rejected claim is re-planned under its own ID; after 2 attempts it lands in the rejected records; only ledger-passed claims reach the writer; every model call's cost is on the run.`
 - [ ] **Step 3: Commit:** `git add docs/DEVOPS_HANDOVER.md HANDOFF.md && git commit -m "Handover: the ask machine's states, events and order; HANDOFF line"`; then `uv run --locked pytest tests/test_dependencies.py --no-cov 2>&1 | tail -1`. Expected: `4 passed`.
 - [ ] **Step 4:** Review Focus by hand; results in `.superpowers/ledger-H2b.md`.
-- [ ] **Step 5:** `git diff develop --stat`. Expected: `HANDOFF.md`, `docs/DEVOPS_HANDOVER.md`, `flow/handlers.py`, `flow/spine.py`, `flow/steps.py`, `tests/flow/test_handlers.py`, `tests/flow/test_spine.py`, `tests/flow/test_steps.py` (8 files).
+- [ ] **Step 5:** `git diff develop --stat`. Expected: `HANDOFF.md`, `docs/DEVOPS_HANDOVER.md`, `infra/functions/states.py`, `infra/functions/spine.py`, `infra/functions/steps.py`, `tests/infra/functions/test_states.py`, `tests/infra/functions/test_spine.py`, `tests/infra/functions/test_steps.py` (8 files).
 - [ ] **Step 6: With Huvison's OK only:** push `feature/ask-spine-agent-states`, PR to `develop` ("Ask spine: agent states, in-process spine and Lambda handlers (H2b)"), body with the count, the alignment table from the spec (for Patrick's P3), the handover change (for Yaw) and the rulings. No attribution lines.
 - [ ] **Step 7:** [[Build order]]: H2 → `in review (PR #nn)` (H2a merged, H2b in review), then `merged`. Tell Yaw (the state table is in the handover), Patrick (`run_spine` and the signature differences), Linus (`/ask` returns the `write_answer` output).
 
 **Task done when:** the PR is open with the alignment table in its body, and Yaw has the handover link.
 
 ## Done means
-- [ ] **The three agent states are tested.** *Verify:* on `develop`, `uv run --locked pytest tests/flow/test_steps.py --no-cov 2>&1 | tail -1` prints `27 passed`.
-- [ ] **The local sequence passes a claim and handles a rejection after one retry.** *Verify:* `uv run --locked pytest tests/flow/test_spine.py --no-cov 2>&1 | tail -1` prints `7 passed`.
-- [ ] **Every state has a Lambda entry point.** *Verify:* `uv run python -c "from flow import handlers; print([name for name in ('check_budget','run_orchestrator','store_claims','judge_claim','retry_decision','record_rejection','write_answer') if callable(getattr(handlers, name))])"` prints all seven names.
-- [ ] **No import cycle, and P2 isn't loaded at import.** *Verify:* `uv run python -c "import flow.steps, sys; print('agents.orchestrator' in sys.modules)"` prints `False`.
-- [ ] **The handover is current.** *Verify:* `grep -c "flow.handlers:" docs/DEVOPS_HANDOVER.md` prints at least `2`, and the "Ask machine states" table is there.
+- [ ] **The three agent states are tested.** *Verify:* on `develop`, `uv run --locked pytest tests/infra/functions/test_steps.py --no-cov 2>&1 | tail -1` prints `27 passed`.
+- [ ] **The local sequence passes a claim and handles a rejection after one retry.** *Verify:* `uv run --locked pytest tests/infra/functions/test_spine.py --no-cov 2>&1 | tail -1` prints `7 passed`.
+- [ ] **Every state has a Lambda entry point.** *Verify:* `uv run python -c "from infra.functions import states; print([name for name in ('check_budget','run_orchestrator','store_claims','judge_claim','retry_decision','record_rejection','write_answer') if callable(getattr(states, name))])"` prints all seven names.
+- [ ] **No import cycle, and P2 isn't loaded at import.** *Verify:* `uv run python -c "import infra.functions.steps, sys; print('agents.orchestrator' in sys.modules)"` prints `False`.
+- [ ] **The handover is current.** *Verify:* `grep -c "infra.functions.states:" docs/DEVOPS_HANDOVER.md` prints at least `2`, and the "Ask machine states" table is there.
 - [ ] **Nothing broke.** *Verify:* full suite after merge: start + 23, `TOTAL` ≥ 97%.
 - [ ] **Merged.** *Verify:* PR merged into `develop`; [[Build order]] row H2 `merged`.
 

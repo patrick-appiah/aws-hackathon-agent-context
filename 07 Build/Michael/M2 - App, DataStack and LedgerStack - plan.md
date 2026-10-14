@@ -17,6 +17,7 @@ The vault is the context space for this work (clone `git@github.com:patrick-appi
 3. [[Workstreams]] §3 (code already built) and §7 (rules), [[Michael - DevOps]] and [[Yaw - DevOps]].
 4. [[C1 - API and spine contracts - spec]] §5 and §7; `docs/DEVOPS_HANDOVER.md` in the repo.
 5. [[2026-10-13 Team are admins, workload roles least-privilege]] and [[Working with AI assistants]].
+6. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 When something here is unclear, look in the vault (`04 Reference/`, `03 Sessions/`, `Open follow-ups.md`) before guessing. If the vault doesn't answer it, stop and ask Michael (or Patrick for settings and the handover).
 
@@ -37,7 +38,7 @@ When something here is unclear, look in the vault (`04 Reference/`, `03 Sessions
 - Tests in `tests/`, mirroring the code (`tests/infra/` for `infra/`); `uv run --locked pytest` from the repo root; coverage must not drop (96%).
 - Deploys are manual from the README (D-018); CI builds and tests only. `export AWS_PROFILE=hackathon AWS_REGION=eu-west-1` before any `aws` or `cdk deploy` command.
 - PR to `develop`; Patrick merges; never push to `develop` or `main`; **no `Co-Authored-By` and no "Generated with" lines**.
-- Stay in DevOps's files: `infra/`, `tests/infra/`, `Jenkinsfile` *(new)*; plus the shared `pyproject.toml`/`uv.lock` (the dependency) and the one helper in `tests/test_dependencies.py` (Task 1: tell Patrick in the PR body).
+- Stay in DevOps's files: `infra/` (not Linus's `api.py` and `scope.py` or Huvison's `steps`, `spine`, `local`, `states` and `publish` modules in `infra/functions/` *(new)*), `tests/infra/` (not `tests/infra/functions/` *(new)*), `Jenkinsfile` *(new)*; plus the shared `pyproject.toml`/`uv.lock` (the dependency) and the one helper in `tests/test_dependencies.py` (Task 1: tell Patrick in the PR body).
 - No layout or "meta" guard tests: the tests below check what the stacks synthesise, not where files sit.
 
 ## Review Focus (what the tests don't fully cover; check by hand at the end)
@@ -129,7 +130,7 @@ Then edit `pyproject.toml` by hand:
   ```toml
   norecursedirs = [".venv", ".git", "node_modules", "cdk.out", "demo", "docs"]
   ```
-  (`"infra"` goes: the CDK tests are in `tests/infra/`, and with `testpaths = ["tests"]` nothing in `infra/` itself is collected).
+  (`"infra"` goes: the CDK tests are in `tests/infra/`, and with `testpaths = ["tests"]` nothing in `infra/` itself is collected; this edit also lets Linus's and Huvison's `tests/infra/functions/` run). `--cov=infra/functions` in `addopts` is added by whichever of L1 and H5 lands first: this item only checks it, and does not add it (the folder may not exist yet).
 
 ```bash
 uv lock && uv sync
@@ -193,7 +194,9 @@ Expected: `E   ModuleNotFoundError: No module named 'infra.constants'` and `Inte
 
 - [ ] **Step 3: Implement.** Create `infra/__init__.py`:
 ```python
-"""The CDK app (D-018: deployed by hand from the README, never by CI). Stacks live in infra/stacks/."""
+"""The CDK app (D-018: deployed by hand from the README, never by CI). Stacks live in infra/stacks/, Lambda glue in infra/functions/.
+
+This file must not import CDK: Lambda bundles include it (C2 §3), and a handler import must never pull aws_cdk."""
 ```
 Create `infra/constants.py`:
 ```python
@@ -540,7 +543,7 @@ from adapters.dynamo_ledger import PARTITION_KEY, SORT_KEY
 from config import DEFAULT_LEDGER_TABLE, DEFAULT_REJECTED_TABLE
 from infra.naming import physical_name
 
-# Exactly what flow/ and adapters/dynamo_ledger.py call (docs/DEVOPS_HANDOVER.md). No Scan, no Delete.
+# Exactly what infra/functions/ and adapters/dynamo_ledger.py call (docs/DEVOPS_HANDOVER.md). No Scan, no Delete.
 LEDGER_ACTIONS = ("dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:Query")
 
 
@@ -637,7 +640,7 @@ cd infra && npx cdk synth -q -c prefix=demo2 && grep -h '"TableName"' cdk.out/Le
 ```
 Expected: `Successfully synthesized to .../infra/cdk.out` (plus a note about unconfigured feature flags, which is fine); `infra/cdk.out/DataStack.template.json` *(new)* and `infra/cdk.out/LedgerStack.template.json` *(new)*; then `"TableName": "demo2-erp-portal-run-ledger",` and `"TableName": "demo2-erp-portal-rejected-records",`. `cdk.out/` is git-ignored.
 
-- [ ] **Step 4: Document the commands.** In `infra/README.md`, replace the line `Bootstrap once: \`npx cdk bootstrap aws://486128667962/eu-west-1\`` with:
+- [ ] **Step 4: Document the commands.** In `infra/README.md`, replace the line `Bootstrap once: \`npx cdk bootstrap aws://796973512193/eu-west-1\`` with:
 ```markdown
 ## Commands
 Run from the repo root unless a line starts with `cd infra`. Set `export AWS_PROFILE=hackathon AWS_REGION=eu-west-1` before anything that talks to AWS.
@@ -647,7 +650,7 @@ Run from the repo root unless a line starts with `cd infra`. Set `export AWS_PRO
 | Install (once) | `uv sync` (the CDK library comes in the `infra` group, included by `dev`) and `cd infra && npm ci` (the pinned CDK CLI) |
 | Unit tests (no AWS needed) | `uv run --locked pytest tests/infra` |
 | Synth (no AWS needed) | `cd infra && npx cdk synth -q` |
-| Bootstrap (once per account) | `cd infra && npx cdk bootstrap aws://486128667962/eu-west-1` |
+| Bootstrap (once per account) | `cd infra && npx cdk bootstrap aws://796973512193/eu-west-1` |
 | Deploy (manual, D-018) | `cd infra && npx cdk deploy --all` |
 | A fresh second copy | `cd infra && npx cdk deploy --all -c prefix=demo2` (every stack, table and domain gets the prefix) |
 | Remove a copy | `cd infra && npx cdk destroy --all -c prefix=demo2` (every resource is `DESTROY`; buckets empty themselves) |
@@ -748,9 +751,9 @@ Expected: the commit is created; `git diff develop --stat` lists only the files 
 
 - [ ] **Step 1: Bootstrap once (verify in AWS)** — skip if `aws cloudformation describe-stacks --stack-name CDKToolkit` already succeeds:
 ```bash
-cd infra && npx cdk bootstrap aws://486128667962/eu-west-1; cd ..
+cd infra && npx cdk bootstrap aws://796973512193/eu-west-1; cd ..
 ```
-Expected: `Environment aws://486128667962/eu-west-1 bootstrapped`.
+Expected: `Environment aws://796973512193/eu-west-1 bootstrapped`.
 
 - [ ] **Step 2: Deploy (verify in AWS)**
 ```bash

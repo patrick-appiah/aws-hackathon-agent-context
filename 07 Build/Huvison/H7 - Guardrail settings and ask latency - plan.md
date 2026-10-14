@@ -16,6 +16,7 @@ The vault is the context space for this work (clone `git@github.com:patrick-appi
 2. [[H7 - Guardrail settings and ask latency - spec]]: **the authority.** Where this plan and the spec disagree, the spec wins; ledger the conflict.
 3. [[Huvison - trust and flow]] §8 and §9; [[P1 - Retriever agent - spec]] (`bedrock_model`); [[M3a - GuardrailStack - spec]]; [[Y2a - Express ask spine - spec]] §6; [[H6 - Local eval asker - spec]].
 4. `01 Decisions/`: [[2026-10-13 Artefact text is untrusted, critic fails closed]], [[2026-10-13 Ask spine is Step Functions Express, publish is Standard]]; `05 Workflow/`: [[Deploy and demo checks]].
+5. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 When something here is unclear, look in the vault (`04 Reference/`, `03 Sessions/`, `Open follow-ups.md`) before guessing. If the vault doesn't answer it, stop and ask Huvison.
 
@@ -31,7 +32,7 @@ When something here is unclear, look in the vault (`04 Reference/`, `03 Sessions
 - **Repo:** `~/amalitech/aws-hackathon/erp-migration-portal`. Branch for Tasks 1–3: `feature/guardrail-wiring` from an up-to-date `develop` after **C1 and P1** are merged. Branch for Tasks 4–5: `docs/ask-latency-decision`, after M3a and Y2a are deployed (and H6 merged for the one-retry run).
 - **Start state:** `uv run --locked pytest` → **232 passed**, `TOTAL` 96% (C1 + P1). If other items merged first, write your real number in the ledger file; the deltas must match (each agent module already merged adds 2 to this item's test count).
 - **Rules:** `eu-west-1` only; Bedrock `eu.*` inference profiles only; synthetic data only; no secrets. Settings only in `config.py`, domain constants only in `tools/constants.py`; descriptive names, no single-character names, no magic numbers. The core (`tools/`) imports no boto3, Strands, adapters, `config` or `os`. Agents reach data only through `tools/agent_tools.py`. Never weaken a security rule (scope gate, create-once ledger, fail-closed critic, escaping) to pass a test; **never lower a Guardrail filter to make an eval pass**. Tests in `tests/`, mirroring the code; `uv run --locked pytest` from the repo root; coverage must not drop. No layout or meta guard tests. Stay in your folders: `agents/critic.py`, `tests/agents/`, the named section of `docs/DEVOPS_HANDOVER.md`, and one entry in `DECISIONS.md`.
-- **AWS:** profile `hackathon`, region `eu-west-1`, account `486128667962`. Every AWS step is marked **verify in AWS**; ask Huvison before running it.
+- **AWS:** profile `hackathon`, region `eu-west-1`, account `796973512193`. Every AWS step is marked **verify in AWS**; ask Huvison before running it.
 - **Commits:** one per task, the given message, **no `Co-Authored-By` and no "Generated with" lines**. PR to `develop`; Patrick merges; never push to `develop` or `main`.
 
 ## Review Focus
@@ -228,14 +229,14 @@ Expected: `1`; the headings in order end `## Bundling`, `## Guardrail settings`,
 
 **Files:** none in the repo; raw results in `.superpowers/latency-local/` and `.superpowers/latency-deployed/` (ignored by git).
 
-**Consumes:** `evals/run.py` (`--asker`, `--results-dir`, per-case `seconds`; exists), `flow.local:ask` (H6), the deployed ask machine (Y2a output `AskStateMachineArn` on `demo-FlowStack`), the Guardrail (M3a). **Produces:** the figures for D-023.
+**Consumes:** `evals/run.py` (`--asker`, `--results-dir`, per-case `seconds`; exists), `infra.functions.local.ask` (H6), the deployed ask machine (Y2a output `AskStateMachineArn` on `demo-FlowStack`), the Guardrail (M3a). **Produces:** the figures for D-023.
 
 - [ ] **Step 1: Local runs, with the Guardrail on (verify in AWS: calls Bedrock).** Ask Huvison first; three eval passes cost about three times one eval run (COST.md). From the repo root on an up-to-date `develop`:
 ```bash
 export AWS_PROFILE=hackathon AWS_REGION=eu-west-1
 export GUARDRAIL_ID=$(aws cloudformation describe-stacks --stack-name demo-GuardrailStack --query "Stacks[0].Outputs[?OutputKey=='GuardrailId'].OutputValue" --output text)
 export GUARDRAIL_VERSION=$(aws cloudformation describe-stacks --stack-name demo-GuardrailStack --query "Stacks[0].Outputs[?OutputKey=='GuardrailVersion'].OutputValue" --output text)
-for pass_number in 1 2 3; do uv run python -m evals.run --asker flow.local:ask --results-dir .superpowers/latency-local; done
+for pass_number in 1 2 3; do uv run python -m evals.run --asker infra.functions.local.ask --results-dir .superpowers/latency-local; done
 ```
 Expected: three reports, each ending `Results written to .superpowers/latency-local/run-<timestamp>.json`; every asked question shows its time (`  12.3 s`). Q12's line reads `PASS`. If Q12 fails with a guardrail block, **don't change the filter**; write "Q12 blocked by the Guardrail; critic failed closed" in the ledger for D-023 and tell Patrick (Review Focus 3).
 
@@ -319,7 +320,7 @@ Expected: `0`. If it prints `1`, the number is taken: use the next free one, and
 ```markdown
 
 ### D-023 · /ask is asynchronous: start, then poll
-- **What:** `POST /ask` starts the run (`states:StartExecution`) and returns `{run_id, status: "running"}` (`AskPending`, added to `tools/api_schema.py` by Patrick); `GET /ask/{run_id}` returns the `AskResponse` when the run is done, else `AskPending`. `write_answer` stores the `AskResponse` on the run in the ledger, and `GET` reads it from there. Follow-ups: Patrick (`AskPending`), Linus (`api.handlers.ask_result`), Yaw (the route and the start permission, Y2a §6), Clement (F4b, polling), Huvison (storing the response).
+- **What:** `POST /ask` starts the run (`states:StartExecution`) and returns `{run_id, status: "running"}` (`AskPending`, added to `tools/api_schema.py` by Patrick); `GET /ask/{run_id}` returns the `AskResponse` when the run is done, else `AskPending`. `write_answer` stores the `AskResponse` on the run in the ledger, and `GET` reads it from there. Follow-ups: Patrick (`AskPending`), Linus (`infra.functions.api.ask_result`), Yaw (the route and the start permission, Y2a §6), Clement (F4b, polling), Huvison (storing the response).
 - **Why:** Measured on 2026-10-14 at commit abc1234: local p95 21.8 s; deployed Express p95 23.4 s, max 26.0 s, over 10 runs. Too close to API Gateway's 29-second limit.
 - **Rejected:** Keeping sync (a slow run times out mid-demo). A Standard ask machine read with `DescribeExecution` (reverses D-007; asynchronous Express runs have no `DescribeExecution`). WebSockets (a second API type for one panel).
 ```

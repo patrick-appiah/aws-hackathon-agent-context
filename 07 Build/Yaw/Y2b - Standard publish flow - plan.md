@@ -19,12 +19,13 @@ The vault is the shared context space: decisions, briefs, rules, the build order
 5. [[Build order]]: what this item depends on and unblocks.
 6. [[M2 - App, DataStack and LedgerStack - spec]]: the CDK app, `build_stacks`, the prefix, the test fixtures and the patterns every DevOps item follows.
 7. [[Y2a - Express ask spine - spec]], [[Y1 - ApiStack - spec]]; [[Huvison - trust and flow]] §5.
+8. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 **Whenever this note is silent or unclear, look in the vault before guessing:** `04 Reference/` for the brief, the rubrics and the guideline; `03 Sessions/` for what happened when; `Open follow-ups.md` for known open questions. If the vault doesn't answer it either, stop and ask Yaw (owner) or Huvison (publish functions). Never invent a name, a shape or a rule.
 
 **Goal:** nothing is written until a delivery lead approves: a Standard machine waits on a task token, and only its last state may put an object, under `status-packs/`.
 
-**Architecture:** `FlowStack` gains the publish functions and the `Publish` machine; `ApiStack` takes `ledger` and wires `/publish` and `/approve`; `API_BUNDLE` gains `flow/`.
+**Architecture:** `FlowStack` gains the publish functions and the `Publish` machine; `ApiStack` takes `ledger` and wires `/publish` and `/approve`; `API_BUNDLE` gains `infra/functions/publish.py`.
 
 **Tech stack:** Python 3.11, `aws-cdk-lib` 2.273+ (`aws_stepfunctions`, `aws_stepfunctions_tasks`), CDK CLI 2.1144.0, pytest, uv.
 
@@ -40,7 +41,7 @@ The vault is the shared context space: decisions, briefs, rules, the build order
 - Tests in `tests/`, mirroring the code; `uv run --locked pytest` from the repo root; coverage must not drop (96%). CDK tests never bundle (`SKIP_ALL_BUNDLING`) and never call AWS.
 - **No AWS calls while building:** only `cdk synth` with credentials unset (`env -u AWS_PROFILE AWS_CONFIG_FILE=/dev/null AWS_SHARED_CREDENTIALS_FILE=/dev/null npx cdk synth -q`) and the tests. Steps marked **verify in AWS** run only after Yaw's OK, with `export AWS_PROFILE=hackathon AWS_REGION=eu-west-1`. Deploys are manual (D-018); CI never deploys.
 - Branch `<type>/<short-topic>` from `develop` after the dependencies are merged; PR to `develop`; Patrick merges; never push to `develop` or `main`; **no `Co-Authored-By` and no "Generated with" lines**.
-- Stay in DevOps's files: `infra/`, `tests/infra/` *(new)* (and `Jenkinsfile` *(new)*, Michael's). Need a change elsewhere (`config.py`, `api/`, `flow/`, `docs/`)? Ask its owner.
+- Stay in DevOps's files: `infra/` (`app.py`, `stacks/`, `agent_runtime/`, `bundling.py`, and in `infra/functions/` *(new)* only `agent_shim.py` and the stubs), `tests/infra/` *(new; `tests/infra/functions/` is Linus's and Huvison's)* (and `Jenkinsfile` *(new)*, Michael's). Need a change elsewhere (`config.py`, `tools/`, Linus's and Huvison's modules in `infra/functions/`, `docs/`)? Ask its owner.
 - No layout or "meta" guard tests: the tests check what the stacks synthesise and what the functions do.
 
 ## Review Focus (what the tests don't fully cover; check by hand at the end)
@@ -89,7 +90,7 @@ Expected: `E   ImportError: cannot import name 'stub_publish' from 'infra.functi
 - [ ] **Step 4: Implement.**
 Create `infra/functions/stub_publish.py`:
 ```python
-"""Stand-ins for Huvison's flow/publish.py states until H4 is merged (Y2b). They prove the Standard machine waits
+"""Stand-ins for Huvison's infra/functions/publish.py states until H4 is merged (Y2b). They prove the Standard machine waits
 for a task token and continues only after SendTaskSuccess. The stub stores no token and writes no status pack:
 the token is read from the execution history by hand (the Y2b plan), and the only write stays behind H4."""
 
@@ -202,14 +203,14 @@ ASK_SPINE_TIMEOUT = Duration.minutes(2)
 ```
 with:
 ```python
-REAL_PUBLISH_MODULE = "flow.publish"
+REAL_PUBLISH_MODULE = "infra.functions.publish"
 STUB_PUBLISH_MODULE = "stub_publish"
 # Publish states whose real function is merged (Huvison H4). The others run infra/functions/stub_publish.py.
 PUBLISH_STEPS_WITH_REAL_HANDLERS: frozenset[str] = frozenset()
 PUBLISH_STEPS = ("store_task_token", "write_status_pack")
 TASK_TOKEN_LEDGER_ACTIONS = ("dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem")
 APPROVAL_WAIT = Duration.hours(48)              # an unanswered publish request times out after two days
-SENT_BACK_ERROR = "SentBack"                    # the error flow.publish.decide sends with SendTaskFailure
+SENT_BACK_ERROR = "SentBack"                    # the error infra.functions.publish.decide sends with SendTaskFailure
 ASK_SPINE_TIMEOUT = Duration.minutes(2)
 ```
 
@@ -309,12 +310,12 @@ Expected: S + 6 passed [263].
 
 **Task done when:** `tests/infra/stacks/test_publish_flow.py` → 5 passed; the full suite is at S + 6.
 
-### Task 3: Wire `/publish` and `/approve`; the API bundle carries `flow/`
+### Task 3: Wire `/publish` and `/approve`; the API bundle carries `infra/functions/publish.py`
 
 **Files:**
 - Modify: `infra/stacks/api_stack.py` *(new)*, `infra/bundling.py` *(new)*, `infra/app.py` *(new)*, `tests/infra/stacks/test_publish_flow.py`, `tests/infra/test_bundling.py` *(new)*
 
-**Produces:** `ApiStack(scope, construct_id, *, data, auth, flow, ledger, **kwargs)`; `_environment_for(route, flow, ledger)`, `_statements_for(route, data, flow, ledger)`; `API_BUNDLE` with `flow`. **Consumes:** Task 2's statements; `DYNAMO_LEDGER_BACKEND` (Y2a). **Consumed by:** Linus (L3).
+**Produces:** `ApiStack(scope, construct_id, *, data, auth, flow, ledger, **kwargs)`; `_environment_for(route, flow, ledger)`, `_statements_for(route, data, flow, ledger)`; `API_BUNDLE` with `infra/functions/publish.py`. **Consumes:** Task 2's statements; `DYNAMO_LEDGER_BACKEND` (Y2a). **Consumed by:** Linus (L3).
 
 - [ ] **Step 1: Write the failing tests.**
 Append to `tests/infra/stacks/test_publish_flow.py` (keep everything already there):
@@ -335,17 +336,17 @@ Append to `tests/infra/test_bundling.py` (keep everything already there):
 ```python
 
 
-def test_the_api_bundle_carries_flow_for_publish_and_approve(tmp_path):
+def test_the_api_bundle_carries_the_publish_module_for_publish_and_approve(tmp_path):
     bundle = build_bundle(API_BUNDLE, repo_root=_fake_repo(tmp_path), output_root=tmp_path / "build",
                           install=_record_install([]))
-    assert (bundle / "flow" / "publish.py").exists()
+    assert (bundle / "infra" / "functions" / "publish.py").exists()
 ```
 
 - [ ] **Step 2: Run them and watch them fail**
 ```bash
 uv run --locked pytest tests/infra/stacks/test_publish_flow.py tests/infra/test_bundling.py --no-cov 2>&1 | grep -E "^E  |passed|failed" | head -4
 ```
-Expected: `2 failed, 9 passed`, with `E       AssertionError: assert 0 == 1` (no `StartExecution` yet) and `E       AssertionError: assert False` (no `flow/publish.py` *(new)* in the bundle).
+Expected: `2 failed, 9 passed`, with `E       AssertionError: assert 0 == 1` (no `StartExecution` yet) and `E       AssertionError: assert False` (no `infra/functions/publish.py` *(new)* in the bundle).
 
 - [ ] **Step 3: Implement.**
 In `infra/stacks/api_stack.py`, replace exactly:
@@ -405,11 +406,12 @@ In `infra/stacks/api_stack.py`, replace everything from the line `@staticmethod`
 
 In `infra/bundling.py`, replace exactly:
 ```python
-API_BUNDLE = BundleSpec("api", (*CORE_CODE, "api", "auth"))
+API_BUNDLE = BundleSpec("api", (*CORE_CODE, "infra/functions/__init__.py", "infra/functions/api.py", "infra/functions/scope.py"))
 ```
 with:
 ```python
-API_BUNDLE = BundleSpec("api", (*CORE_CODE, "api", "auth", "flow"))   # /publish and /approve call flow.publish
+API_BUNDLE = BundleSpec("api", (*CORE_CODE, "infra/functions/__init__.py", "infra/functions/api.py", "infra/functions/scope.py",
+                               "infra/functions/publish.py"))   # /publish and /approve call infra.functions.publish
 ```
 
   In `infra/app.py`, pass the ledger to the API: `api = ApiStack(app, "ApiStack", data=data, auth=auth, flow=flow, ledger=ledger, **stack_options("ApiStack"))` (wrap under 120 characters).
@@ -421,13 +423,13 @@ uv run --locked pytest tests/infra/stacks/test_publish_flow.py tests/infra/test_
 ```bash
 uv run --locked pytest 2>&1 | grep -E "[0-9]+ (passed|failed)|TOTAL"
 git add infra/stacks/api_stack.py infra/bundling.py infra/app.py tests/infra/stacks/test_publish_flow.py tests/infra/test_bundling.py
-git commit -m "infra: publish may start and approve may answer the publish run; the API bundle carries flow"
+git commit -m "infra: publish may start and approve may answer the publish run; the API bundle carries infra/functions/publish.py"
 ```
 ```bash
 cd infra && env -u AWS_PROFILE -u AWS_ACCESS_KEY_ID -u AWS_SECRET_ACCESS_KEY AWS_CONFIG_FILE=/dev/null AWS_SHARED_CREDENTIALS_FILE=/dev/null npx cdk synth -q 2>&1 | grep -E "Successfully|rror"; cd ..
 grep -c '"StateMachineType": "STANDARD"' infra/cdk.out/FlowStack.template.json
 ```
-Expected: `11 passed`; S + 8 passed [265], `TOTAL ... 96%`; `Successfully synthesized`; `1`. (While the `api` routes still run stubs the synth needs no `flow/`; once Task 5 makes them real it bundles `flow/`.)
+Expected: `11 passed`; S + 8 passed [265], `TOTAL ... 96%`; `Successfully synthesized`; `1`. (While the `api` routes still run stubs the synth needs no `infra/functions/publish.py`; once Task 5 makes them real it bundles it.)
 
 **Task done when:** the full suite is at S + 8 with 96%; the synthesized FlowStack has one Standard machine.
 
@@ -441,7 +443,7 @@ export AWS_PROFILE=hackathon AWS_REGION=eu-west-1
 cd infra && npx cdk deploy FlowStack ApiStack --require-approval never 2>&1 | grep -E "✅|PublishStateMachineArn"; cd ..
 PUBLISH_ARN=$(aws cloudformation describe-stacks --stack-name demo-FlowStack --query "Stacks[0].Outputs[?OutputKey=='PublishStateMachineArn'].OutputValue" --output text)
 ```
-Expected (verify in AWS): both stacks `✅`; `PublishStateMachineArn = arn:aws:states:eu-west-1:486128667962:stateMachine:Publish...`.
+Expected (verify in AWS): both stacks `✅`; `PublishStateMachineArn = arn:aws:states:eu-west-1:796973512193:stateMachine:Publish...`.
 
 - [ ] **Step 2: Start one, see it wait, approve it by hand**
 ```bash
@@ -463,10 +465,10 @@ Expected (verify in AWS): `RUNNING` (waiting at `WaitForApproval`), then after t
 - [ ] **Step 1: Bring them in.**
 ```bash
 git fetch origin && git rebase origin/develop
-grep -n "^def store_task_token\|^def write_status_pack\|^def start_publish\|^def decide" flow/publish.py
-grep -n "^def publish\|^def approve" api/handlers.py
+grep -n "^def store_task_token\|^def write_status_pack\|^def start_publish\|^def decide" infra/functions/publish.py
+grep -n "^def publish\|^def approve" infra/functions/api.py
 ```
-Expected: four `def` lines in `flow/publish.py` and two in `api/handlers.py` *(new)*. If `store_task_token` or `write_status_pack` has another name, stop and agree it with Huvison (spec §1 Assumptions).
+Expected: four `def` lines in `infra/functions/publish.py` and two in `infra/functions/api.py` *(new)*. If `store_task_token` or `write_status_pack` has another name, stop and agree it with Huvison (spec §1 Assumptions).
 
 - [ ] **Step 2: Switch.** In `infra/stacks/flow_stack.py`, replace the line that starts with `PUBLISH_STEPS_WITH_REAL_HANDLERS` with:
 ```python
@@ -478,9 +480,9 @@ PUBLISH_STEPS_WITH_REAL_HANDLERS = frozenset({"store_task_token", "write_status_
 ```bash
 uv run --locked pytest tests/infra --no-cov 2>&1 | tail -1
 cd infra && env -u AWS_PROFILE -u AWS_ACCESS_KEY_ID -u AWS_SECRET_ACCESS_KEY AWS_CONFIG_FILE=/dev/null AWS_SHARED_CREDENTIALS_FILE=/dev/null npx cdk synth -q 2>&1 | grep -E "Successfully|rror"; cd ..
-ls infra/cdk.out/bundles/api/flow/publish.py infra/cdk.out/bundles/flow/flow/publish.py
+ls infra/cdk.out/bundles/api/infra/functions/publish.py infra/cdk.out/bundles/flow/infra/functions/publish.py
 ```
-Expected: all `tests/infra` passed, the same count as before the switch (dry-run: the switch changes no test count); `Successfully synthesized`; both files listed. (Dry-run note: `api/`, `auth/` and `flow/` didn't exist when this plan was written, so its synth was dry-run with empty stand-in packages; on `develop` they are the real ones.)
+Expected: all `tests/infra` passed, the same count as before the switch (dry-run: the switch changes no test count); `Successfully synthesized`; both files listed. (Dry-run note: `infra/functions/api.py`, `infra/functions/scope.py` *(new)* and the other `infra/functions/` modules didn't exist when this plan was written, so its synth was dry-run with empty stand-in packages; on `develop` they are the real ones.)
 
 - [ ] **Step 4: Full suite and commit**
 ```bash

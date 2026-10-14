@@ -16,6 +16,7 @@ The vault is the context space for this work (clone `git@github.com:patrick-appi
 2. [[L5 - Blocker-analyst agent - spec]]: **the authority**, including the P2 assumption.
 3. The repo's `AGENTS.md` blocker-analyst row, `agents/critic.py` (the pattern), `tests/tools/test_evidence_chain.py` (the Q01 chain through the tools), and [[P1 - Retriever agent - plan]] Task 1 (`agents/agent_support.py` *(new)*: `bedrock_model`, `tagged`, `usage_of`, which this agent reuses).
 4. [[Changing a prompt]] (version bump and lock) and [[Working with AI assistants]].
+5. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 **Whenever this note is silent or unclear, look in the vault before guessing:** `04 Reference/` for the brief, the rubrics and the guideline ([[Problem statement]], [[Judging rubric]], [[Pitch track grading rubric]], [[Hackathon guideline]]); `03 Sessions/` for what happened when; `Open follow-ups.md` for known open questions. If the vault doesn't answer it either, stop and ask Linus. Never invent a name, a shape or a rule.
 
@@ -35,7 +36,7 @@ The vault is the context space for this work (clone `git@github.com:patrick-appi
 - **Never weaken a security rule** (the scope gate, the create-once ledger, the fail-closed critic, the `<evidence>` escaping) to make a test pass.
 - **Tests** live in `tests/`, mirroring the code; run `uv run --locked pytest` from the repo root. Coverage must not drop below the start state. **No layout or "meta" guard tests**: test behaviour, not where files sit.
 - **Git:** small commits, one per task, with the messages given. **No `Co-Authored-By` and no "Generated with" lines.** Never push to `develop` or `main`; the PR goes to `develop` after the owner's OK, and Patrick merges.
-- **Stay in your folders** (`docs/TEAM_PLAN.md` §2, workstream 3: `api/`, `auth/`, `tools/metrics.py`, `tools/queries.py`, `tools/agent_tools.py`, `tools/claims.py`, `agents/blocker_analyst.py`, `agents/prompts/blocker_analyst.txt`, `scripts/export_summary.py` *(new)*, the eval runner). Any other file this plan touches is named in its task, with the owner who must review it.
+- **Stay in your folders** (`docs/TEAM_PLAN.md` §2, workstream 3: `infra/functions/api.py` *(new)*, `infra/functions/scope.py` *(new)*, `tests/infra/functions/` *(new)*, `tools/metrics.py`, `tools/queries.py`, `tools/agent_tools.py`, `tools/claims.py`, `agents/blocker_analyst.py`, `agents/prompts/blocker_analyst.txt`, `scripts/export_summary.py` *(new)*, the eval runner). Any other file this plan touches is named in its task, with the owner who must review it.
 - **The prompt is a locked file.** Its text lives only in `agents/prompts/blocker_analyst.txt`; after any edit, bump `version` and run `uv run python scripts/lock_prompts.py` ([[Changing a prompt]]). `tests/test_code_style.py` fails on prompt text in Python.
 - **Model:** `bedrock_model(get_settings().analyst_model_id)` only (an `eu.*` profile, P1's `agents/agent_support.py`); never a model ID in code, and never a second copy of the model, tagging or usage plumbing.
 - **Shared files touched:** `AGENTS.md` and `agents/README.md` (your rows only; Patrick reviews). `agents/agent_support.py` (Patrick's) is imported, not changed; nothing is imported from `agents/critic.py`.
@@ -436,7 +437,7 @@ Expected: `15 passed`; then `245 passed`.
 - [ ] `uv run python scripts/lock_prompts.py --check` prints `prompts.lock is up to date`, and the lock lists `blocker_analyst` at `1.0.0`. *Verify:* run it; `grep -A2 "^blocker_analyst:" agents/prompts/prompts.lock`.
 - [ ] The Q01 chain claim and the Q02 conflict claim pass, and a wrong figure is dropped. *Verify:* `uv run --locked pytest tests/agents/test_blocker_analyst.py -k "chain or decoy or wrong_figure" --no-cov` prints `3 passed, 9 deselected`.
 - [ ] `AGENTS.md`'s blocker-analyst row names `agents/blocker_analyst.py`, the prompt v1.0.0 and the drop-and-log failure mode. *Verify:* `grep -n "blocker_analyst.py" AGENTS.md`.
-- [ ] Once the loop runs (P2 + H2): Q01, Q02, Q03 and Q06 results for this agent are in an `evals/results/run-*.json` file, failures included. *Verify:* `uv run python -m evals.run --asker flow.local:ask` and open the newest results file.
+- [ ] Once the loop runs (P2 + H2): Q01, Q02, Q03 and Q06 results for this agent are in an `evals/results/run-*.json` file, failures included. *Verify:* `uv run python -m evals.run --asker infra.functions.local.ask` and open the newest results file.
 - [ ] PR open or merged, no attribution lines; [[Build order]] row L5 updated. *Verify:* `gh pr view <nn> --json state`; open the note.
 
 ## Never

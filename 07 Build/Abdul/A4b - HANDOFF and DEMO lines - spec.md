@@ -15,6 +15,7 @@ The team vault is the shared context space for this project: decisions, briefs, 
 3. [[A5a - EVALS results write-up - spec]] and [[A3b - COST measured figures - spec]]: where the numbers come from.
 4. Repo `HANDOFF.md` and `DEMO.md` as they are on `develop` (other people add lines too: keep theirs).
 5. `04 Reference/`: [[Pitch track grading rubric]] ("README, cost and handoff", 8 points: "HANDOFF.md: real / faked / breaks first. DEMO.md … present and useful"), [[Judging rubric]] (Q&A: "What does it cost per month at 10× the users?"). `05 Workflow/`: [[Deploy and demo checks]].
+6. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 **Whenever this spec is silent or unclear, look in the vault before guessing:** `04 Reference/`, `03 Sessions/`, `Open follow-ups.md`. If it's still unclear, stop and ask Patrick (demo script) or Clement (rehearsal, F6). Never write a number that isn't in `EVALS.md` or `COST.md` on `develop`.
 
@@ -32,7 +33,7 @@ The team vault is the shared context space for this project: decisions, briefs, 
 
 **Assumptions:**
 - **A4b-1:** A5a has merged the latest Results row and "What still fails"; A3b has merged the "Measured on" line. If either isn't merged by D2 15:00, the matching lines say "not yet recorded" instead of a number (never an estimate).
-- **A4b-2:** the eval command for the local asker is `uv run python -m evals.run --asker flow.local:ask` (`EVALS.md`, H6).
+- **A4b-2:** the eval command for the local asker is `uv run python -m evals.run --asker infra.functions.local.ask` (`EVALS.md`, H6).
 
 ## 2. Decisions
 | Question | Decision | Rejected |
@@ -47,7 +48,7 @@ The team vault is the shared context space for this project: decisions, briefs, 
 **`HANDOFF.md`**, new section:
 ```markdown
 ## Evals and cost
-- **What the evals cover:** 14 fixed questions (`EVALS.md`, files in `evals/inputs/` and `evals/expected/`): the E4 blocker chain (Q01), the closed-defect decoy (Q02), a clean entity (Q03), the year-end close clash (Q04), capacity (Q05), cutover figures (Q06), an unknown entity (Q07), an uncited claim (Q08), the retry limit (Q09), an unseen question chosen on the day (Q10), scope enforcement (Q11) and prompt injection (Q12). Q13 (cross-tenant) and Q14 (CSV vs Athena parity) are roadmap. Run them with `uv run python -m evals.run --asker flow.local:ask`.
+- **What the evals cover:** 14 fixed questions (`EVALS.md`, files in `evals/inputs/` and `evals/expected/`): the E4 blocker chain (Q01), the closed-defect decoy (Q02), a clean entity (Q03), the year-end close clash (Q04), capacity (Q05), cutover figures (Q06), an unknown entity (Q07), an uncited claim (Q08), the retry limit (Q09), an unseen question chosen on the day (Q10), scope enforcement (Q11) and prompt injection (Q12). Q13 (cross-tenant) and Q14 (CSV vs Athena parity) are roadmap. Run them with `uv run python -m evals.run --asker infra.functions.local.ask`.
 - **Latest recorded run** (<run date>, commit `<commit>`): <pass> of <pass + fail> scored questions pass; <fail> fail (<failing question IDs>); Q10 <honest / not honest>. Details and causes: `EVALS.md` "What still fails".
 - **Read by a person every run:** Q02 (the conflict is flagged, not just "ready" avoided), Q03 (no invented blocker or defect for E1), Q09 (the number of verdicts on the rejected claim), Q11 (no E2 rows in the ledger).
 - **Cost:** $<average> per question on average, measured on that run; about $<pilot> a month at pilot volume (200 questions) and $<full> a month at 100 questions a day (`COST.md`). The dashboard makes no model calls.

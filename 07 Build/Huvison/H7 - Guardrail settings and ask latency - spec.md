@@ -16,6 +16,7 @@ The team vault is the shared context space for this project. Clone it from `git@
 4. [[Build order]]: H7 depends on P1 (code); the deployed checks need M3a and Y2a deployed; the local timing with one retry needs H6.
 5. [[P1 - Retriever agent - spec]] (`agents/agent_support.py` *(new)*: `bedrock_model`), [[M3a - GuardrailStack - spec]] (the filter set as deployed constants), [[Y2a - Express ask spine - spec]] §6 (the async fallback DevOps agreed), [[H6 - Local eval asker - spec]] (Q09: one retry).
 6. `01 Decisions/`: [[2026-10-13 Artefact text is untrusted, critic fails closed]] (D-009), [[2026-10-13 Ask spine is Step Functions Express, publish is Standard]] (D-007), [[2026-10-13 EU-only Bedrock inference profiles]]; the repo's `ARCHITECTURE.md` §7, `DECISIONS.md`, `docs/DEVOPS_HANDOVER.md`.
+7. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 **Whenever this spec is silent or unclear, look in the vault before guessing:** `04 Reference/` ([[Hackathon guideline]], [[Judging rubric]]: trust and guardrails), `03 Sessions/`, `Open follow-ups.md`. If the vault doesn't answer it, stop and ask Huvison. Never invent a name, a shape or a rule.
 
@@ -23,7 +24,7 @@ The team vault is the shared context space for this project. Clone it from `git@
 **What:**
 1. **The Guardrail settings**, written once in `docs/DEVOPS_HANDOVER.md` (a new section "Guardrail settings"), matching the constants M3a deploys (§3 table).
 2. **Every agent's model through `bedrock_model`:** `agents/critic.py` `make_agent` builds its model with `agents.agent_support.bedrock_model(settings.critic_model_id)` instead of its own `BedrockModel` call (same behaviour, one place). A new test, `tests/agents/test_guardrail_wiring.py` *(new)*, finds every module in `agents/` that defines `make_agent` and checks that it builds its model through `bedrock_model`, and that the model carries `guardrail_id` and `guardrail_version` when `GUARDRAIL_ID` is set and none when it isn't.
-3. **The latency check:** time a full ask with one retry locally (the eval runner with `flow.local:ask`, Q09 is the one-retry run) and, once deployed, the Express execution; apply the decision rule (§2); record the decision in `DECISIONS.md` as D-023.
+3. **The latency check:** time a full ask with one retry locally (the eval runner with `infra.functions.local.ask`, Q09 is the one-retry run) and, once deployed, the Express execution; apply the decision rule (§2); record the decision in `DECISIONS.md` as D-023.
 
 **Why:**
 - `ARCHITECTURE.md` §7 lists the Guardrail's prompt-attack filter as defence 2 of 5 against prompt injection; EVALS Q12 (`DEF-0462`) tests that artefact text stays data. A Guardrail that one agent forgets to attach protects nothing on that agent's calls.
@@ -41,7 +42,7 @@ The team vault is the shared context space for this project. Clone it from `git@
 - Every agent's `make_agent` takes the prompt first and, after it, only tool maps (`dict[str, Callable]`): true for the critic and the writer (prompt only), the retriever, the orchestrator and the analyst (prompt, tools). An agent whose `make_agent` breaks this fails the test loudly; fix the test's `build_agent`, not the agent.
 - **Michael (M3a)** deploys exactly the values in §3 (his constants `GUARDRAIL_PROMPT_ATTACK_STRENGTH`, `GUARDRAIL_BLOCKED_PII_TYPES`, `GUARDRAIL_MASKED_PII_TYPES`). M3a's spec calls this item "H8 Guardrail settings"; it is H7.
 - **Yaw (Y2a)** §6 describes the async DevOps change (ask Lambda `states:StartExecution`, route `GET /ask/{run_id}`, `write_answer` storing the response). Y2a names the decision "D-022" and a ~25 s threshold; D-022 is already the Q09 verdict-count decision, so this one is **D-023**, and the lead set the threshold at **20 s**.
-- **H6** is merged for the local one-retry timing (`flow.local:ask` plants Q09's forced claim). Without H6, time `scripts/ask.py` *(new)* only and note that no retry was forced.
+- **H6** is merged for the local one-retry timing (`infra.functions.local.ask` plants Q09's forced claim). Without H6, time `scripts/ask.py` *(new)* only and note that no retry was forced.
 
 ## 2. Decisions
 | Question | Decision | Rejected |
@@ -90,7 +91,7 @@ The team vault is the shared context space for this project. Clone it from `git@
 
 ## 5. Out of scope
 - Deploying the Guardrail (Michael, M3a) and setting `GUARDRAIL_ID` / `GUARDRAIL_VERSION` on the Lambdas (Yaw).
-- Building the async path: `AskPending` (Patrick), `api.handlers.ask_result` (Linus), the route and `StartExecution` (Yaw), polling in the ask panel (Clement, [[F4b - Async ask polling - spec]]), storing the response on the run (Huvison, a follow-up item if async is chosen).
+- Building the async path: `AskPending` (Patrick), `infra.functions.api.ask_result` (Linus), the route and `StartExecution` (Yaw), polling in the ask panel (Clement, [[F4b - Async ask polling - spec]]), storing the response on the run (Huvison, a follow-up item if async is chosen).
 - Topic, word and contextual-grounding filters (not in the brief).
 - Changing the flow to tag only the question as guarded content (only if Q12 breaks; a follow-up).
 

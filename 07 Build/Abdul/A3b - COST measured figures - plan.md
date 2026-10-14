@@ -16,6 +16,7 @@ The vault is the context space for this work (clone `git@github.com:patrick-appi
 2. [[A3b - COST measured figures - spec]]: **the authority.** Where this plan and the spec disagree, the spec wins; record the conflict in your ledger.
 3. [[A3a - Bedrock unit prices - spec]] (the unit prices it uses) and [[A5a - EVALS results write-up - spec]] (the same run's write-up).
 4. [[Huvison - trust and flow]] §6–7.
+5. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 When something here is unclear, look in the vault (`04 Reference/`, `03 Sessions/`, `Open follow-ups.md`) before guessing. If it's still unclear, stop and ask Huvison or Linus.
 
@@ -51,7 +52,7 @@ cd ~/amalitech/aws-hackathon/erp-migration-portal && git switch develop && git p
 mkdir -p .superpowers && printf '# Ledger: A3b measured cost\n' > .superpowers/ledger-A3b.md
 ```
   Open the results file Linus sent in VS Code. At the top, note `"run_at"`, `"commit"`, `"asker"`.
-Expected: `"asker"` is not `null` (for example `"flow.local:ask"`). If it's `null`, the run has no costs: stop and ask Linus for the recorded run with an asker.
+Expected: `"asker"` is not `null` (for example `"infra.functions.local.ask"`). If it's `null`, the run has no costs: stop and ask Linus for the recorded run with an asker.
 
 - [ ] **Step 2: List every case's cost.** Ctrl+F `"cost_usd"`. For each of the 14 cases, note `id`, `status` and `cost_usd` (press Enter in the find box to jump to the next match; the case `id` is a few lines above).
 Expected: 14 matches (one per case) plus any inside `answer` objects (the `/ask` response also carries `cost_usd`; use the case-level one, which is next to `"seconds"`). Q10 `manual`, Q13 and Q14 `not applicable` show `null`. Q11 may show `0` or `null`. The rest show a number. Ledger: one line per case, `Q01 pass 0.0xxx`.

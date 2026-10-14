@@ -66,7 +66,7 @@ Expected: `S passed`, `TOTAL ... 96%`; the grep shows the three names defined in
 - [ ] **Step 2: Replace the README section.** In `README.md`, replace everything from the line `## Run it in 5 commands` up to (not including) the line starting `**Front end (\`web/\`, Angular):**` with:
 ````markdown
 ## Run it in 5 commands
-Prerequisites (once per machine): uv (`curl -LsSf https://astral.sh/uv/install.sh | sh`), Node 22 with `corepack enable`, the read-only npm token in your home `~/.npmrc` (`web/README.md`), AWS CLI v2 with the `hackathon` profile. Once per account: `cd infra && npm ci && npx cdk bootstrap aws://486128667962/eu-west-1`. No Docker needed.
+Prerequisites (once per machine): uv (`curl -LsSf https://astral.sh/uv/install.sh | sh`), Node 22 with `corepack enable`, the read-only npm token in your home `~/.npmrc` (`web/README.md`), AWS CLI v2 with the `hackathon` profile. Once per account: `cd infra && npm ci && npx cdk bootstrap aws://796973512193/eu-west-1`. No Docker needed.
 
 ```bash
 export AWS_PROFILE=hackathon AWS_REGION=eu-west-1
@@ -89,7 +89,7 @@ A fresh copy, from a fresh clone, with only the commands below. Anything you hav
 | # | Step | Command | Expected |
 |---|---|---|---|
 | 1 | Fresh clone | `git clone git@github.com:Amali-Tech/cloud-9-hackathon.git clean-deploy && cd clean-deploy && git switch develop` | a clean `develop` |
-| 2 | Profile | `export AWS_PROFILE=hackathon AWS_REGION=eu-west-1 PREFIX=demo2` (`demo3` on Day 2) | `aws sts get-caller-identity --query Account --output text` prints `486128667962` |
+| 2 | Profile | `export AWS_PROFILE=hackathon AWS_REGION=eu-west-1 PREFIX=demo2` (`demo3` on Day 2) | `aws sts get-caller-identity --query Account --output text` prints `796973512193` |
 | 3 | Tests | `uv sync && uv run --locked pytest` | all passed, coverage not below the last merge |
 | 4 | Portal build | `cd web && corepack enable && yarn install --frozen-lockfile && yarn build && cd ..` | `web/dist/web/browser/index.html` exists |
 | 5 | Deploy | `cd infra && npm ci && npx cdk deploy --all --require-approval never -c prefix=$PREFIX -c transaction_search=off && cd ..` | every stack ends with ✅; `transaction_search=off` because the first copy owns the account's Transaction Search |
@@ -145,7 +145,7 @@ uv sync && uv run --locked pytest 2>&1 | grep -E "[0-9]+ (passed|failed)|TOTAL"
 cd web && corepack enable && yarn install --frozen-lockfile && yarn build && cd ..
 ls web/dist/web/browser/index.html
 ```
-Expected: `486128667962`; the same `S passed` as `develop`; `web/dist/web/browser/index.html`. Write the start time in the ledger.
+Expected: `796973512193`; the same `S passed` as `develop`; `web/dist/web/browser/index.html`. Write the start time in the ledger.
 
 - [ ] **Step 2: Row 5, the deploy** (verify in AWS):
 ```bash

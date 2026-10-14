@@ -62,7 +62,7 @@ Each task has a spec and plan first (superpowers), test-first code, and a PR to 
    - `Usage {model_id, tokens_in, tokens_out}`, carried on **every** agent output (that's how Huvison measures cost).
 4. **New `config.py` settings** (with defaults; read only in `get_settings()`): `auth_mode` (`AUTH_MODE`, `none`|`cognito`), `rejected_table`, `artefacts_bucket`, `status_pack_prefix`, `ask_state_machine_arn`, `publish_state_machine_arn`, `user_pool_id`, `user_pool_client_id`. `ledger_table` stays `erp-portal-run-ledger`. Write a test per setting (environment override).
 5. **`docs/DEVOPS_HANDOVER.md`**: one row per Lambda or runtime, each with:
-   - entry point (`api.handlers:summary`, `flow.steps:check_budget`, …);
+   - entry point (`infra.functions.api.summary`, `infra.functions.steps.check_budget`, …);
    - environment variables;
    - IAM actions and resources (the S3 `artefacts/` prefix; the ledger table; **specific** model ARNs for `eu.anthropic.claude-sonnet-4-6` and `eu.amazon.nova-lite-v1:0`; no `*`);
    - bundling: `uv export --no-dev --format requirements-txt --no-hashes`, plus `agents/prompts/` and `prompts.lock` included.
@@ -77,13 +77,13 @@ Each task has a spec and plan first (superpowers), test-first code, and a PR to 
 
 ### 3. The orchestrator: `agents/orchestrator.py`, `agents/prompts/orchestrator.txt`
 - **Input/output:** `Question` → `Plan`, then claims gathered from the retriever and the blocker-analyst (Linus) used as agent-tools.
-- **Budget:** before each step and each re-plan, call Huvison's `flow/budget.py` *(new)*. Out of budget → `PartialAnswer{reason, claims_so_far}`.
+- **Budget:** before each step and each re-plan, call Huvison's `tools/budget.py` *(new)*. Out of budget → `PartialAnswer{reason, claims_so_far}`.
 - **Unknown or out-of-scope entity:** `PartialAnswer`, never a guess (EVALS Q07). `scope.require(entity_id)` raises `OutOfScope`; `validate_entity_id` raises `ValueError`.
 - **Re-plan:** a rejected claim keeps its claim ID and is re-planned through `Ledger.revise_claim` (the attempt count is kept, D-012).
 - **Never:** call the critic or the writer, see attempt counts, or compute a number (D-001).
 
 ### 4. `scripts/ask.py`: the README's command 5
-`uv run python scripts/ask.py --entity E4 "What is blocking cutover?"` runs locally on `CsvRepository(DEFAULT_ARTEFACTS_URI)` and `InMemoryLedger`, calling Huvison's `flow/` functions in order, and prints the answer, the rejected claims, the trace and the cost.
+`uv run python scripts/ask.py --entity E4 "What is blocking cutover?"` runs locally on `CsvRepository(DEFAULT_ARTEFACTS_URI)` and `InMemoryLedger`, calling Huvison's `infra/functions/` *(new)* functions in order, and prints the answer, the rejected claims, the trace and the cost.
 
 ### 5. Lead deliverables
 - **Walking skeleton by D1 18:00:** portal → `/summary`, and `/ask` → orchestrator → retriever → ledger → writer, with the critic stubbed to pass.
@@ -99,7 +99,7 @@ Each task has a spec and plan first (superpowers), test-first code, and a PR to 
 |---|---|---|
 | Retriever tools | done | `tools.agent_tools.make_retriever_tools(scope, repository)`, `as_strands_tools` |
 | Blocker-analyst agent | Linus | `agents/blocker_analyst.py` *(new)*: `BlockerClaim[]` + `Usage` |
-| Budget check | Huvison | `flow/budget.py` *(new)*: `require_budget(ledger, run_id) -> float | PartialAnswer` |
+| Budget check | Huvison | `tools/budget.py` *(new)*: `require_budget(ledger, run_id) -> float | PartialAnswer` |
 | Ledger | done + Huvison's extensions | `Ledger.budget_remaining`, `revise_claim` (`tools/ports.py`) |
 | Prompts | done | `agents.prompt_loader.load_prompt(name)` → `Prompt.text`, `.provenance()` |
 
@@ -113,7 +113,7 @@ Each task has a spec and plan first (superpowers), test-first code, and a PR to 
 
 ## Dependencies
 - **You wait on:**
-  - **Huvison** for `flow/budget.py` and the ledger extensions. Until then, call `Ledger.budget_remaining` directly behind a small function you can swap.
+  - **Huvison** for `tools/budget.py` and the ledger extensions. Until then, call `Ledger.budget_remaining` directly behind a small function you can swap.
   - **Linus** for the blocker-analyst. Until then, a stub agent returns the E4 `DEF-0412` claim.
   - **Yaw** for AgentStack. Until then, run everything locally through `scripts/ask.py`.
 - **Waiting on you:** everyone, for the contracts PR. That's why it goes first.

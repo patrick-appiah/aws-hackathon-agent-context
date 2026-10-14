@@ -16,12 +16,13 @@ The vault is the context space for this work (clone `git@github.com:patrick-appi
 2. [[A2 - Cognito groups, claims and test users - spec]]: **the authority.** Where this plan and the spec disagree, the spec wins; record the conflict in your ledger.
 3. [[Abdul - evals, Cognito, docs]] §5, [[Michael - DevOps]] item 5, [[Linus - API, identity, blocker-analyst]] §1.
 4. [[2026-10-13 Scope from the token, enforced twice]] and [[Deploy and demo checks]] (the D2 12:00 go/no-go).
+5. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 When something here is unclear, look in the vault (`04 Reference/`, `03 Sessions/`, `Open follow-ups.md`) before guessing. If it's still unclear, stop and ask Michael (Cognito) or Linus (claims).
 
 **Goal:** the groups, claims and five test users are agreed with Michael, deployed by him in CDK, listed in `HANDOFF.md` without passwords, and checked end to end at D2 12:00.
 
-**Architecture:** Cognito user pool (Michael's AuthStack) → ID token with `cognito:groups`, `custom:tenant_id`, `custom:entity_ids` → API Gateway JWT authorizer (Yaw) → `auth/scope.py` *(new)* `scope_from_claims` (created by Linus's L1) → `Scope` → every query and tool.
+**Architecture:** Cognito user pool (Michael's AuthStack) → ID token with `cognito:groups`, `custom:tenant_id`, `custom:entity_ids` → API Gateway JWT authorizer (Yaw) → `infra/functions/scope.py` *(new)* `scope_from_claims` (created by Linus's L1) → `Scope` → every query and tool.
 
 **Tech stack:** Slack or GitHub for the agreement, VS Code + Git for `HANDOFF.md`, the AWS console **read-only** (Cognito, eu-west-1), the portal in a browser, optionally Postman (nothing saved or committed).
 
@@ -73,7 +74,7 @@ Expected: Linus confirms "matches". Ledger line.
 
 **Task done when:**
 - Michael's written agreement to the §3 list is in the ledger;
-- Linus confirmed the claim names match `auth/scope.py`.
+- Linus confirmed the claim names match `infra/functions/scope.py`.
 
 ### Task 2: Write the `HANDOFF.md` section (D1 evening)
 
@@ -114,7 +115,7 @@ Expected: the PR page shows base `develop`, one file changed (`HANDOFF.md`), and
 **Files:** none.
 **Produces:** a ledger line per check. **Consumes:** Michael's deploy (M3\*).
 
-- [ ] **Step 1: Find the pool.** Sign in to the AWS console with your IAM user, region **Europe (Ireland) eu-west-1** (top right). Search "Cognito" → User pools. Ask Michael which pool is the current one if there are several prefixes.
+- [ ] **Step 1: Find the pool.** Sign in to the AWS console with your own AmaliTech email through the sign-in URL, region **Europe (Ireland) eu-west-1** (top right). Search "Cognito" → User pools. Ask Michael which pool is the current one if there are several prefixes.
 Expected: one user pool for the current prefix, created by CloudFormation (its tags or Michael's stack output `user pool ID` match).
 
 - [ ] **Step 2: Groups.** Open the pool → "Groups" (under User management).

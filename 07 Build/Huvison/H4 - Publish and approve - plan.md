@@ -14,14 +14,15 @@ updated: 2026-10-14
 The vault is the context space for this work (clone `git@github.com:patrick-appiah/aws-hackathon-agent-context.git`, then `git pull`). Read before Task 1:
 1. [[How to execute a plan]].
 2. [[H4 - Publish and approve - spec]]: **the authority.** Where this plan and the spec disagree, the spec wins; ledger the conflict.
-3. [[Huvison - trust and flow]] §5; [[H1 - Ledger extensions - spec]]; [[H2b - Agent states, local spine and Lambda handlers - spec]] §3 (`flow/handlers.py` *(new)*); Linus's [[L3 - Ask, publish and approve entry points - spec]].
+3. [[Huvison - trust and flow]] §5; [[H1 - Ledger extensions - spec]]; [[H2b - Agent states, local spine and Lambda handlers - spec]] §3 (`infra/functions/states.py` *(new)*); Linus's [[L3 - Ask, publish and approve entry points - spec]].
 4. [[Handling security findings]], [[Working with AI assistants]].
+5. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 When something here is unclear, look in the vault (`04 Reference/`, `03 Sessions/`, `Open follow-ups.md`) before guessing. If the vault doesn't answer it, stop and ask Huvison.
 
 **Goal:** publish starts a Standard execution that waits on a task token stored by `run_id`; only a delivery lead's approval releases it; only then is the status pack written to `status-packs/`.
 
-**Architecture:** `flow/publish.py` holds the four functions and the errors; AWS clients are injected (tests) or created on first use. The two machine Lambdas are thin wrappers in `flow/handlers.py`.
+**Architecture:** `infra/functions/publish.py` holds the four functions and the errors; AWS clients are injected (tests) or created on first use. The two machine Lambdas are thin wrappers in `infra/functions/states.py`.
 
 **Tech stack:** Python 3.11, boto3 (lazy), moto 5 for S3, a recording fake for Step Functions, pytest, uv.
 
@@ -30,7 +31,7 @@ When something here is unclear, look in the vault (`04 Reference/`, `03 Sessions
 ## Global Constraints
 - **Repo:** `~/amalitech/aws-hackathon/erp-migration-portal`. Branch: `feature/publish-approve` from an up-to-date `develop` after **H1 and H2b** are merged.
 - **Start state:** the dry-run's start was **297 passed**, `TOTAL` 98%. Write your real number in the ledger file; the **deltas** must match (+4, +9, +2, +2).
-- **Rules:** `eu-west-1` only; synthetic data; **no secrets** (tests use moto and the fake credential `testing`). Settings only in `config.py`; domain constants only in `tools/constants.py`; descriptive names, no single-character names, no magic numbers. The core imports no boto3. **Never write the status pack before approval; never let anyone but a delivery lead of the run's tenant approve.** Never weaken a security rule. Tests in `tests/` mirroring the code; coverage must not drop; no layout or meta guard tests; no real AWS call in a test. Stay in your folders: `flow/publish.py`, `flow/handlers.py`, `tests/flow/` *(new)*, and the doc lines in Task 5.
+- **Rules:** `eu-west-1` only; synthetic data; **no secrets** (tests use moto and the fake credential `testing`). Settings only in `config.py`; domain constants only in `tools/constants.py`; descriptive names, no single-character names, no magic numbers. The core imports no boto3. **Never write the status pack before approval; never let anyone but a delivery lead of the run's tenant approve.** Never weaken a security rule. Tests in `tests/` mirroring the code; coverage must not drop; no layout or meta guard tests; no real AWS call in a test. Stay in your folders: `infra/functions/publish.py`, `infra/functions/states.py`, `tests/infra/functions/` *(new)*, and the doc lines in Task 5.
 - **Commits:** one per task, the given messages, **no attribution lines**. Never push to `develop` or `main`.
 
 ## Review Focus
@@ -44,9 +45,9 @@ When something here is unclear, look in the vault (`04 Reference/`, `03 Sessions
 
 ### Task 1: `start_publish` and the errors
 
-**Files:** Create `flow/publish.py` *(new)*, `tests/flow/test_publish.py` *(new)*
+**Files:** Create `infra/functions/publish.py` *(new)*, `tests/infra/functions/test_publish.py` *(new)*
 
-**Produces:** in `flow.publish`: the constants of spec §3; `PublishForbidden(PermissionError)`, `NothingToPublish(ValueError)`, `RunNotFound(KeyError)`, `NoPendingApproval(KeyError)`, `PublishNotConfigured(RuntimeError)`; `start_publish(run_id: str, requester: Scope, *, ledger: Ledger | None = None, stepfunctions=None, state_machine_arn: str | None = None) -> PublishResponse`. **Consumes:** `Ledger.run`, `claims` (H1); `adapters.ledger_from_settings`; `config.get_settings` (`publish_state_machine_arn`, `aws_region`); `tools.api_schema.PublishResponse` (C1). **Consumed by:** L3 (`api.handlers.publish`).
+**Produces:** in `infra.functions.publish`: the constants of spec §3; `PublishForbidden(PermissionError)`, `NothingToPublish(ValueError)`, `RunNotFound(KeyError)`, `NoPendingApproval(KeyError)`, `PublishNotConfigured(RuntimeError)`; `start_publish(run_id: str, requester: Scope, *, ledger: Ledger | None = None, stepfunctions=None, state_machine_arn: str | None = None) -> PublishResponse`. **Consumes:** `Ledger.run`, `claims` (H1); `adapters.ledger_from_settings`; `config.get_settings` (`publish_state_machine_arn`, `aws_region`); `tools.api_schema.PublishResponse` (C1). **Consumed by:** L3 (`infra.functions.api.publish`).
 
 - [ ] **Step 1: Branch and baseline**
 ```bash
@@ -56,16 +57,16 @@ git switch -c feature/publish-approve
 mkdir -p .superpowers && printf '# Ledger: H4 Publish and approve\n' > .superpowers/ledger-H4.md
 ```
 Expected: your start count, `TOTAL ... 98%`.
-- [ ] **Step 2: Failing tests.** Create `tests/flow/test_publish.py`:
+- [ ] **Step 2: Failing tests.** Create `tests/infra/functions/test_publish.py`:
 ```python
-"""Publish and approve (flow/publish.py): the only write, behind a delivery lead's approval (D-011)."""
+"""Publish and approve (infra/functions/publish.py): the only write, behind a delivery lead's approval (D-011)."""
 import json
 
 import pytest
 
 from adapters.memory_ledger import InMemoryLedger
 from config import DEFAULT_TENANT_ID
-from flow.publish import NothingToPublish, PublishForbidden, PublishNotConfigured, RunNotFound, start_publish
+from infra.functions.publish import NothingToPublish, PublishForbidden, PublishNotConfigured, RunNotFound, start_publish
 from tools.constants import ALL_ENTITIES_WILDCARD
 from tools.models import Scope
 
@@ -81,7 +82,7 @@ DELIVERY_LEAD = Scope(user_id="user-delivery-lead", role="delivery_lead", tenant
 
 
 class FakeStepFunctions:
-    """Records the Step Functions calls flow/publish.py makes (no AWS in unit tests)."""
+    """Records the Step Functions calls infra/functions/publish.py makes (no AWS in unit tests)."""
 
     def __init__(self):
         self.calls = []
@@ -144,8 +145,8 @@ def test_publishing_without_a_state_machine_fails_loudly(ledger, stepfunctions, 
     with pytest.raises(PublishNotConfigured):
         start_publish(RUN_ID, cfo_scope, ledger=ledger, stepfunctions=stepfunctions, state_machine_arn=None)
 ```
-- [ ] **Step 3: Run:** `uv run --locked pytest tests/flow/test_publish.py --no-cov 2>&1 | grep -E "^E  " | head -1`. Expected: `E   ModuleNotFoundError: No module named 'flow.publish'`.
-- [ ] **Step 4: Implement.** Create `flow/publish.py`:
+- [ ] **Step 3: Run:** `uv run --locked pytest tests/infra/functions/test_publish.py --no-cov 2>&1 | grep -E "^E  " | head -1`. Expected: `E   ModuleNotFoundError: No module named 'infra.functions.publish'`.
+- [ ] **Step 4: Implement.** Create `infra/functions/publish.py`:
 ```python
 """Publish and approve: the only write in the system, behind a human approval (D-011, non-negotiable #3).
 
@@ -155,7 +156,7 @@ def test_publishing_without_a_state_machine_fails_loudly(ledger, stepfunctions, 
         approve -> SendTaskSuccess, and the machine's last state, write_status_pack, writes
         s3://<ARTEFACTS_BUCKET>/<STATUS_PACK_PREFIX><run_id>.json; send_back -> SendTaskFailure (the run ends).
 write_status_pack checks the ledger for the approval itself, so nothing reaches S3 without one.
-Linus's api/handlers.py calls start_publish and decide; the machine's Lambdas are flow/handlers.py.
+Linus's infra/functions/api.py calls start_publish and decide; the machine's Lambdas are infra/functions/states.py.
 """
 import json
 from datetime import datetime, timezone
@@ -233,33 +234,33 @@ def start_publish(run_id: str, requester: Scope, *, ledger: Ledger | None = None
         stateMachineArn=state_machine_arn, name=run_id, input=json.dumps({"run_id": run_id}))
     return PublishResponse(run_id=run_id, execution_arn=execution["executionArn"], status=STATUS_AWAITING_APPROVAL)
 ```
-- [ ] **Step 5: Run:** `uv run --locked pytest tests/flow/test_publish.py --no-cov 2>&1 | tail -1`. Expected: `4 passed in …s`.
+- [ ] **Step 5: Run:** `uv run --locked pytest tests/infra/functions/test_publish.py --no-cov 2>&1 | tail -1`. Expected: `4 passed in …s`.
 - [ ] **Step 6: Full suite and commit**
 ```bash
 uv run --locked pytest 2>&1 | grep -E "[0-9]+ (passed|failed)|TOTAL"
-git add flow/publish.py tests/flow/test_publish.py
+git add infra/functions/publish.py tests/infra/functions/test_publish.py
 git commit -m "start_publish: one Standard execution per run, only by the asker, only with a verified claim"
 ```
 Expected: start + 4 (dry-run `301 passed`).
 
-**Task done when:** `uv run --locked pytest tests/flow/test_publish.py --no-cov 2>&1 | tail -1` prints `4 passed`.
+**Task done when:** `uv run --locked pytest tests/infra/functions/test_publish.py --no-cov 2>&1 | tail -1` prints `4 passed`.
 
 ### Task 2: `store_task_token` and `decide`
 
-**Files:** Modify `flow/publish.py` (append), `tests/flow/test_publish.py` (whole file)
+**Files:** Modify `infra/functions/publish.py` (append), `tests/infra/functions/test_publish.py` (whole file)
 
-**Produces:** `flow.publish.store_task_token(run_id: str, task_token: str, ledger: Ledger) -> None`, `decide(run_id: str, decision: str, note: str, approver: Scope, *, ledger: Ledger | None = None, stepfunctions=None) -> ApproveResponse`. **Consumes:** `Ledger.put_task_token`, `task_token`, `record_decision`, `run` (H1); `tools.api_schema.ApproveResponse`. **Consumed by:** Task 4 (Lambda), L3 (`api.handlers.approve`).
+**Produces:** `infra.functions.publish.store_task_token(run_id: str, task_token: str, ledger: Ledger) -> None`, `decide(run_id: str, decision: str, note: str, approver: Scope, *, ledger: Ledger | None = None, stepfunctions=None) -> ApproveResponse`. **Consumes:** `Ledger.put_task_token`, `task_token`, `record_decision`, `run` (H1); `tools.api_schema.ApproveResponse`. **Consumed by:** Task 4 (Lambda), L3 (`infra.functions.api.approve`).
 
-- [ ] **Step 1: Failing tests.** Replace the whole of `tests/flow/test_publish.py` with:
+- [ ] **Step 1: Failing tests.** Replace the whole of `tests/infra/functions/test_publish.py` with:
 ```python
-"""Publish and approve (flow/publish.py): the only write, behind a delivery lead's approval (D-011)."""
+"""Publish and approve (infra/functions/publish.py): the only write, behind a delivery lead's approval (D-011)."""
 import json
 
 import pytest
 
 from adapters.memory_ledger import InMemoryLedger
 from config import DEFAULT_TENANT_ID
-from flow.publish import (NoPendingApproval, NothingToPublish, PublishForbidden, PublishNotConfigured, RunNotFound,
+from infra.functions.publish import (NoPendingApproval, NothingToPublish, PublishForbidden, PublishNotConfigured, RunNotFound,
                           decide, start_publish, store_task_token)
 from tools.constants import ALL_ENTITIES_WILDCARD
 from tools.models import Scope
@@ -277,7 +278,7 @@ DELIVERY_LEAD = Scope(user_id="user-delivery-lead", role="delivery_lead", tenant
 
 
 class FakeStepFunctions:
-    """Records the Step Functions calls flow/publish.py makes (no AWS in unit tests)."""
+    """Records the Step Functions calls infra/functions/publish.py makes (no AWS in unit tests)."""
 
     def __init__(self):
         self.calls = []
@@ -411,8 +412,8 @@ def test_the_errors_are_the_kinds_the_api_maps():
     assert issubclass(RunNotFound, KeyError) and issubclass(NoPendingApproval, KeyError)
     assert issubclass(NothingToPublish, ValueError)
 ```
-- [ ] **Step 2: Run:** `uv run --locked pytest tests/flow/test_publish.py --no-cov 2>&1 | grep -E "^E  " | head -1`. Expected: `E   ImportError: cannot import name 'decide' from 'flow.publish' (...)`.
-- [ ] **Step 3: Implement.** Append to `flow/publish.py`:
+- [ ] **Step 2: Run:** `uv run --locked pytest tests/infra/functions/test_publish.py --no-cov 2>&1 | grep -E "^E  " | head -1`. Expected: `E   ImportError: cannot import name 'decide' from 'infra.functions.publish' (...)`.
+- [ ] **Step 3: Implement.** Append to `infra/functions/publish.py`:
 ```python
 
 
@@ -445,24 +446,24 @@ def decide(run_id: str, decision: str, note: str, approver: Scope, *, ledger: Le
         client.send_task_failure(taskToken=task_token, error=SENT_BACK_ERROR, cause=note or SENT_BACK_DEFAULT_CAUSE)
     return ApproveResponse(run_id=run_id, status=STATUS_BY_DECISION[decision])
 ```
-- [ ] **Step 4: Run:** `uv run --locked pytest tests/flow/test_publish.py --no-cov 2>&1 | tail -1`. Expected: `13 passed in …s`.
+- [ ] **Step 4: Run:** `uv run --locked pytest tests/infra/functions/test_publish.py --no-cov 2>&1 | tail -1`. Expected: `13 passed in …s`.
 - [ ] **Step 5: Full suite and commit**
 ```bash
 uv run --locked pytest 2>&1 | grep -E "[0-9]+ (passed|failed)|TOTAL"
-git add flow/publish.py tests/flow/test_publish.py
+git add infra/functions/publish.py tests/infra/functions/test_publish.py
 git commit -m "decide: only a delivery lead of the run's tenant; logged on the run before the task token is used"
 ```
 Expected: start + 13 (dry-run `310 passed`).
 
-**Task done when:** `uv run --locked pytest tests/flow/test_publish.py --no-cov -k "only_a_delivery_lead" 2>&1 | tail -1 | cut -d, -f1` prints `3 passed`.
+**Task done when:** `uv run --locked pytest tests/infra/functions/test_publish.py --no-cov -k "only_a_delivery_lead" 2>&1 | tail -1 | cut -d, -f1` prints `3 passed`.
 
 ### Task 3: The status pack, written only after approval
 
-**Files:** Modify `flow/publish.py` (append), `tests/flow/test_publish.py`
+**Files:** Modify `infra/functions/publish.py` (append), `tests/infra/functions/test_publish.py`
 
-**Produces:** `flow.publish.status_pack(run_id: str, ledger: Ledger) -> dict`, `write_status_pack(run_id: str, *, ledger: Ledger, s3, bucket: str | None, prefix: str) -> str`. **Consumes:** `Ledger.run`, `claims`, `rejected` (H1). **Consumed by:** Task 4 (Lambda).
+**Produces:** `infra.functions.publish.status_pack(run_id: str, ledger: Ledger) -> dict`, `write_status_pack(run_id: str, *, ledger: Ledger, s3, bucket: str | None, prefix: str) -> str`. **Consumes:** `Ledger.run`, `claims`, `rejected` (H1). **Consumed by:** Task 4 (Lambda).
 
-- [ ] **Step 1: Failing tests.** In `tests/flow/test_publish.py`, change `from config import DEFAULT_TENANT_ID` to `from config import DEFAULT_REGION, DEFAULT_TENANT_ID` and `decide, start_publish, store_task_token)` to `decide, start_publish, store_task_token, write_status_pack)`, then append:
+- [ ] **Step 1: Failing tests.** In `tests/infra/functions/test_publish.py`, change `from config import DEFAULT_TENANT_ID` to `from config import DEFAULT_REGION, DEFAULT_TENANT_ID` and `decide, start_publish, store_task_token)` to `decide, start_publish, store_task_token, write_status_pack)`, then append:
 ```python
 
 
@@ -510,8 +511,8 @@ def test_an_approved_run_writes_its_status_pack_under_the_prefix(ledger, stepfun
     with pytest.raises(PublishNotConfigured):
         write_status_pack(RUN_ID, ledger=ledger, s3=s3, bucket=None, prefix=STATUS_PACK_PREFIX)
 ```
-- [ ] **Step 2: Run:** `uv run --locked pytest tests/flow/test_publish.py --no-cov 2>&1 | grep -E "^E  " | head -1`. Expected: `E   ImportError: cannot import name 'write_status_pack' from 'flow.publish' (...)`.
-- [ ] **Step 3: Implement.** Append to `flow/publish.py`:
+- [ ] **Step 2: Run:** `uv run --locked pytest tests/infra/functions/test_publish.py --no-cov 2>&1 | grep -E "^E  " | head -1`. Expected: `E   ImportError: cannot import name 'write_status_pack' from 'infra.functions.publish' (...)`.
+- [ ] **Step 3: Implement.** Append to `infra/functions/publish.py`:
 ```python
 
 
@@ -549,41 +550,41 @@ def write_status_pack(run_id: str, *, ledger: Ledger, s3, bucket: str | None, pr
     s3.put_object(Bucket=bucket, Key=key, Body=body.encode("utf-8"), ContentType=JSON_CONTENT_TYPE)
     return key
 ```
-- [ ] **Step 4: Run:** `uv run --locked pytest tests/flow/test_publish.py --no-cov 2>&1 | tail -1`. Expected: `15 passed in …s`.
+- [ ] **Step 4: Run:** `uv run --locked pytest tests/infra/functions/test_publish.py --no-cov 2>&1 | tail -1`. Expected: `15 passed in …s`.
 - [ ] **Step 5: Full suite and commit**
 ```bash
-uv run --locked pytest 2>&1 | grep -E "[0-9]+ (passed|failed)|TOTAL|flow/publish"
-git add flow/publish.py tests/flow/test_publish.py
+uv run --locked pytest 2>&1 | grep -E "[0-9]+ (passed|failed)|TOTAL|infra/functions/publish"
+git add infra/functions/publish.py tests/infra/functions/test_publish.py
 git commit -m "Status pack: written to status-packs/<run_id>.json only when the ledger shows an approval"
 ```
-Expected: start + 15 (dry-run `312 passed`); `flow/publish.py ... 97%`, the only misses being `_stepfunctions_client`'s two lines (the real boto3 client).
+Expected: start + 15 (dry-run `312 passed`); `infra/functions/publish.py ... 97%`, the only misses being `_stepfunctions_client`'s two lines (the real boto3 client).
 
-**Task done when:** `uv run --locked pytest tests/flow/test_publish.py --no-cov -k status_pack 2>&1 | tail -1 | cut -d, -f1` prints `2 passed`.
+**Task done when:** `uv run --locked pytest tests/infra/functions/test_publish.py --no-cov -k status_pack 2>&1 | tail -1 | cut -d, -f1` prints `2 passed`.
 
 ### Task 4: The publish machine's Lambdas
 
-**Files:** Modify `flow/handlers.py`, `tests/flow/test_handlers.py` *(new)*
+**Files:** Modify `infra/functions/states.py`, `tests/infra/functions/test_states.py` *(new)*
 
-**Produces:** `flow.handlers.store_task_token(event, context) -> dict`, `write_status_pack(event, context) -> dict`, `TaskTokenEvent`, `RunEvent`, `make_s3()`, `status_pack_location() -> tuple[str | None, str]`. **Consumes:** Tasks 2–3; `config.get_settings` (`aws_region`, `artefacts_bucket`, `status_pack_prefix`). **Consumed by:** Yaw's Standard machine (Y2).
+**Produces:** `infra.functions.states.store_task_token(event, context) -> dict`, `write_status_pack(event, context) -> dict`, `TaskTokenEvent`, `RunEvent`, `make_s3()`, `status_pack_location() -> tuple[str | None, str]`. **Consumes:** Tasks 2–3; `config.get_settings` (`aws_region`, `artefacts_bucket`, `status_pack_prefix`). **Consumed by:** Yaw's Standard machine (Y2).
 
-- [ ] **Step 1: Failing tests.** In `tests/flow/test_handlers.py`, change `import json` (the first import) to `import json` followed by a new line `from types import SimpleNamespace`, then append:
+- [ ] **Step 1: Failing tests.** In `tests/infra/functions/test_states.py`, change `import json` (the first import) to `import json` followed by a new line `from types import SimpleNamespace`, then append:
 ```python
 
 
 def test_the_publish_machines_lambdas_store_the_token_and_write_only_after_approval(ledger, monkeypatch, cfo_scope):
-    from flow.publish import PublishForbidden
+    from infra.functions.publish import PublishForbidden
     written = []
-    monkeypatch.setattr(handlers, "make_s3", lambda: SimpleNamespace(put_object=lambda **request: written.append(
+    monkeypatch.setattr(states, "make_s3", lambda: SimpleNamespace(put_object=lambda **request: written.append(
         request["Key"])))
-    monkeypatch.setattr(handlers, "status_pack_location", lambda: ("test-artefacts", "status-packs/"))
+    monkeypatch.setattr(states, "status_pack_location", lambda: ("test-artefacts", "status-packs/"))
     ledger.start_run(RUN_ID, cfo_scope, budget_usd=0.5)
-    assert handlers.store_task_token({"run_id": RUN_ID, "task_token": "example-task-token"}, None) == {}
+    assert states.store_task_token({"run_id": RUN_ID, "task_token": "example-task-token"}, None) == {}
     assert ledger.task_token(RUN_ID) == "example-task-token"
     with pytest.raises(PublishForbidden):
-        handlers.write_status_pack({"run_id": RUN_ID}, None)
+        states.write_status_pack({"run_id": RUN_ID}, None)
     ledger.record_decision(RUN_ID, {"decision": "approve", "note": "", "user_id": "user-delivery-lead",
                                     "decided_at": "2026-10-14T15:00:00+00:00"})
-    assert handlers.write_status_pack({"run_id": RUN_ID}, None) == {
+    assert states.write_status_pack({"run_id": RUN_ID}, None) == {
         "bucket": "test-artefacts", "key": f"status-packs/{RUN_ID}.json"}
     assert written == [f"status-packs/{RUN_ID}.json"]
 
@@ -594,25 +595,25 @@ def test_the_status_pack_goes_to_the_configured_bucket_and_prefix(monkeypatch):
     monkeypatch.setenv("STATUS_PACK_PREFIX", "packs/")
     get_settings.cache_clear()
     try:
-        assert handlers.status_pack_location() == ("demo-artefacts", "packs/")
-        assert hasattr(handlers.make_s3(), "put_object")
+        assert states.status_pack_location() == ("demo-artefacts", "packs/")
+        assert hasattr(states.make_s3(), "put_object")
     finally:
         get_settings.cache_clear()
 ```
-- [ ] **Step 2: Run:** `uv run --locked pytest tests/flow/test_handlers.py --no-cov 2>&1 | tail -1`. Expected: `2 failed, 4 passed`, with `AttributeError: <module 'flow.handlers' ...> has no attribute 'make_s3'` and `AttributeError: module 'flow.handlers' has no attribute 'status_pack_location'`.
-- [ ] **Step 3: Implement.** In `flow/handlers.py`:
+- [ ] **Step 2: Run:** `uv run --locked pytest tests/infra/functions/test_states.py --no-cov 2>&1 | tail -1`. Expected: `2 failed, 4 passed`, with `AttributeError: <module 'infra.functions.states' ...> has no attribute 'make_s3'` and `AttributeError: module 'infra.functions.states' has no attribute 'status_pack_location'`.
+- [ ] **Step 3: Implement.** In `infra/functions/states.py`:
   - in the module docstring, after the `write_answer` line of the table, add:
 ```text
 
-The publish machine's two Lambdas (flow/publish.py):
+The publish machine's two Lambdas (infra/functions/publish.py):
 
   store_task_token  {run_id, task_token}   (a .waitForTaskToken state) -> {}
   write_status_pack {run_id}               (after the approval)        -> {bucket, key}
 ```
-  - replace `from flow import steps` with:
+  - replace `from infra.functions import steps` with:
 ```python
 from config import get_settings
-from flow import publish, steps
+from infra.functions import publish, steps
 ```
   - insert before `class WriteAnswerEvent(StateIO):`:
 ```python
@@ -656,28 +657,28 @@ def write_status_pack(event: dict, context) -> dict:
     key = publish.write_status_pack(request.run_id, ledger=make_ledger(), s3=make_s3(), bucket=bucket, prefix=prefix)
     return {"bucket": bucket, "key": key}
 ```
-- [ ] **Step 4: Run:** `uv run --locked pytest tests/flow/test_handlers.py --no-cov 2>&1 | tail -1`. Expected: `6 passed in …s`.
+- [ ] **Step 4: Run:** `uv run --locked pytest tests/infra/functions/test_states.py --no-cov 2>&1 | tail -1`. Expected: `6 passed in …s`.
 - [ ] **Step 5: Guards, full suite and commit**
 ```bash
 uv run --locked pytest tests/test_architecture.py tests/test_code_style.py --no-cov 2>&1 | tail -1
 uv run --locked pytest 2>&1 | grep -E "[0-9]+ (passed|failed)|TOTAL"
-git add flow/handlers.py tests/flow/test_handlers.py
+git add infra/functions/states.py tests/infra/functions/test_states.py
 git commit -m "Publish machine Lambdas: store the task token; write the status pack after approval"
 ```
 Expected: guards pass; start + 17 (dry-run `314 passed`), `TOTAL ... 98%`.
 
-**Task done when:** `uv run --locked pytest tests/flow/test_handlers.py --no-cov -k publish_machines 2>&1 | tail -1 | cut -d, -f1` prints `1 passed`.
+**Task done when:** `uv run --locked pytest tests/infra/functions/test_states.py --no-cov -k publish_machines 2>&1 | tail -1 | cut -d, -f1` prints `1 passed`.
 
 ### Task 5: Handover, docs, review and PR
-- [ ] **Step 1: `docs/DEVOPS_HANDOVER.md`.** In the row `` `start_publish`, `decide`, status-pack writer ``, change the entry point to: `` `flow.publish:start_publish` / `decide` (called by `api.handlers:publish` / `approve`); Lambdas `flow.handlers:store_task_token`, `flow.handlers:write_status_pack` `` and the IAM cell to: `` `store_task_token`: `dynamodb:GetItem`, `PutItem` on `<ledger>`. `write_status_pack`: `dynamodb:GetItem`, `Query` on `<ledger>` and `<rejected>`; `s3:PutObject` **only** on `<bucket>/status-packs/*` ``. Below the table add:
+- [ ] **Step 1: `docs/DEVOPS_HANDOVER.md`.** In the row `` `start_publish`, `decide`, status-pack writer ``, change the entry point to: `` `infra.functions.publish.start_publish` / `decide` (called by `infra.functions.api.publish` / `approve`); Lambdas `infra.functions.states.store_task_token`, `infra.functions.states.write_status_pack` `` and the IAM cell to: `` `store_task_token`: `dynamodb:GetItem`, `PutItem` on `<ledger>`. `write_status_pack`: `dynamodb:GetItem`, `Query` on `<ledger>` and `<rejected>`; `s3:PutObject` **only** on `<bucket>/status-packs/*` ``. Below the table add:
 ```markdown
 ### Publish machine (Standard, Huvison's Lambdas)
-`StoreTaskToken`: `arn:aws:states:::lambda:invoke.waitForTaskToken` on `flow.handlers:store_task_token`, payload `{"run_id.$": "$.run_id", "task_token.$": "$$.Task.Token"}`; `Catch` `States.TaskFailed` → `SentBack` (the decision is already logged). On success → `WriteStatusPack`: `flow.handlers:write_status_pack` with `{"run_id.$": "$.run_id"}`. Execution name = `run_id` (one publish per run).
+`StoreTaskToken`: `arn:aws:states:::lambda:invoke.waitForTaskToken` on `infra.functions.states.store_task_token`, payload `{"run_id.$": "$.run_id", "task_token.$": "$$.Task.Token"}`; `Catch` `States.TaskFailed` → `SentBack` (the decision is already logged). On success → `WriteStatusPack`: `infra.functions.states.write_status_pack` with `{"run_id.$": "$.run_id"}`. Execution name = `run_id` (one publish per run).
 ```
-- [ ] **Step 2: `HANDOFF.md`.** Under `## What's real`, add: `- Publish and approve (\`flow/publish.py\`): a Standard execution per run waits on a task token stored by \`run_id\`; only a delivery lead of the run's tenant decides; every decision is logged on the run; the status pack is written to \`status-packs/<run_id>.json\` only after an approval, checked again in the ledger.`
+- [ ] **Step 2: `HANDOFF.md`.** Under `## What's real`, add: `- Publish and approve (\`infra/functions/publish.py\`): a Standard execution per run waits on a task token stored by \`run_id\`; only a delivery lead of the run's tenant decides; every decision is logged on the run; the status pack is written to \`status-packs/<run_id>.json\` only after an approval, checked again in the ledger.`
 - [ ] **Step 3: Commit:** `git add docs/DEVOPS_HANDOVER.md HANDOFF.md && git commit -m "Handover and HANDOFF: the publish machine and its two Lambdas"`; then `uv run --locked pytest tests/test_dependencies.py --no-cov 2>&1 | tail -1`. Expected: `4 passed`.
 - [ ] **Step 4:** Review Focus by hand; results in `.superpowers/ledger-H4.md`.
-- [ ] **Step 5:** `git diff develop --stat`. Expected: `HANDOFF.md`, `docs/DEVOPS_HANDOVER.md`, `flow/handlers.py`, `flow/publish.py`, `tests/flow/test_handlers.py`, `tests/flow/test_publish.py` (6 files).
+- [ ] **Step 5:** `git diff develop --stat`. Expected: `HANDOFF.md`, `docs/DEVOPS_HANDOVER.md`, `infra/functions/states.py`, `infra/functions/publish.py`, `tests/infra/functions/test_states.py`, `tests/infra/functions/test_publish.py` (6 files).
 - [ ] **Step 6: Verify in AWS (after Yaw's Y2 and Linus's L3 are deployed, with Yaw):** with `AWS_PROFILE=hackathon AWS_REGION=eu-west-1`, run one `/ask` as the CFO, `POST /publish` with its `run_id`, then `aws s3 ls s3://<ARTEFACTS_BUCKET>/status-packs/`. Expected: no object for the run. `POST /approve` as a delivery-lead test user with `decision: approve`, then the same `ls`. Expected: `<run_id>.json` listed once. Write both outputs in the ledger file. If the stacks aren't deployed yet, write "verify in AWS: pending Y2/L3" and do it at D2 12:00.
 - [ ] **Step 7: With Huvison's OK only:** push `feature/publish-approve`, PR to `develop` ("Publish and approve: task token by run_id, delivery-lead approval, status pack after approval (H4)"), body with the count, the error mapping for Linus, the machine for Yaw, and the rulings. No attribution lines.
 - [ ] **Step 8:** [[Build order]] row H4 → `in review (PR #nn)`, then `merged`. Tell Linus (exceptions and signatures), Yaw (the machine and IAM) and Clement (F5 can use the real API).
@@ -685,10 +686,10 @@ Expected: guards pass; start + 17 (dry-run `314 passed`), `TOTAL ... 98%`.
 **Task done when:** the PR is open with the error-mapping table in its body; the ledger file has the AWS check's output or "pending Y2/L3".
 
 ## Done means
-- [ ] **Publish and approve are tested.** *Verify:* on `develop`, `uv run --locked pytest tests/flow/test_publish.py --no-cov 2>&1 | tail -1` prints `15 passed`.
-- [ ] **Only a delivery lead of the run's tenant decides.** *Verify:* `uv run --locked pytest tests/flow/test_publish.py --no-cov -k only_a_delivery_lead 2>&1 | tail -1 | cut -d, -f1` prints `3 passed`.
-- [ ] **No pack without approval.** *Verify:* `uv run --locked pytest tests/flow/test_publish.py --no-cov -k "no_status_pack" 2>&1 | tail -1 | cut -d, -f1` prints `1 passed`.
-- [ ] **The Lambdas exist.** *Verify:* `uv run python -c "from flow import handlers; print(callable(handlers.store_task_token), callable(handlers.write_status_pack))"` prints `True True`.
+- [ ] **Publish and approve are tested.** *Verify:* on `develop`, `uv run --locked pytest tests/infra/functions/test_publish.py --no-cov 2>&1 | tail -1` prints `15 passed`.
+- [ ] **Only a delivery lead of the run's tenant decides.** *Verify:* `uv run --locked pytest tests/infra/functions/test_publish.py --no-cov -k only_a_delivery_lead 2>&1 | tail -1 | cut -d, -f1` prints `3 passed`.
+- [ ] **No pack without approval.** *Verify:* `uv run --locked pytest tests/infra/functions/test_publish.py --no-cov -k "no_status_pack" 2>&1 | tail -1 | cut -d, -f1` prints `1 passed`.
+- [ ] **The Lambdas exist.** *Verify:* `uv run python -c "from infra.functions import states; print(callable(states.store_task_token), callable(states.write_status_pack))"` prints `True True`.
 - [ ] **End to end in AWS.** *Verify:* the ledger file (copied into the PR) shows the empty `status-packs/` listing after publish and the single `<run_id>.json` after approval.
 - [ ] **Nothing broke.** *Verify:* full suite after merge: start + 17, `TOTAL` ≥ 98%.
 - [ ] **Merged.** *Verify:* PR merged into `develop`; [[Build order]] row H4 `merged`.

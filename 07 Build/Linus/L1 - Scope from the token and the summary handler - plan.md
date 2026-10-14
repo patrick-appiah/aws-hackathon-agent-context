@@ -17,12 +17,13 @@ The vault is the context space for this work (clone `git@github.com:patrick-appi
 3. [[Workstreams]] §3 and §7, and [[Linus - API, identity, blocker-analyst]] §1–§2.
 4. [[C1 - API and spine contracts - spec]] §3 (the API models) and §5 (`AUTH_MODE`).
 5. `01 Decisions/` D-001, D-010, D-015, and [[Working with AI assistants]].
+6. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 **Whenever this note is silent or unclear, look in the vault before guessing:** `04 Reference/` for the brief, the rubrics and the guideline ([[Problem statement]], [[Judging rubric]], [[Pitch track grading rubric]], [[Hackathon guideline]]); `03 Sessions/` for what happened when; `Open follow-ups.md` for known open questions. If the vault doesn't answer it either, stop and ask Linus. Never invent a name, a shape or a rule.
 
 **Goal:** every handler gets its `Scope` from the token's claims through one tested function, and `GET /summary` serves the one screen with the contract error body. With `AUTH_MODE=none`, the demo user's role comes from the new `DEMO_ROLE` setting (lead decision D2), so the approval step can be demonstrated without Cognito.
 
-**Architecture:** `auth/scope.py` *(new)* turns claims into a `Scope`. `api/handlers.py` *(new)* is a thin HTTP adapter: scope → one builder from `tools/api_schema.py` → JSON. No business logic and no arithmetic in either (D-001). Both import `config`, so neither lives in `tools/`.
+**Architecture:** `infra/functions/scope.py` *(new)* turns claims into a `Scope`. `infra/functions/api.py` *(new)* is a thin HTTP adapter: scope → one builder from `tools/api_schema.py` → JSON. No business logic and no arithmetic in either (D-001). Both import `config`, so neither lives in `tools/`.
 
 **Tech stack:** Python 3.11, pydantic 2, pytest, uv. AWS Lambda handlers for API Gateway HTTP API (payload format 2.0). No AWS calls in this item, and none in the tests.
 
@@ -37,26 +38,26 @@ The vault is the context space for this work (clone `git@github.com:patrick-appi
 - **Never weaken a security rule** (the scope gate, the create-once ledger, the fail-closed critic, the `<evidence>` escaping) to make a test pass.
 - **Tests** live in `tests/`, mirroring the code; run `uv run --locked pytest` from the repo root. Coverage must not drop below the start state. **No layout or "meta" guard tests**: test behaviour, not where files sit.
 - **Git:** small commits, one per task, with the messages given. **No `Co-Authored-By` and no "Generated with" lines.** Never push to `develop` or `main`; the PR goes to `develop` after the owner's OK, and Patrick merges.
-- **Stay in your folders** (`docs/TEAM_PLAN.md` §2, workstream 3: `api/`, `auth/`, `tools/metrics.py`, `tools/queries.py`, `tools/agent_tools.py`, `tools/claims.py`, `agents/blocker_analyst.py` *(new)*, `agents/prompts/blocker_analyst.txt` *(new)*, `scripts/export_summary.py` *(new)*, the eval runner). Any other file this plan touches is named in its task, with the owner who must review it.
-- **Thin handlers:** a handler calls `scope_from_event`, one builder from `tools/api_schema.py` and `json_response`. No `if` on business data, no arithmetic, no reshaping. A missing figure goes into `tools/metrics.py` with a pinned test (a separate change), never into `api/`.
-- **Shared files touched:** `pyproject.toml` (`addopts`: two `--cov` flags, each inserted directly before `--cov-report` so it merges cleanly with H5's `--cov=flow`), **Patrick's `config.py` and `tests/test_config.py`** (the `DEMO_ROLE` setting, lead decision D2: settings live only in `config.py`, so this item adds it there and Patrick reviews it in this PR), and Patrick's `docs/DEVOPS_HANDOVER.md` (your rows only). Patrick reviews all of them in the PR.
+- **Stay in your folders** (`docs/TEAM_PLAN.md` §2, workstream 3: `infra/functions/api.py`, `infra/functions/scope.py`, `tests/infra/functions/` *(new)*, `tools/metrics.py`, `tools/queries.py`, `tools/agent_tools.py`, `tools/claims.py`, `agents/blocker_analyst.py` *(new)*, `agents/prompts/blocker_analyst.txt` *(new)*, `scripts/export_summary.py` *(new)*, the eval runner). Any other file this plan touches is named in its task, with the owner who must review it.
+- **Thin handlers:** a handler calls `scope_from_event`, one builder from `tools/api_schema.py` and `json_response`. No `if` on business data, no arithmetic, no reshaping. A missing figure goes into `tools/metrics.py` with a pinned test (a separate change), never into `infra/functions/api.py`.
+- **Shared files touched:** `pyproject.toml` (`addopts`: two `--cov` flags, each inserted directly before `--cov-report` so it merges cleanly with the single `--cov=infra/functions` that C2 adds), **Patrick's `config.py` and `tests/test_config.py`** (the `DEMO_ROLE` setting, lead decision D2: settings live only in `config.py`, so this item adds it there and Patrick reviews it in this PR), and Patrick's `docs/DEVOPS_HANDOVER.md` (your rows only). Patrick reviews all of them in the PR.
 
 ## Review Focus (what the tests don't fully cover; check by hand at the end)
 1. **Another tenant is refused, never served.** With one CSV tenant, a `t-02` token would otherwise read `t-01` data. Read `scope_from_claims`: the tenant check runs before the `Scope` is built.
 2. **The claim format on a real token.** HTTP API v2 is documented to send `cognito:groups` as `"[entity_lead]"`. On the first deployed call (D1 18:00, with Yaw), log the claim **keys** and the group value once (never the token), confirm the 200, then remove the log line.
 3. **`AUTH_MODE=none` is a fallback, set explicitly.** C1's default is `cognito`; the walking skeleton sets `AUTH_MODE=none` on purpose until Michael's AuthStack is live, then the summary Lambda's environment must say `AUTH_MODE=cognito` (or leave it unset), and `DEMO_ROLE` is then ignored. `DEMO_ROLE=delivery_lead` is only for demonstrating approval while the Cognito slice is off; with it, every caller is a delivery lead. Check Yaw's ApiStack environment, and say so in the PR.
 4. **`KeyError` → 404 can hide a bug.** A `KeyError` from deep inside `metrics` would also come back as 404 `not_found`. Check the Lambda logs for `refused: not_found` on routes that shouldn't produce it.
-5. **Error details leak nothing.** `detail` is the exception's own message: our messages name claims and entity IDs, never token contents. Read every `raise` in `auth/scope.py`.
+5. **Error details leak nothing.** `detail` is the exception's own message: our messages name claims and entity IDs, never token contents. Read every `raise` in `infra/functions/scope.py`.
 
 ---
 
-### Task 1: `auth/scope.py`, the scope builder
+### Task 1: `infra/functions/scope.py`, the scope builder
 
 **Files:**
-- Create: `auth/__init__.py` *(new)*, `auth/scope.py`, `tests/auth/test_scope.py` *(new)* (the test folder is new; no `__init__.py` in `tests/`)
-- Modify: `config.py` and `tests/test_config.py` (**Patrick's files**: one setting, `demo_role`; Patrick reviews it in this PR), `pyproject.toml` (one `--cov` flag)
+- Create: `infra/__init__.py` *(new)* and `infra/functions/__init__.py` *(new; create if missing)*, `infra/functions/scope.py`, `tests/infra/functions/test_scope.py` *(new)* (the test folder is new; no `__init__.py` in `tests/`)
+- Modify: `config.py` and `tests/test_config.py` (**Patrick's files**: one setting, `demo_role`; Patrick reviews it in this PR), `pyproject.toml` (one `--cov` flag, and `norecursedirs`: drop `"infra"`)
 
-**Produces:** `config.Settings.demo_role: str` (env `DEMO_ROLE`, default `DEFAULT_DEMO_ROLE = "cfo"`, must be one of `DEMO_ROLES`, the values of `tools.models.Role`, else `ValueError`); `auth.scope.claims_from_event(event: dict) -> dict | None`, `demo_scope(settings: Settings) -> Scope`, `scope_from_claims(claims: dict | None, settings: Settings) -> Scope`, `scope_from_event(event: dict, settings: Settings) -> Scope`, exceptions `Unauthenticated` and `ScopeRefused` (both `PermissionError`), constants `GROUPS_CLAIM`, `TENANT_CLAIM`, `ENTITY_IDS_CLAIM`, `USER_ID_CLAIM`, `DEMO_USER_ID_PREFIX`. **Consumes:** `config.AUTH_MODE_NONE`, `config.Settings` (C1), `tools.models.Role`, `Scope`, `validate_entity_id`, `tools.constants.ALL_ENTITIES_WILDCARD`. **Consumed by:** Task 2, L2, L3, P3 (`demo_scope(settings)` for the local runner), Clement's F3b and F5 (the `AUTH_MODE=none` demo path).
+**Produces:** `config.Settings.demo_role: str` (env `DEMO_ROLE`, default `DEFAULT_DEMO_ROLE = "cfo"`, must be one of `DEMO_ROLES`, the values of `tools.models.Role`, else `ValueError`); `infra.functions.scope.claims_from_event(event: dict) -> dict | None`, `demo_scope(settings: Settings) -> Scope`, `scope_from_claims(claims: dict | None, settings: Settings) -> Scope`, `scope_from_event(event: dict, settings: Settings) -> Scope`, exceptions `Unauthenticated` and `ScopeRefused` (both `PermissionError`), constants `GROUPS_CLAIM`, `TENANT_CLAIM`, `ENTITY_IDS_CLAIM`, `USER_ID_CLAIM`, `DEMO_USER_ID_PREFIX`. **Consumes:** `config.AUTH_MODE_NONE`, `config.Settings` (C1), `tools.models.Role`, `Scope`, `validate_entity_id`, `tools.constants.ALL_ENTITIES_WILDCARD`. **Consumed by:** Task 2, L2, L3, P3 (`demo_scope(settings)` for the local runner), Clement's F3b and F5 (the `AUTH_MODE=none` demo path).
 
 - [ ] **Step 1: Branch and baseline**
 ```bash
@@ -120,14 +121,14 @@ uv run --locked pytest tests/test_config.py --no-cov 2>&1 | tail -1
 ```
 Expected: `12 passed`.
 
-- [ ] **Step 6: Write the failing scope test.** Create `tests/auth/test_scope.py`:
+- [ ] **Step 6: Write the failing scope test.** Create `tests/infra/functions/test_scope.py`:
 ```python
-"""Scope from the sign-in token (auth/scope.py): group, tenant and entity claims, or the AUTH_MODE=none demo user."""
+"""Scope from the sign-in token (infra/functions/scope.py): group, tenant and entity claims, or the AUTH_MODE=none demo user."""
 import dataclasses
 
 import pytest
 
-from auth.scope import (ScopeRefused, Unauthenticated, claims_from_event, demo_scope, scope_from_claims,
+from infra.functions.scope import (ScopeRefused, Unauthenticated, claims_from_event, demo_scope, scope_from_claims,
                         scope_from_event)
 from config import AUTH_MODE_COGNITO, AUTH_MODE_NONE, DEFAULT_TENANT_ID, get_settings
 
@@ -207,15 +208,11 @@ def test_claims_come_from_the_http_api_v2_authorizer_context(cognito_settings):
 
 - [ ] **Step 7: Run it and watch it fail**
 ```bash
-uv run --locked pytest tests/auth/test_scope.py --no-cov 2>&1 | grep -E "^E  "
+uv run --locked pytest tests/infra/functions/test_scope.py --no-cov 2>&1 | grep -E "^E  "
 ```
-Expected: `E   ModuleNotFoundError: No module named 'auth'` (an error at collection; nothing ran).
+Expected: `E   ModuleNotFoundError: No module named 'infra.functions'` (an error at collection; nothing ran; `infra/` holds only a README, so Python sees a namespace package).
 
-- [ ] **Step 8: Implement.** Create `auth/__init__.py`:
-```python
-"""Identity: the user's Scope, built server-side from the sign-in token's claims (ARCHITECTURE.md §4)."""
-```
-Create `auth/scope.py`:
+- [ ] **Step 8: Implement.** Create `infra/__init__.py` (docstring only: `"""Infrastructure and Lambda glue. This package must not import aws_cdk (a handler import never pulls CDK)."""`) and `infra/functions/__init__.py` (docstring only: `"""Lambda and Step Functions handlers, and the user's Scope built server-side from the sign-in token's claims (ARCHITECTURE.md §4)."""`), each only if missing (whichever item lands first creates them). Create `infra/functions/scope.py`:
 ```python
 """Scope from the sign-in token: the only place a Scope is built for a request (ARCHITECTURE.md §4).
 
@@ -319,31 +316,31 @@ def scope_from_event(event: dict, settings: Settings) -> Scope:
 
 - [ ] **Step 9: Run it and watch it pass**
 ```bash
-uv run --locked pytest tests/auth/test_scope.py --no-cov 2>&1 | tail -1
+uv run --locked pytest tests/infra/functions/test_scope.py --no-cov 2>&1 | tail -1
 ```
 Expected: `18 passed`.
 
-- [ ] **Step 10: Measure the new package.** In `pyproject.toml`, in `addopts`, insert `--cov=auth ` (with its trailing space) directly before `--cov-report`. Don't rewrite the rest of the line: H5 inserts `--cov=flow ` at the same place, and either order merges.
+- [ ] **Step 10: Measure the new package, and let pytest collect `tests/infra/` *(new)*.** In `pyproject.toml`, in `addopts`, insert `--cov=infra/functions ` (with its trailing space) directly before `--cov-report` if it is missing (another item may already have added it: then check it is there). In `norecursedirs`, drop `"infra"` (it would skip `tests/infra/`) and keep the rest. Don't rewrite the rest of the lines: C2's other items make the same two edits, and the first to land wins.
 
 - [ ] **Step 11: Full suite and commit**
 ```bash
 uv run --locked pytest 2>&1 | grep -E "[0-9]+ (passed|failed)|TOTAL"
-git add auth tests/auth pyproject.toml config.py tests/test_config.py
+git add infra tests/infra/functions pyproject.toml config.py tests/test_config.py
 git commit -m "Build the user's scope from the sign-in token's claims; AUTH_MODE=none gives the DEMO_ROLE demo user (D-010)"
 ```
-Expected: `233 passed` (START + 20), `TOTAL ... 96%` (`auth/scope.py` is fully covered, so `skip-covered` doesn't list it).
+Expected: `233 passed` (START + 20), `TOTAL ... 96%` (`infra/functions/scope.py` is fully covered, so `skip-covered` doesn't list it).
 
-**Task done when:** `uv run --locked pytest tests/auth/test_scope.py tests/test_config.py --no-cov` prints `30 passed`; `git log -1 --format=%s` shows the commit above; `git show --stat HEAD` lists only `auth/__init__.py`, `auth/scope.py`, `tests/auth/test_scope.py`, `config.py`, `tests/test_config.py` and `pyproject.toml`.
+**Task done when:** `uv run --locked pytest tests/infra/functions/test_scope.py tests/test_config.py --no-cov` prints `30 passed`; `git log -1 --format=%s` shows the commit above; `git show --stat HEAD` lists only `infra/__init__.py`, `infra/functions/__init__.py`, `infra/functions/scope.py`, `tests/infra/functions/test_scope.py`, `config.py`, `tests/test_config.py` and `pyproject.toml`.
 
-### Task 2: `api/handlers.py`, the error body and `GET /summary`
+### Task 2: `infra/functions/api.py`, the error body and `GET /summary`
 
 **Files:**
-- Create: `api/__init__.py` *(new)*, `api/handlers.py`, `tests/api/conftest.py` *(new)*, `tests/api/test_handlers.py` *(new)*
-- Modify: `pyproject.toml` (one `--cov` flag)
+- Create: `infra/functions/api.py`, `tests/infra/functions/conftest.py` *(new)*, `tests/infra/functions/test_api.py` *(new)*
+- Modify: `pyproject.toml` (check only: `--cov=infra/functions` is there from Task 1)
 
-**Produces:** `api.handlers.summary(event: dict, context: object) -> dict`; helpers `json_response(status_code: int, model: BaseModel) -> dict`, `error_response(error_code: str, detail: str) -> dict`, `returns_contract_errors(handler: LambdaHandler) -> LambdaHandler`, `repository_for(tenant_id: str) -> ArtefactRepository`; constants `HTTP_OK`, `JSON_HEADERS`, `ERROR_CODE_BY_EXCEPTION`; the type alias `LambdaHandler = Callable[..., dict]`. Test fixtures `cognito_mode`, `demo_mode` (`AUTH_MODE=none`) and `make_event` (in `tests/api/conftest.py`). **Consumes:** Task 1; `tools.api_schema.summary_response`, `ErrorResponse`, `ERROR_STATUS_CODES`, `ERROR_UNAUTHORIZED`, `ERROR_FORBIDDEN`, `ERROR_NOT_FOUND` (C1); `tools.agent_tools.ERROR_INVALID_INPUT`, `ERROR_OUT_OF_SCOPE`; `adapters.repository_from_settings`. **Consumed by:** L2, L3, Yaw (Y1: `api.handlers:summary`), Mildred (F1/F2).
+**Produces:** `infra.functions.api.summary(event: dict, context: object) -> dict`; helpers `json_response(status_code: int, model: BaseModel) -> dict`, `error_response(error_code: str, detail: str) -> dict`, `returns_contract_errors(handler: LambdaHandler) -> LambdaHandler`, `repository_for(tenant_id: str) -> ArtefactRepository`; constants `HTTP_OK`, `JSON_HEADERS`, `ERROR_CODE_BY_EXCEPTION`; the type alias `LambdaHandler = Callable[..., dict]`. Test fixtures `cognito_mode`, `demo_mode` (`AUTH_MODE=none`) and `make_event` (in `tests/infra/functions/conftest.py`). **Consumes:** Task 1; `tools.api_schema.summary_response`, `ErrorResponse`, `ERROR_STATUS_CODES`, `ERROR_UNAUTHORIZED`, `ERROR_FORBIDDEN`, `ERROR_NOT_FOUND` (C1); `tools.agent_tools.ERROR_INVALID_INPUT`, `ERROR_OUT_OF_SCOPE`; `adapters.repository_from_settings`. **Consumed by:** L2, L3, Yaw (Y1: `infra.functions.api.summary`), Mildred (F1/F2).
 
-- [ ] **Step 1: The test fixtures.** Create `tests/api/conftest.py`:
+- [ ] **Step 1: The test fixtures.** Create `tests/infra/functions/conftest.py`:
 ```python
 """Fake API Gateway HTTP API (v2) events and the Cognito sign-in mode, for the handler tests. No AWS."""
 import json
@@ -392,9 +389,9 @@ def make_event():
     return build_event
 ```
 
-- [ ] **Step 2: Write the failing test.** Create `tests/api/test_handlers.py`:
+- [ ] **Step 2: Write the failing test.** Create `tests/infra/functions/test_api.py`:
 ```python
-"""The API handlers (api/handlers.py) called with fake HTTP API v2 events: scope from the token, contract bodies."""
+"""The API handlers (infra/functions/api.py) called with fake HTTP API v2 events: scope from the token, contract bodies."""
 import json
 
 import pytest
@@ -463,23 +460,19 @@ def test_each_core_exception_becomes_its_contract_error(error, error_code):
 
 - [ ] **Step 3: Run it and watch it fail**
 ```bash
-uv run --locked pytest tests/api/test_handlers.py --no-cov 2>&1 | grep -E "^E  "
+uv run --locked pytest tests/infra/functions/test_api.py --no-cov 2>&1 | grep -E "^E  "
 ```
-Expected: `E   ModuleNotFoundError: No module named 'api'`.
+Expected: `E   ModuleNotFoundError: No module named 'infra.functions.api'`.
 
-- [ ] **Step 4: Implement.** Create `api/__init__.py`:
-```python
-"""The portal's HTTP API: thin Lambda handlers over the core (api/handlers.py)."""
-```
-Create `api/handlers.py`:
+- [ ] **Step 4: Implement.** `infra/__init__.py` and `infra/functions/__init__.py` already exist from Task 1. Create `infra/functions/api.py`:
 ```python
 """API Gateway HTTP API (v2) Lambda handlers: thin adapters from HTTP to the core (docs/TEAM_PLAN.md §3, D-021).
 
 Every handler does the same three things:
-  1. the scope from the token's claims (auth/scope.py), never from the body or the query string;
+  1. the scope from the token's claims (infra/functions/scope.py), never from the body or the query string;
   2. one builder from tools/api_schema.py, which calls tools/metrics.py and tools/queries.py;
   3. the contract model as JSON, or the contract error body ErrorResponse {error, detail}.
-No business logic and no arithmetic here (D-001). DevOps entry points: api.handlers:<route> (docs/DEVOPS_HANDOVER.md).
+No business logic and no arithmetic here (D-001). DevOps entry points: infra.functions.api:<route> (docs/DEVOPS_HANDOVER.md).
 """
 import functools
 import logging
@@ -488,7 +481,7 @@ from typing import Callable
 from pydantic import BaseModel
 
 from adapters import repository_from_settings
-from auth.scope import ScopeRefused, Unauthenticated, scope_from_event
+from infra.functions.scope import ScopeRefused, Unauthenticated, scope_from_event
 from config import get_settings
 from tools.agent_tools import ERROR_INVALID_INPUT, ERROR_OUT_OF_SCOPE
 from tools.api_schema import (ERROR_FORBIDDEN, ERROR_NOT_FOUND, ERROR_STATUS_CODES, ERROR_UNAUTHORIZED, ErrorResponse,
@@ -552,34 +545,34 @@ def summary(event: dict, context: object) -> dict:
 
 - [ ] **Step 5: Run it and watch it pass**
 ```bash
-uv run --locked pytest tests/api/test_handlers.py --no-cov 2>&1 | tail -1
+uv run --locked pytest tests/infra/functions/test_api.py --no-cov 2>&1 | tail -1
 ```
 Expected: `10 passed`.
 
-- [ ] **Step 6: Measure the new package.** In `pyproject.toml`, in `addopts`, insert `--cov=api ` (with its trailing space) directly before `--cov-report`, the same way as `--cov=auth` in Task 1.
+- [ ] **Step 6: Check the measurement.** In `pyproject.toml`, in `addopts`, check `--cov=infra/functions` is there (Task 1 added it); `infra/functions/api.py` is covered by it.
 
 - [ ] **Step 7: Guards, full suite and commit**
 ```bash
 uv run --locked pytest tests/test_architecture.py tests/test_code_style.py --no-cov 2>&1 | tail -1
 uv run --locked pytest 2>&1 | grep -E "[0-9]+ (passed|failed)|TOTAL"
-git add api tests/api pyproject.toml
+git add infra tests/infra/functions pyproject.toml
 git commit -m "GET /summary handler: scope from the token, the contract error body for every route (D-021)"
 ```
 Expected: the guards `15 passed`; then `243 passed` (START + 30), `TOTAL ... 97%`.
 
-**Task done when:** `uv run --locked pytest tests/auth tests/api --no-cov` prints `28 passed`; `TOTAL` coverage is 97% or more; the commit is on the branch.
+**Task done when:** `uv run --locked pytest tests/infra/functions --no-cov` prints `28 passed`; `TOTAL` coverage is 97% or more; the commit is on the branch.
 
 ### Task 3: Keep the handover and HANDOFF true
 
 **Files:**
 - Modify: `docs/DEVOPS_HANDOVER.md` (Patrick's file; your rows only), `HANDOFF.md` (your line only)
 
-- [ ] **Step 1: `docs/DEVOPS_HANDOVER.md`.** Two exact replacements:
-  - In the `summary`, `entity`, `rows` row, replace `` `api.handlers:summary` / `entity` / `rows` *(planned)* `` with `` `api.handlers:summary` (built, L1) / `entity` / `rows` *(planned)* ``.
-  - In "Bundling", replace the line `` - the handler package (`api/` or `flow/`); `` with `` - the handler package: `api/` **with `auth/`** for the API functions (the handlers build the scope there), `flow/` for the state functions; `` (keep its two-space indent).
+- [ ] **Step 1: `docs/DEVOPS_HANDOVER.md`.** One exact replacement and one check:
+  - In the `summary`, `entity`, `rows` row, replace `` `infra.functions.api.summary` / `entity` / `rows` *(planned)* `` with `` `infra.functions.api.summary` (built, L1) / `entity` / `rows` *(planned)* ``.
+  - In "Bundling", no edit: C2 already lists `infra/__init__.py` and `infra/functions/` *(new)* in the Lambda asset, and `scope.py` is in it. Check with `grep -n "infra/functions" docs/DEVOPS_HANDOVER.md`, which must print the bundling line.
 - [ ] **Step 2: `HANDOFF.md`.** Under "What's real", directly **above** the line `- TODO: agent loop, critic, ledger, approval flow, as each lands.`, add:
 ```markdown
-- `GET /summary` (`api/handlers.py`): the scope comes from the Cognito ID token's claims (`auth/scope.py`: exactly one group, `custom:tenant_id`, `custom:entity_ids`), never from the request. Tested with fake API Gateway HTTP API v2 events. `AUTH_MODE=none` serves a demo CFO and is only the fallback if the Cognito slice slips.
+- `GET /summary` (`infra/functions/api.py`): the scope comes from the Cognito ID token's claims (`infra/functions/scope.py`: exactly one group, `custom:tenant_id`, `custom:entity_ids`), never from the request. Tested with fake API Gateway HTTP API v2 events. `AUTH_MODE=none` serves a demo CFO and is only the fallback if the Cognito slice slips.
 - AUTH_MODE=none with DEMO_ROLE=delivery_lead is a demo-only fallback for the approval step if the Cognito slice is off
 ```
 - [ ] **Step 3: Doc guards, full suite and commit**
@@ -587,27 +580,27 @@ Expected: the guards `15 passed`; then `243 passed` (START + 30), `TOTAL ... 97%
 uv run --locked pytest tests/test_dependencies.py tests/test_code_style.py --no-cov 2>&1 | tail -1
 uv run --locked pytest 2>&1 | grep -E "[0-9]+ (passed|failed)|TOTAL"
 git add docs/DEVOPS_HANDOVER.md HANDOFF.md
-git commit -m "Handover and HANDOFF: the summary handler is built; API bundles include auth/"
+git commit -m "Handover and HANDOFF: the summary handler is built"
 ```
 Expected: `15 passed`; then `243 passed`, `TOTAL ... 97%`.
 
-**Task done when:** `grep -c "built, L1" docs/DEVOPS_HANDOVER.md` prints `1`; `grep -c "auth/scope.py" HANDOFF.md` prints `1`; `grep -c "DEMO_ROLE=delivery_lead" HANDOFF.md` prints `1`; the suite is still `243 passed`.
+**Task done when:** `grep -c "built, L1" docs/DEVOPS_HANDOVER.md` prints `1`; `grep -c "infra/functions/scope.py" HANDOFF.md` prints `1`; `grep -c "DEMO_ROLE=delivery_lead" HANDOFF.md` prints `1`; the suite is still `243 passed`.
 
 ### Task 4: Review, then PR (after Linus's OK)
 - [ ] **Step 1:** Work through the Review Focus by hand; write each result in the ledger. Line 2 waits for the first deployed call: write "pending Y1" and do it with Yaw.
-- [ ] **Step 2:** `git diff develop --stat` lists only: `auth/__init__.py`, `auth/scope.py`, `api/__init__.py`, `api/handlers.py`, `tests/auth/test_scope.py`, `tests/api/conftest.py`, `tests/api/test_handlers.py`, `config.py`, `tests/test_config.py`, `pyproject.toml`, `docs/DEVOPS_HANDOVER.md`, `HANDOFF.md`. Expected: `12 files changed`.
+- [ ] **Step 2:** `git diff develop --stat` lists only: `infra/__init__.py`, `infra/functions/__init__.py`, `infra/functions/scope.py`, `infra/functions/api.py`, `tests/infra/functions/test_scope.py`, `tests/infra/functions/conftest.py`, `tests/infra/functions/test_api.py`, `config.py`, `tests/test_config.py`, `pyproject.toml`, `docs/DEVOPS_HANDOVER.md`, `HANDOFF.md`. Expected: `12 files changed`.
 - [ ] **Step 3:** A fresh reviewer (a person, or an agent with no prior context) reviews the diff against the spec. Fix critical and important findings test-first; list minor ones in the PR.
-- [ ] **Step 4: With the OK only:** `git push -u origin feature/api-summary-and-scope`; open the PR to `develop`, titled "Scope from the token and the /summary handler (L1)". The body: what changed, `243 passed` and the coverage, the rulings from the ledger, "Patrick: `config.py` and `tests/test_config.py` gain the `DEMO_ROLE` setting (lead decision D2), please review", and "Michael: please add `api auth` to the bandit paths in the Jenkinsfile". No attribution lines.
-- [ ] **Step 5:** Set L1's row in [[Build order]] to `in review (PR #nn)`; tell Yaw the entry point is `api.handlers:summary` and the bundle needs `auth/`; tell Mildred `/summary` is ready for the walking skeleton; tell Clement and Patrick `DEMO_ROLE` exists (F3b, F5 and P3 use it).
+- [ ] **Step 4: With the OK only:** `git push -u origin feature/api-summary-and-scope`; open the PR to `develop`, titled "Scope from the token and the /summary handler (L1)". The body: what changed, `243 passed` and the coverage, the rulings from the ledger, "Patrick: `config.py` and `tests/test_config.py` gain the `DEMO_ROLE` setting (lead decision D2), please review", and "Michael: please add `infra/functions` to the bandit paths in the Jenkinsfile". No attribution lines.
+- [ ] **Step 5:** Set L1's row in [[Build order]] to `in review (PR #nn)`; tell Yaw the entry point is `infra.functions.api.summary` and the bundle is `infra/functions/` (scope.py is in it); tell Mildred `/summary` is ready for the walking skeleton; tell Clement and Patrick `DEMO_ROLE` exists (F3b, F5 and P3 use it).
 
 **Task done when:** the PR is open to `develop` with the test count in its body, and L1's [[Build order]] row says `in review (PR #nn)`.
 
 ## Done means (checklist)
 - [ ] `uv run --locked pytest` on the branch prints `243 passed` (START + 30) and `TOTAL` 97% or more. *Verify:* run it from the repo root.
-- [ ] `uv run --locked pytest tests/auth/test_scope.py --no-cov` prints `18 passed`, `tests/api/test_handlers.py` prints `10 passed`, and `tests/test_config.py` prints `12 passed`. *Verify:* run all three.
-- [ ] `DEMO_ROLE` works and refuses typos. *Verify:* `DEMO_ROLE=delivery_lead uv run python -c "from auth.scope import demo_scope; from config import get_settings; print(demo_scope(get_settings()).role)"` prints `delivery_lead`, and `DEMO_ROLE=admin uv run python -c "import config; config.get_settings()" 2>&1 | tail -1` prints `ValueError: DEMO_ROLE must be one of ('cfo', 'sponsor', 'delivery_lead', 'entity_lead'), not 'admin'`.
-- [ ] `grep -n "def scope_from_claims\|def scope_from_event" auth/scope.py` shows both functions, and `grep -n "^def summary" api/handlers.py` shows the handler. *Verify:* run the greps.
-- [ ] `docs/DEVOPS_HANDOVER.md` says `api.handlers:summary` is built and the bundle includes `auth/`. *Verify:* `grep -n "auth/" docs/DEVOPS_HANDOVER.md`.
+- [ ] `uv run --locked pytest tests/infra/functions/test_scope.py --no-cov` prints `18 passed`, `tests/infra/functions/test_api.py` prints `10 passed`, and `tests/test_config.py` prints `12 passed`. *Verify:* run all three.
+- [ ] `DEMO_ROLE` works and refuses typos. *Verify:* `DEMO_ROLE=delivery_lead uv run python -c "from infra.functions.scope import demo_scope; from config import get_settings; print(demo_scope(get_settings()).role)"` prints `delivery_lead`, and `DEMO_ROLE=admin uv run python -c "import config; config.get_settings()" 2>&1 | tail -1` prints `ValueError: DEMO_ROLE must be one of ('cfo', 'sponsor', 'delivery_lead', 'entity_lead'), not 'admin'`.
+- [ ] `grep -n "def scope_from_claims\|def scope_from_event" infra/functions/scope.py` shows both functions, and `grep -n "^def summary" infra/functions/api.py` shows the handler. *Verify:* run the greps.
+- [ ] `docs/DEVOPS_HANDOVER.md` says `infra.functions.api.summary` is built, and its Bundling section lists `infra/functions/`. *Verify:* `grep -n "infra/functions" docs/DEVOPS_HANDOVER.md`.
 - [ ] The PR to `develop` is open (or merged), with no `Co-Authored-By` or "Generated with" line. *Verify:* `gh pr view <nn> --json state,body` and `git log develop..HEAD --format=%B | grep -ci "co-authored"` prints `0`.
 - [ ] [[Build order]] row L1 shows `in review (PR #nn)` or `merged`. *Verify:* open the note.
 
@@ -616,7 +609,7 @@ Expected: `15 passed`; then `243 passed`, `TOTAL ... 97%`.
 - Fall back to `AUTH_MODE=none` on an unknown or missing setting (C1 defaults to `cognito` and makes a typo fail loudly; keep both). The same for `DEMO_ROLE`: an unknown role is a `ValueError`, never a silent CFO.
 - Read `demo_role` anywhere but `demo_scope`, or let it change a Cognito-mode scope.
 - Catch every exception in a handler to return a 4xx.
-- Do arithmetic or reshape a figure in `api/`.
+- Do arithmetic or reshape a figure in `infra/functions/`.
 - Push to `develop` or `main`, or add attribution lines.
 
 Related: [[L1 - Scope from the token and the summary handler - spec]], [[Build order]], [[How to execute a plan]]

@@ -13,9 +13,10 @@ The team vault is the shared context space for this project: decisions, briefs, 
 1. [[How to execute a plan]] (`07 Build/`).
 2. [[A3a - Bedrock unit prices - spec]] and its merged result in `COST.md`.
 3. [[Abdul - evals, Cognito, docs]] §6 (pilot ~200 questions/month; 100/day).
-4. [[Huvison - trust and flow]] §6 (`flow/cost.py` *(new)*, created by H5, `cost_usd(usage)`; every agent state calls `add_cost`; the total lands in `AskResponse.cost_usd`) and §7 (the local asker H6).
+4. [[Huvison - trust and flow]] §6 (`tools/cost.py` *(new)*, created by H5, `cost_usd(usage)`; every agent state calls `add_cost`; the total lands in `AskResponse.cost_usd`) and §7 (the local asker H6).
 5. [[Build order]]: A3b depends on H5 (cost per run) and on one eval run with an asker (H6 or L6). B1 (business case `[TBC]`s) and B3 (the cost slide) wait on it.
 6. `04 Reference/`: [[Pitch track grading rubric]] ("COST.md: **measured** cost per run and at 100 runs/day"), [[Judging rubric]] 3.2 (monthly run cost at pilot and full scale; cost levers).
+7. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 **Whenever this spec is silent or unclear, look in the vault before guessing:** `04 Reference/`, `03 Sessions/`, `Open follow-ups.md`. If it's still unclear, stop and ask Huvison (cost) or Linus (the run). Never estimate a figure that should be measured; write "not measured" instead.
 
@@ -67,7 +68,7 @@ The team vault is the shared context space for this project: decisions, briefs, 
 
 **The "Measured on" line**, added right under the Scale table:
 ```markdown
-Measured on `evals/results/<file name>` (commit `<commit>`, asker `<asker>`, <date>): <n> questions answered, average **$<average, 4 decimals>** per question; cheapest <Qxx> $<…>, dearest <Qyy> $<…>. Bedrock tokens are priced with the unit prices above (`flow/cost.py`); Lambda, API Gateway, DynamoDB and S3 are negligible at these volumes; AgentCore Runtime <is included from the deployed run / is not measured (local run)>. Every run stayed under the per-run budget of $0.50 (`RUN_BUDGET_USD`) <or: <Qzz> hit the budget and returned a partial answer>.
+Measured on `evals/results/<file name>` (commit `<commit>`, asker `<asker>`, <date>): <n> questions answered, average **$<average, 4 decimals>** per question; cheapest <Qxx> $<…>, dearest <Qyy> $<…>. Bedrock tokens are priced with the unit prices above (`tools/cost.py`); Lambda, API Gateway, DynamoDB and S3 are negligible at these volumes; AgentCore Runtime <is included from the deployed run / is not measured (local run)>. Every run stayed under the per-run budget of $0.50 (`RUN_BUDGET_USD`) <or: <Qzz> hit the budget and returned a partial answer>.
 ```
 **The "Value side" TODO line** (`- TODO: confirm with Vanessa Addo how often these questions are asked per month → payback estimate.`) becomes, with B1's label on the day (`validated <YYYY-MM-DD>` if the business case's sizing rows say *validated*, else `proposed`):
 ```markdown
@@ -83,7 +84,7 @@ No code. The checks:
 - **Doc guards:** Linus runs `uv run --locked pytest` on the branch → the baseline count, 0 failed.
 
 ## 5. Out of scope
-- Unit prices ([[A3a - Bedrock unit prices - spec]]), the price table and `flow/cost.py` (H5).
+- Unit prices ([[A3a - Bedrock unit prices - spec]]), the price table and `tools/cost.py` (H5).
 - The "Value side" content and the business case (B1; A3b only swaps its TODO line for the pointer), the cost slide (B3).
 - Committing the results file (A5a, [[A5a - EVALS results write-up - spec]]).
 

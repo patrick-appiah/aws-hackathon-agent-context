@@ -56,7 +56,7 @@ The vault is the shared context space. Clone `git@github.com:patrick-appiah/aws-
 **Root `README.md`**, replacing the section from `## Run it in 5 commands` up to (not including) `**Front end (\`web/\`, Angular):**`:
 ````markdown
 ## Run it in 5 commands
-Prerequisites (once per machine): uv (`curl -LsSf https://astral.sh/uv/install.sh | sh`), Node 22 with `corepack enable`, the read-only npm token in your home `~/.npmrc` (`web/README.md`), AWS CLI v2 with the `hackathon` profile. Once per account: `cd infra && npm ci && npx cdk bootstrap aws://486128667962/eu-west-1`. No Docker needed.
+Prerequisites (once per machine): uv (`curl -LsSf https://astral.sh/uv/install.sh | sh`), Node 22 with `corepack enable`, the read-only npm token in your home `~/.npmrc` (`web/README.md`), AWS CLI v2 with the `hackathon` profile. Once per account: `cd infra && npm ci && npx cdk bootstrap aws://796973512193/eu-west-1`. No Docker needed.
 
 ```bash
 export AWS_PROFILE=hackathon AWS_REGION=eu-west-1

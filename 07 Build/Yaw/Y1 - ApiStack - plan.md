@@ -19,6 +19,7 @@ The vault is the shared context space: decisions, briefs, rules, the build order
 5. [[Build order]]: what this item depends on and unblocks.
 6. [[M2 - App, DataStack and LedgerStack - spec]]: the CDK app, `build_stacks`, the prefix, the test fixtures and the patterns every DevOps item follows.
 7. [[M3b - AuthStack - spec]] and [[M4a - WebStack - spec]]; `docs/DEVOPS_HANDOVER.md` in the repo.
+8. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 **Whenever this note is silent or unclear, look in the vault before guessing:** `04 Reference/` for the brief, the rubrics and the guideline; `03 Sessions/` for what happened when; `Open follow-ups.md` for known open questions. If the vault doesn't answer it either, stop and ask Yaw (owner). Never invent a name, a shape or a rule.
 
@@ -40,7 +41,7 @@ The vault is the shared context space: decisions, briefs, rules, the build order
 - Tests in `tests/`, mirroring the code; `uv run --locked pytest` from the repo root; coverage must not drop (96%). CDK tests never bundle (`SKIP_ALL_BUNDLING`) and never call AWS.
 - **No AWS calls while building:** only `cdk synth` with credentials unset (`env -u AWS_PROFILE AWS_CONFIG_FILE=/dev/null AWS_SHARED_CREDENTIALS_FILE=/dev/null npx cdk synth -q`) and the tests. Steps marked **verify in AWS** run only after Yaw's OK, with `export AWS_PROFILE=hackathon AWS_REGION=eu-west-1`. Deploys are manual (D-018); CI never deploys.
 - Branch `<type>/<short-topic>` from `develop` after the dependencies are merged; PR to `develop`; Patrick merges; never push to `develop` or `main`; **no `Co-Authored-By` and no "Generated with" lines**.
-- Stay in DevOps's files: `infra/`, `tests/infra/` *(new)* (and `Jenkinsfile` *(new)*, Michael's). Need a change elsewhere (`config.py`, `api/`, `flow/`, `docs/`)? Ask its owner.
+- Stay in DevOps's files: `infra/` (`app.py`, `stacks/`, `agent_runtime/`, `bundling.py`, and in `infra/functions/` *(new)* only `agent_shim.py` and the stubs), `tests/infra/` *(new; `tests/infra/functions/` is Linus's and Huvison's)* (and `Jenkinsfile` *(new)*, Michael's). Need a change elsewhere (`config.py`, `tools/`, Linus's and Huvison's modules in `infra/functions/`, `docs/`)? Ask its owner.
 - No layout or "meta" guard tests: the tests check what the stacks synthesise and what the functions do.
 
 ## Review Focus (what the tests don't fully cover; check by hand at the end)
@@ -55,7 +56,7 @@ The vault is the shared context space: decisions, briefs, rules, the build order
 ### Task 1: The local bundler (`infra/bundling.py`)
 
 **Files:**
-- Create: `infra/bundling.py`, `tests/infra/test_bundling.py` *(new)*
+- Create: `infra/bundling.py`, `tests/infra/test_bundling.py` *(new)*; `infra/__init__.py` *(new)* and `infra/functions/__init__.py` *(new)* (docstring only; `infra/__init__.py` must not import CDK; create if missing)
 
 **Produces:** `BUILD_DIRECTORY`, `LAMBDA_PYTHON_VERSION`, `LAMBDA_PYTHON_PLATFORM`, `CORE_CODE`, `PLACEHOLDER_DIRECTORY`, `BundleSpec`, `API_BUNDLE`, `install_requirements(bundle_directory, python_platform, requirements_file)`, `build_bundle(spec, *, repo_root, output_root, install) -> Path`, `bundle_path(scope, spec) -> str`, `bundle_code(scope, spec) -> lambda_.Code` (all in `infra.bundling`). **Consumes:** `config.REPO_ROOT`. **Consumed by:** Task 3, Y2a, Y2b, Y3a, Y3b.
 
@@ -83,8 +84,8 @@ PROMPT_LOCK = "agents/prompts/prompts.lock"
 def _fake_repo(tmp_path):
     repo = tmp_path / "repo"
     for file_path in ("tools/metrics.py", "adapters/csv_repo.py", PROMPT_FILE, PROMPT_LOCK, "agents/critic.py",
-                      "agents/__pycache__/critic.cpython-311.pyc", "config.py", "api/handlers.py", "auth/scope.py",
-                      "flow/publish.py", "infra/agent_runtime/server.py"):
+                      "agents/__pycache__/critic.cpython-311.pyc", "config.py", "infra/__init__.py", "infra/functions/__init__.py", "infra/functions/api.py",
+                      "infra/functions/scope.py", "infra/functions/publish.py", "infra/agent_runtime/server.py"):
         (repo / file_path).parent.mkdir(parents=True, exist_ok=True)
         (repo / file_path).write_text("# fake\n")
     return repo
@@ -102,7 +103,7 @@ def test_the_bundle_holds_the_code_the_prompts_and_the_lock(tmp_path):
     bundle = build_bundle(API_BUNDLE, repo_root=_fake_repo(tmp_path), output_root=tmp_path / "build",
                           install=_record_install(calls))
     for expected in ("tools/metrics.py", "adapters/csv_repo.py", PROMPT_FILE, PROMPT_LOCK, "config.py",
-                     "api/handlers.py", "auth/scope.py", "pydantic"):
+                     "infra/__init__.py", "infra/functions/api.py", "infra/functions/scope.py", "pydantic"):
         assert (bundle / expected).exists(), expected
     assert not (bundle / "agents" / "__pycache__").exists()
     assert calls == [("api", "x86_64-manylinux2014", "api-requirements.txt")]
@@ -125,7 +126,7 @@ def test_a_rebuild_starts_from_an_empty_directory(tmp_path):
 
 
 def test_a_missing_package_stops_the_build_with_the_reason(tmp_path):
-    spec = BundleSpec("flow", (*CORE_CODE, "flow", "evals"))
+    spec = BundleSpec("flow", (*CORE_CODE, "infra/functions", "evals"))
     with pytest.raises(FileNotFoundError, match="evals"):
         build_bundle(spec, repo_root=_fake_repo(tmp_path), output_root=tmp_path / "build",
                      install=_record_install([]))
@@ -161,7 +162,7 @@ from config import REPO_ROOT
 BUILD_DIRECTORY = REPO_ROOT / "infra" / "cdk.out" / "bundles"
 LAMBDA_PYTHON_VERSION = "3.11"                      # .python-version; the Lambda runtime is PYTHON_3_11
 LAMBDA_PYTHON_PLATFORM = "x86_64-manylinux2014"     # Lambda x86_64 on Amazon Linux 2
-CORE_CODE = ("tools", "adapters", "agents", "config.py")  # agents/ carries prompts/*.txt and prompts.lock (D-014)
+CORE_CODE = ("tools", "adapters", "agents", "config.py", "infra/__init__.py")  # agents/ carries prompts/*.txt and prompts.lock (D-014); infra/__init__.py must not import CDK
 IGNORED_WHILE_COPYING = shutil.ignore_patterns("__pycache__", "*.pyc")
 REQUIREMENTS_FILE_SUFFIX = "-requirements.txt"
 PLACEHOLDER_HANDLER_CODE = "def handler(event, context):\n    raise RuntimeError('bundling was skipped')\n"
@@ -178,7 +179,7 @@ class BundleSpec:
     root_files: tuple[str, ...] = ()
 
 
-API_BUNDLE = BundleSpec("api", (*CORE_CODE, "api", "auth"))
+API_BUNDLE = BundleSpec("api", (*CORE_CODE, "infra/functions/__init__.py", "infra/functions/api.py", "infra/functions/scope.py"))
 
 
 def install_requirements(bundle_directory: Path, python_platform: str, requirements_file: Path) -> None:
@@ -205,6 +206,7 @@ def build_bundle(spec: BundleSpec, *, repo_root: Path = REPO_ROOT, output_root: 
         if source.is_dir():
             shutil.copytree(source, bundle_directory / code_path, ignore=IGNORED_WHILE_COPYING, dirs_exist_ok=True)
         else:
+            (bundle_directory / code_path).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, bundle_directory / code_path)
     for root_file in spec.root_files:
         shutil.copy2(repo_root / root_file, bundle_directory / Path(root_file).name)
@@ -261,7 +263,7 @@ Expected: S + 4 passed [228], `TOTAL ... 96%`.
 - [ ] **Step 1: Write the failing test.**
 Create `tests/infra/functions/test_stub_handler.py`:
 ```python
-"""The stub every route serves until api/handlers.py lands: it echoes the route and the JWT claims it received."""
+"""The stub every route serves until infra/functions/api.py lands: it echoes the route and the JWT claims it received."""
 import json
 
 from infra.functions.stub_handler import handler
@@ -289,7 +291,7 @@ Expected: `E   ModuleNotFoundError: No module named 'infra.functions'` and `1 er
 - [ ] **Step 3: Implement both.** (`PortalFunction` is exercised through ApiStack's tests in Task 3.)
 Create `infra/functions/stub_handler.py`:
 ```python
-"""Stand-in for every API route until Linus's api/handlers.py is merged (Y1): proves the path, the authorizer
+"""Stand-in for every API route until Linus's infra/functions/api.py is merged (Y1): proves the path, the authorizer
 and the claims end to end. Returns the route and the JWT claims API Gateway passed, nothing else."""
 import json
 
@@ -479,7 +481,7 @@ def test_a_mistyped_auth_mode_fails_the_synth():
 def test_merged_routes_run_api_handlers_and_the_rest_the_stub(api_template):
     handlers = {function["Properties"]["Handler"]
                 for function in api_template.find_resources("AWS::Lambda::Function").values()}
-    expected_real = {f"api.handlers.{route_name}" for route_name in ROUTES_WITH_REAL_HANDLERS}
+    expected_real = {f"infra.functions.api.{route_name}" for route_name in ROUTES_WITH_REAL_HANDLERS}
     assert expected_real <= handlers
     assert (STUB_HANDLER in handlers) == (len(ROUTES_WITH_REAL_HANDLERS) < len(API_ROUTES))
 ```
@@ -517,7 +519,7 @@ from infra.stacks.data_stack import DataStack
 
 AUTH_MODE_CONTEXT_KEY = "auth_mode"            # -c auth_mode=none: the D2 12:00 Cognito fallback (no authorizer)
 STUB_HANDLER = "stub_handler.handler"
-REAL_HANDLER_MODULE = "api.handlers"
+REAL_HANDLER_MODULE = "infra.functions.api"
 # Routes whose real handler is merged (Linus: L1 summary, L2 entity + rows, L3 ask + publish + approve).
 # The others keep serving the stub. Add a route here only after its handler is on develop.
 ROUTES_WITH_REAL_HANDLERS: frozenset[str] = frozenset()
@@ -526,7 +528,7 @@ STUB_CODE_DIRECTORY = REPO_ROOT / "infra" / "functions"
 
 @dataclass(frozen=True)
 class ApiRoute:
-    name: str                       # the handler function in api/handlers.py and the Lambda's construct ID
+    name: str                       # the handler function in infra/functions/api.py and the Lambda's construct ID
     method: apigateway.HttpMethod
     path: str
 
@@ -659,12 +661,12 @@ Expected (verify in AWS): `{"stub": true, "route": "GET /summary", "claims": {..
 **Files:**
 - Modify: `infra/stacks/api_stack.py`
 
-**Produces:** the three dashboard routes on `api.handlers.*`, bundled with `API_BUNDLE`. **Consumes:** `api/handlers.py` *(new)* `summary`, `entity`, `rows` and `auth/` (Linus).
+**Produces:** the three dashboard routes on `infra.functions.api.*`, bundled with `API_BUNDLE`. **Consumes:** `infra/functions/api.py` *(new)* `summary`, `entity`, `rows` and `infra/functions/scope.py` *(new)* (Linus).
 
 - [ ] **Step 1: Bring in the handlers.** Check [[Build order]]: L1 and L2 are `merged`. Then:
 ```bash
 git fetch origin && git rebase origin/develop
-grep -n "^def summary\|^def entity\|^def rows" api/handlers.py; ls auth/
+grep -n "^def summary\|^def entity\|^def rows" infra/functions/api.py; ls infra/functions/scope.py
 ```
 Expected: three `def` lines and `scope.py` (at least). If any is missing, stop and ask Linus.
 
@@ -684,9 +686,9 @@ uv run --locked pytest tests/infra/stacks/test_api_stack.py --no-cov 2>&1 | tail
 ```
 ```bash
 cd infra && env -u AWS_PROFILE -u AWS_ACCESS_KEY_ID -u AWS_SECRET_ACCESS_KEY AWS_CONFIG_FILE=/dev/null AWS_SHARED_CREDENTIALS_FILE=/dev/null npx cdk synth -q 2>&1 | grep -E "Successfully|rror"; cd ..
-ls infra/cdk.out/bundles/api/api/handlers.py infra/cdk.out/bundles/api/agents/prompts/prompts.lock
+ls infra/cdk.out/bundles/api/infra/functions/api.py infra/cdk.out/bundles/api/agents/prompts/prompts.lock
 ```
-Expected: `10 passed` (`test_merged_routes_run_api_handlers_and_the_rest_the_stub` now sees three real handlers); `Successfully synthesized`; both files listed. (Dry-run note: `api/`, `auth/` and `flow/` didn't exist when this plan was written, so its synth was dry-run with empty stand-in packages; on `develop` they are the real ones.)
+Expected: `10 passed` (`test_merged_routes_run_api_handlers_and_the_rest_the_stub` now sees three real handlers); `Successfully synthesized`; both files listed. (Dry-run note: `infra/functions/api.py`, `infra/functions/scope.py` and the other `infra/functions/` modules didn't exist when this plan was written, so its synth was dry-run with empty stand-in packages; on `develop` they are the real ones.)
 
 - [ ] **Step 4: Full suite and commit**
 ```bash
@@ -704,7 +706,7 @@ read -rs ID_TOKEN; curl -s -H "Authorization: Bearer $ID_TOKEN" "$API_URL/summar
 Expected (verify in AWS): the CFO's token returns JSON starting `{"as_of": ...` with `"tenant_id": "t-01"` (the `SummaryResponse` keys from `tools/api_schema.py`); the E4 lead's token on `$API_URL/entity/E2` returns `403` with `{"error": "out_of_scope", ...}`.
 
 **Task done when:**
-- `infra/cdk.out/bundles/api/` *(new)* holds `api/handlers.py`, `auth/` and `agents/prompts/prompts.lock` after a synth.
+- `infra/cdk.out/bundles/api/` *(new)* holds `infra/functions/api.py`, `infra/functions/scope.py` and `agents/prompts/prompts.lock` after a synth.
 - The deployed `/summary` returns the real summary for the CFO and `/entity/E2` returns 403 for the E4 lead (ledger lines).
 
 ### Task 6: Review, then PR (after Yaw's and Patrick's OK)
@@ -727,7 +729,7 @@ Expected (verify in AWS): the CFO's token returns JSON starting `{"as_of": ...` 
 - Commit or paste an ID token, a password or an `.npmrc` token anywhere (ledger, PR, Slack).
 - Use `bucket.grant_read`, `grant_read_write` or a role with `AWSLambdaBasicExecutionRole`: build every function with `PortalFunction`.
 - Put `auth_mode` into `cdk.json` or deploy `-c auth_mode=none` without Patrick's go/no-go call.
-- Point a route at `api.handlers.<name>` before that handler is merged.
+- Point a route at `infra.functions.api.<name>` before that handler is merged.
 - Run `cdk deploy` or any `aws` command before Yaw's OK; push to `develop` or `main`; add attribution lines.
 
 Related: [[Build order]], [[Yaw - DevOps]], [[Workstreams]]

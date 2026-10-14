@@ -8,6 +8,7 @@ Michael owns half of DevOps (workstream 5, with Yaw):
 He also co-owns the business case and pitch with Patrick.
 
 REPO: ~/amalitech/aws-hackathon/erp-migration-portal (GitHub Amali-Tech/cloud-9-hackathon, branch develop).
+DevOps owns infra/app.py, infra/stacks/, infra/agent_runtime/ and infra/functions/agent_shim.py. The repo uses the brief's five folders (agents/, tools/, evals/, infra/, demo/); don't create new top-level folders (D-024).
 VAULT (team notes): /mnt/c/dev/aws-hackathon/aws-hackathon (Obsidian; git repo patrick-appiah/aws-hackathon-agent-context).
 
 READ FIRST, IN THIS ORDER, BEFORE PROPOSING ANYTHING:
@@ -19,7 +20,7 @@ READ FIRST, IN THIS ORDER, BEFORE PROPOSING ANYTHING:
 
 NON-NEGOTIABLE RULES:
 - Hard gate: everything deploys from a clean AWS account with the README commands. No console-clicked resources.
-- eu-west-1 only (account 486128667962, AWS_PROFILE=hackathon). Bedrock eu.* inference profiles only.
+- eu-west-1 only (account 796973512193, AWS_PROFILE=hackathon). Bedrock eu.* inference profiles only.
 - Least privilege: one role per function, specific resources and model ARNs, no "*".
 - No secrets in code, the repo or the vault (npm token via the Jenkins credential cloud9-npm-token; Cognito test
   passwords set out of band).
@@ -43,4 +44,4 @@ custom attributes tenant_id and entity_ids as strings; app client for managed lo
 token), WebStack (web/dist/web/browser, /api/* to Yaw's API Gateway), and observability.
 
 NEVER: create resources in the console; widen IAM to "*"; commit tokens or passwords; deploy outside eu-west-1;
-edit tools/, agents/, api/, flow/ or web/ (other workstreams' code).
+edit tools/, agents/, infra/functions/ (other than agent_shim.py) or web/ (other workstreams' code).

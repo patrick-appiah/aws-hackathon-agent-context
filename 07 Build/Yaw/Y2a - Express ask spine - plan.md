@@ -19,6 +19,7 @@ The vault is the shared context space: decisions, briefs, rules, the build order
 5. [[Build order]]: what this item depends on and unblocks.
 6. [[M2 - App, DataStack and LedgerStack - spec]]: the CDK app, `build_stacks`, the prefix, the test fixtures and the patterns every DevOps item follows.
 7. [[Y1 - ApiStack - spec]], [[M3a - GuardrailStack - spec]], [[M4b - Observability - spec]]; [[Huvison - trust and flow]].
+8. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 **Whenever this note is silent or unclear, look in the vault before guessing:** `04 Reference/` for the brief, the rubrics and the guideline; `03 Sessions/` for what happened when; `Open follow-ups.md` for known open questions. If the vault doesn't answer it either, stop and ask Yaw (owner) or Huvison (step JSON). Never invent a name, a shape or a rule.
 
@@ -40,7 +41,7 @@ The vault is the shared context space: decisions, briefs, rules, the build order
 - Tests in `tests/`, mirroring the code; `uv run --locked pytest` from the repo root; coverage must not drop (96%). CDK tests never bundle (`SKIP_ALL_BUNDLING`) and never call AWS.
 - **No AWS calls while building:** only `cdk synth` with credentials unset (`env -u AWS_PROFILE AWS_CONFIG_FILE=/dev/null AWS_SHARED_CREDENTIALS_FILE=/dev/null npx cdk synth -q`) and the tests. Steps marked **verify in AWS** run only after Yaw's OK, with `export AWS_PROFILE=hackathon AWS_REGION=eu-west-1`. Deploys are manual (D-018); CI never deploys.
 - Branch `<type>/<short-topic>` from `develop` after the dependencies are merged; PR to `develop`; Patrick merges; never push to `develop` or `main`; **no `Co-Authored-By` and no "Generated with" lines**.
-- Stay in DevOps's files: `infra/`, `tests/infra/` *(new)* (and `Jenkinsfile` *(new)*, Michael's). Need a change elsewhere (`config.py`, `api/`, `flow/`, `docs/`)? Ask its owner.
+- Stay in DevOps's files: `infra/` (`app.py`, `stacks/`, `agent_runtime/`, `bundling.py`, and in `infra/functions/` *(new)* only `agent_shim.py` and the stubs), `tests/infra/` *(new; `tests/infra/functions/` is Linus's and Huvison's)* (and `Jenkinsfile` *(new)*, Michael's). Need a change elsewhere (`config.py`, `tools/`, Linus's and Huvison's modules in `infra/functions/`, `docs/`)? Ask its owner.
 - No layout or "meta" guard tests: the tests check what the stacks synthesise and what the functions do.
 
 ## Review Focus (what the tests don't fully cover; check by hand at the end)
@@ -244,7 +245,7 @@ Expected: `E   ImportError: cannot import name 'stub_steps' from 'infra.function
 - [ ] **Step 3: Implement.**
 Create `infra/functions/stub_steps.py`:
 ```python
-"""Stand-ins for Huvison's flow/steps.py until H2 is merged (Y2a): the ask spine runs end to end in AWS with canned
+"""Stand-ins for Huvison's infra/functions/steps.py until H2 is merged (Y2a): the ask spine runs end to end in AWS with canned
 answers and a critic that always passes (the D1 18:00 walking skeleton). Same input and output JSON as the real
 steps (the Y2a spec, "Step contract")."""
 STUB_CLAIM_ID = "claim-1"
@@ -429,7 +430,7 @@ Expected: `E   ModuleNotFoundError: No module named 'infra.stacks.flow_stack'` a
 - [ ] **Step 3: Implement the stack.**
 Create `infra/stacks/flow_stack.py`:
 ```python
-"""FlowStack: the Express ask spine (D-007). Every state is one Lambda running one flow/steps.py function.
+"""FlowStack: the Express ask spine (D-007). Every state is one Lambda running one infra/functions/steps.py function.
 
 check_budget -> run_orchestrator -> store_claims -> per claim: judge_claim -> pass? keep it
                                                     : retry_decision (reads the ledger) -> retry: re-plan the claim
@@ -457,8 +458,8 @@ from infra.stacks.data_stack import DataStack
 from infra.stacks.guardrail_stack import GuardrailStack
 from infra.stacks.ledger_stack import LedgerStack
 
-FLOW_BUNDLE = BundleSpec("flow", (*CORE_CODE, "flow"))
-REAL_STEP_MODULE = "flow.steps"
+FLOW_BUNDLE = BundleSpec("flow", (*CORE_CODE, "infra/functions"))
+REAL_STEP_MODULE = "infra.functions.steps"
 STUB_STEP_MODULE = "stub_steps"
 STUB_CODE_DIRECTORY = REPO_ROOT / "infra" / "functions"
 DYNAMO_LEDGER_BACKEND = "dynamo"
@@ -476,7 +477,7 @@ PASSED_CLAIMS_FILTER = "$.judged[?(@.passed == true)].claim"
 
 @dataclass(frozen=True)
 class FlowStep:
-    name: str                 # the function in flow/steps.py
+    name: str                 # the function in infra/functions/steps.py
     runs_agents: bool         # needs Bedrock, the Guardrail and the artefacts
 
 
@@ -761,7 +762,7 @@ Expected: S + 17 passed [257], `TOTAL ... 96%`; `Successfully synthesized`; `1`;
 export AWS_PROFILE=hackathon AWS_REGION=eu-west-1
 cd infra && npx cdk deploy FlowStack ApiStack --require-approval never 2>&1 | grep -E "✅|AskStateMachineArn"; cd ..
 ```
-Expected (verify in AWS): `✅  FlowStack (demo-FlowStack)`, `✅  ApiStack (demo-ApiStack)`, and `AskStateMachineArn = arn:aws:states:eu-west-1:486128667962:stateMachine:AskSpine...`.
+Expected (verify in AWS): `✅  FlowStack (demo-FlowStack)`, `✅  ApiStack (demo-ApiStack)`, and `AskStateMachineArn = arn:aws:states:eu-west-1:796973512193:stateMachine:AskSpine...`.
 
 - [ ] **Step 2: Run one question straight on the machine (stubs)**
 ```bash
@@ -782,25 +783,25 @@ Expected (verify in AWS): `SUCCEEDED` and an output starting `{"run_id": "run-sk
 - [ ] **Step 1: Bring them in.** Check [[Build order]]: H2 (and L3 for the route) are `merged`.
 ```bash
 git fetch origin && git rebase origin/develop
-grep -n "^def check_budget\|^def run_orchestrator\|^def store_claims\|^def judge_claim\|^def retry_decision\|^def record_rejection\|^def write_answer" flow/steps.py
-grep -n "^def ask\|^from flow\|^import flow" api/handlers.py
+grep -n "^def check_budget\|^def run_orchestrator\|^def store_claims\|^def judge_claim\|^def retry_decision\|^def record_rejection\|^def write_answer" infra/functions/steps.py
+grep -n "^def ask\|^from flow\|^import flow" infra/functions/api.py
 ```
-Expected: seven `def` lines in `flow/steps.py` *(new)*; `def ask` in `api/handlers.py` *(new)* once L3 is merged. If a step is missing, stop and ask Huvison; check its signature and JSON against spec §3 and stop on any difference.
+Expected: seven `def` lines in `infra/functions/steps.py` *(new)*; `def ask` in `infra/functions/api.py` *(new)* once L3 is merged. If a step is missing, stop and ask Huvison; check its signature and JSON against spec §3 and stop on any difference.
 
 - [ ] **Step 2: Switch the steps.** In `infra/stacks/flow_stack.py`, replace the line that **starts with** `STEPS_WITH_REAL_HANDLERS` (only that line; Y2b later adds a `PUBLISH_STEPS_WITH_REAL_HANDLERS` line that must not change) with:
 ```python
 STEPS_WITH_REAL_HANDLERS = frozenset({"check_budget", "run_orchestrator", "store_claims", "judge_claim",
                                       "retry_decision", "record_rejection", "write_answer"})
 ```
-  If L3 is merged, in `infra/stacks/api_stack.py` change the `ROUTES_WITH_REAL_HANDLERS` line to `ROUTES_WITH_REAL_HANDLERS = frozenset({"summary", "entity", "rows", "ask"})`. If Step 1 showed `api/handlers.py` importing `flow`, also make `API_BUNDLE` in `infra/bundling.py` *(new)* `BundleSpec("api", (*CORE_CODE, "api", "auth", "flow"))` (Y2b does the same; keep one of the two edits when rebasing).
+  If L3 is merged, in `infra/stacks/api_stack.py` change the `ROUTES_WITH_REAL_HANDLERS` line to `ROUTES_WITH_REAL_HANDLERS = frozenset({"summary", "entity", "rows", "ask"})`. If Step 1 showed `infra/functions/api.py` importing `infra.functions.steps`, also add `"infra/functions/steps.py"` to `API_BUNDLE` in `infra/bundling.py` *(new)* (Y2b adds `"infra/functions/publish.py"` the same way; keep both when rebasing).
 
 - [ ] **Step 3: Tests and a bundling synth**
 ```bash
 uv run --locked pytest tests/infra --no-cov 2>&1 | tail -1
 cd infra && env -u AWS_PROFILE -u AWS_ACCESS_KEY_ID -u AWS_SECRET_ACCESS_KEY AWS_CONFIG_FILE=/dev/null AWS_SHARED_CREDENTIALS_FILE=/dev/null npx cdk synth -q 2>&1 | grep -E "Successfully|rror"; cd ..
-ls infra/cdk.out/bundles/flow/flow/steps.py infra/cdk.out/bundles/flow/agents/prompts/prompts.lock
+ls infra/cdk.out/bundles/flow/infra/functions/steps.py infra/cdk.out/bundles/flow/agents/prompts/prompts.lock
 ```
-Expected: all `tests/infra` passed (the handler names are now `flow.steps.*`; dry-run: unchanged count); `Successfully synthesized`; both files listed. (Dry-run note: `api/`, `auth/` and `flow/` didn't exist when this plan was written, so its synth was dry-run with empty stand-in packages; on `develop` they are the real ones.)
+Expected: all `tests/infra` passed (the handler names are now `infra.functions.steps.*`; dry-run: unchanged count); `Successfully synthesized`; both files listed. (Dry-run note: `infra/functions/api.py`, `infra/functions/scope.py` *(new)* and the other `infra/functions/` modules didn't exist when this plan was written, so its synth was dry-run with empty stand-in packages; on `develop` they are the real ones.)
 
 - [ ] **Step 4: Full suite and commit**
 ```bash
@@ -839,7 +840,7 @@ Expected (verify in AWS): an `AskResponse` whose `answer.bullets[].citations` in
 - Feed the question, the plan or an attempt count into `JudgeClaim` (D-007).
 - Decide the retry from anything but `retry_decision`'s ledger-based value; never add a counter to the state input.
 - Grant `bedrock:*`, `foundation-model/*`, a `global.*` profile or a `*` resource.
-- Switch a step to `flow.steps` before H2 is merged, or change the step JSON without Huvison.
+- Switch a step to `infra.functions.steps` before H2 is merged, or change the step JSON without Huvison.
 - Run `cdk deploy` or `aws` commands before Yaw's OK; push to `develop` or `main`; add attribution lines.
 
 Related: [[Build order]], [[Yaw - DevOps]], [[Workstreams]]

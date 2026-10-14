@@ -18,6 +18,7 @@ The vault is the context space for this work (clone `git@github.com:patrick-appi
 4. [[Build order]]: every item in this one's "Depends on" column must be `merged` before you start.
 5. [[C1 - API and spine contracts - spec]]: the API shapes this item builds on (`web/src/app/core/api/schema/*.schema.json` are generated from them).
 6. [[Dev loop]] and [[Working with AI assistants]] (`05 Workflow/`).
+7. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 **When this document is silent or unclear, look in the vault before guessing:** `04 Reference/` (the brief, the rubrics, the guideline), `03 Sessions/` (what happened when) and `Open follow-ups.md` (known open questions). If it is still unclear, **stop and ask the owner** named in the frontmatter. Never invent a name, a shape or a rule.
 
@@ -175,7 +176,7 @@ Expected: `✘ [ERROR] TS2307: Cannot find module './id-token-claims' or its cor
 - [ ] **Step 5: Implement.** Create `web/src/app/core/session/id-token-claims.ts`:
 ```ts
 /**
- * The scope the portal SHOWS for a Cognito ID token: the same rules as Linus's auth/scope.py `scope_from_claims`
+ * The scope the portal SHOWS for a Cognito ID token: the same rules as Linus's infra/functions/scope.py `scope_from_claims`
  * (exactly one group = the role; custom:entity_ids is a comma-separated string). Display only: the API builds
  * and enforces the real scope from the same token. The client never sends scope.
  */

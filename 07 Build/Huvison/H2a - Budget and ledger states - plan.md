@@ -16,12 +16,13 @@ The vault is the context space for this work (clone `git@github.com:patrick-appi
 2. [[H2a - Budget and ledger states - spec]]: **the authority.** Where this plan and the spec disagree, the spec wins; ledger the conflict.
 3. [[Huvison - trust and flow]] §2–§3; [[H1 - Ledger extensions - spec]]; [[P2 - Orchestrator agent - spec]] (A1, A2) and [[P3 - Local ask runner - spec]] (B1, B3, B5, B6).
 4. `01 Decisions/` D-007, D-010 and the repo's D-012; [[Working with AI assistants]].
+5. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 When something here is unclear, look in the vault (`04 Reference/`, `03 Sessions/`, `Open follow-ups.md`) before guessing. If the vault doesn't answer it, stop and ask Huvison.
 
 **Goal:** the budget rule and the four ask-spine states that need no agent, as tested functions on the ledger.
 
-**Architecture:** `flow/` is outside the core: it may import `config` and the ports. Each state takes its input plus `ledger=` (keyword-only) and appends a trace step. `flow/__init__.py` *(new)* stays a docstring (P2 imports `flow.budget`).
+**Architecture:** `infra/functions/` *(new)* is outside the core: it may import `config` and the ports. Each state takes its input plus `ledger=` (keyword-only) and appends a trace step. `infra/__init__.py` *(new)* and `infra/functions/__init__.py` *(new)* (create if missing; H5 usually made them) stay docstring-only (P2 imports `tools.budget`). The tests under `tests/infra/functions/` need `"infra"` out of pytest's `norecursedirs` in `pyproject.toml` (C2 §3): check it, and drop only that entry if it is still there.
 
 **Tech stack:** Python 3.11, pydantic 2, pytest, uv.
 
@@ -30,7 +31,7 @@ When something here is unclear, look in the vault (`04 Reference/`, `03 Sessions
 ## Global Constraints
 - **Repo:** `~/amalitech/aws-hackathon/erp-migration-portal`. Branch: `feature/ask-spine-ledger-states` from an up-to-date `develop` after **C1, H1 and H5** are merged.
 - **Start state:** the dry-run's start was **255 passed**, `TOTAL` 96%. Your count depends on what else is merged: write it in the ledger file; the **deltas** must match (+4, +15).
-- **Rules:** `eu-west-1`; synthetic data; no secrets. Settings only in `config.py` (read with `get_settings()`); domain constants only in `tools/constants.py`; descriptive names, no single-character names, no magic numbers. The core (`tools/`) imports no boto3, Strands, adapters, `config`, `os`. **The retry is decided only by the ledger counter**, never by a model; never let a model see the counter. Never weaken a security rule (create-once ledger, scope gate). Tests in `tests/` mirroring the code; coverage must not drop; no layout or meta guard tests. Stay in your folders: `flow/budget.py`, `flow/steps.py`, `tests/flow/` *(new)*, and the doc lines in Task 3.
+- **Rules:** `eu-west-1`; synthetic data; no secrets. Settings only in `config.py` (read with `get_settings()`); domain constants only in `tools/constants.py`; descriptive names, no single-character names, no magic numbers. The core (`tools/`) imports no boto3, Strands, adapters, `config`, `os`. **The retry is decided only by the ledger counter**, never by a model; never let a model see the counter. Never weaken a security rule (create-once ledger, scope gate). Tests in `tests/` mirroring the code; coverage must not drop; no layout or meta guard tests. Stay in your folders: `tools/budget.py`, `infra/functions/steps.py`, `tests/infra/functions/` *(new)*, and the doc lines in Task 3.
 - **The retry limit is decided:** at most 2 attempts per claim (one retry); `config.py` keeps `max_claim_attempts = 2`. Don't change it.
 - **Commits:** one per task, the given messages, **no attribution lines**. Never push to `develop` or `main`.
 
@@ -39,15 +40,15 @@ When something here is unclear, look in the vault (`04 Reference/`, `03 Sessions
 2. **`retry_decision` reads only `ledger.attempts`** and the limit: no claim content, no verdict, no model.
 3. **`store_claims` can't reset a counter:** a known ID goes to `revise_claim` (keeps attempts), never `put_claim`; a duplicate ID in one call is refused before any write.
 4. **`record_rejection` can't hide a passed claim** in the rejected records (status check).
-5. **`flow/__init__.py` still imports nothing:** `uv run python -c "import flow.budget"` must not import `flow.steps` (P2 A2).
+5. **`infra/__init__.py` and `infra/functions/__init__.py` still import nothing:** `uv run python -c "import tools.budget"` must not import `infra.functions.steps` (P2 A2).
 
 ---
 
-### Task 1: `flow/budget.py`, the one budget rule
+### Task 1: `tools/budget.py`, the one budget rule
 
-**Files:** Create `flow/budget.py` *(new)*, `tests/flow/test_budget.py` *(new)*
+**Files:** Create `tools/budget.py` *(new)*, `tests/tools/test_budget.py` *(new)*
 
-**Produces:** `flow.budget.require_budget(ledger: Ledger, run_id: str) -> float | PartialAnswer`, `BUDGET_SPENT_AT_USD`, `USD_FORMAT`. **Consumes:** `Ledger.budget_remaining`, `Ledger.run` (H1); `tools.models.PartialAnswer` (C1). **Consumed by:** Task 2 (`check_budget`), P2 (`agents/orchestrator.py` *(new)*).
+**Produces:** `tools.budget.require_budget(ledger: Ledger, run_id: str) -> float | PartialAnswer`, `BUDGET_SPENT_AT_USD`, `USD_FORMAT`. **Consumes:** `Ledger.budget_remaining`, `Ledger.run` (H1); `tools.models.PartialAnswer` (C1). **Consumed by:** Task 2 (`check_budget`), P2 (`agents/orchestrator.py` *(new)*).
 
 - [ ] **Step 1: Branch and baseline**
 ```bash
@@ -57,13 +58,13 @@ git switch -c feature/ask-spine-ledger-states
 mkdir -p .superpowers && printf '# Ledger: H2a Budget and ledger states\n' > .superpowers/ledger-H2a.md
 ```
 Expected: your start count, `TOTAL ... 96%`.
-- [ ] **Step 2: Failing test.** Create `tests/flow/test_budget.py`:
+- [ ] **Step 2: Failing test.** Create `tests/tools/test_budget.py`:
 ```python
-"""The budget check (flow/budget.py): one function, called by the check_budget state and by the orchestrator."""
+"""The budget check (tools/budget.py): one function, called by the check_budget state and by the orchestrator."""
 import pytest
 
 from adapters.memory_ledger import InMemoryLedger
-from flow.budget import require_budget
+from tools.budget import require_budget
 from tools.models import PartialAnswer
 from tools.ports import LedgerConflict
 
@@ -95,13 +96,13 @@ def test_an_unknown_run_is_not_a_budget_question(ledger):
     with pytest.raises(LedgerConflict):
         require_budget(ledger, "run-never-started")
 ```
-- [ ] **Step 3: Run:** `uv run --locked pytest tests/flow/test_budget.py --no-cov 2>&1 | grep -E "^E  " | head -1`. Expected: `E   ModuleNotFoundError: No module named 'flow.budget'`.
-- [ ] **Step 4: Implement.** Create `flow/budget.py`:
+- [ ] **Step 3: Run:** `uv run --locked pytest tests/tools/test_budget.py --no-cov 2>&1 | grep -E "^E  " | head -1`. Expected: `E   ModuleNotFoundError: No module named 'tools.budget'`.
+- [ ] **Step 4: Implement.** Create `tools/budget.py`:
 ```python
 """The budget ceiling, checked in code (AGENTS.md orchestrator row; guideline: "budget ceiling enforced in the
-orchestrator"). One function, two callers: the check_budget state (flow/steps.py) and the orchestrator, before
+orchestrator"). One function, two callers: the check_budget state (infra/functions/steps.py) and the orchestrator, before
 each step and each re-plan. The spent cost comes from the ledger, which only real model calls increase
-(flow/cost.py), and which can't be reset (D-012).
+(tools/cost.py), and which can't be reset (D-012).
 """
 from tools.models import PartialAnswer
 from tools.ports import Ledger
@@ -119,22 +120,22 @@ def require_budget(ledger: Ledger, run_id: str) -> float | PartialAnswer:
     return PartialAnswer(reason=f"the run's budget of {run['budget_usd']:{USD_FORMAT}} USD is spent "
                                 f"({run['cost_usd']:{USD_FORMAT}} USD used)")
 ```
-- [ ] **Step 5: Run:** `uv run --locked pytest tests/flow/test_budget.py --no-cov 2>&1 | tail -1`. Expected: `4 passed in …s`.
+- [ ] **Step 5: Run:** `uv run --locked pytest tests/tools/test_budget.py --no-cov 2>&1 | tail -1`. Expected: `4 passed in …s`.
 - [ ] **Step 6: Full suite and commit**
 ```bash
 uv run --locked pytest 2>&1 | grep -E "[0-9]+ (passed|failed)|TOTAL"
-git add flow/budget.py tests/flow/test_budget.py
+git add tools/budget.py tests/tools/test_budget.py
 git commit -m "require_budget: the one budget rule for the check_budget state and the orchestrator"
 ```
 Expected: start + 4 (dry-run `259 passed`), `TOTAL ... 96%`.
 
-**Task done when:** `uv run python -c "import inspect; from flow.budget import require_budget; print(inspect.signature(require_budget))"` prints `(ledger: tools.ports.Ledger, run_id: str) -> float | tools.models.PartialAnswer`.
+**Task done when:** `uv run python -c "import inspect; from tools.budget import require_budget; print(inspect.signature(require_budget))"` prints `(ledger: tools.ports.Ledger, run_id: str) -> float | tools.models.PartialAnswer`.
 
-### Task 2: `flow/steps.py`: `question_for`, `check_budget`, `store_claims`, `retry_decision`, `record_rejection`
+### Task 2: `infra/functions/steps.py`: `question_for`, `check_budget`, `store_claims`, `retry_decision`, `record_rejection`
 
-**Files:** Create `flow/steps.py` *(new)*, `tests/flow/test_steps.py` *(new)*
+**Files:** Create `infra/functions/steps.py` *(new)*, `tests/infra/functions/test_steps.py` *(new)*
 
-**Produces:** in `flow.steps`: `RUN_ID_PREFIX`, `RETRY`, `REJECT`, `STEP_CHECK_BUDGET`, `STEP_STORE_CLAIMS`, `STEP_RETRY_DECISION`, `STEP_RECORD_REJECTION`;
+**Produces:** in `infra.functions.steps`: `RUN_ID_PREFIX`, `RETRY`, `REJECT`, `STEP_CHECK_BUDGET`, `STEP_STORE_CLAIMS`, `STEP_RETRY_DECISION`, `STEP_RECORD_REJECTION`;
 - `question_for(scope: Scope, request: AskRequest, settings: Settings | None = None) -> Question`;
 - `record_step(ledger: Ledger, run_id: str, step: str, agent: str | None = None, prompt: PromptRef | None = None) -> None`;
 - `check_budget(question: Question, *, ledger: Ledger) -> float | PartialAnswer`;
@@ -145,14 +146,14 @@ Expected: start + 4 (dry-run `259 passed`), `TOTAL ... 96%`.
 
 **Consumes:** Task 1; `Ledger.start_run`, `add_step`, `claims`, `put_claim`, `revise_claim`, `attempts`, `put_rejected` (H1); `config.get_settings` (`run_budget_usd`, `max_claim_attempts`); C1's `AskRequest`, `PromptRef`, `RejectedClaim`, `TraceStep`, `Question`, `BlockerClaim`, `PartialAnswer`, `Verdict`. **Consumed by:** H2b, H6, P3 (`scripts/ask.py` *(new)*), L3 (`question_for`, optional).
 
-- [ ] **Step 1: Failing tests.** Create `tests/flow/test_steps.py`:
+- [ ] **Step 1: Failing tests.** Create `tests/infra/functions/test_steps.py`:
 ```python
-"""The ask-spine states that only touch the ledger (flow/steps.py): budget, claims, retry guard, rejections."""
+"""The ask-spine states that only touch the ledger (infra/functions/steps.py): budget, claims, retry guard, rejections."""
 import pytest
 
 from adapters.memory_ledger import InMemoryLedger
 from config import get_settings
-from flow.steps import (REJECT, RETRY, check_budget, question_for, record_rejection, retry_decision,
+from infra.functions.steps import (REJECT, RETRY, check_budget, question_for, record_rejection, retry_decision,
                         store_claims)
 from tools.api_schema import AskRequest
 from tools.models import BlockerClaim, OutOfScope, PartialAnswer, Question
@@ -278,8 +279,8 @@ def test_record_rejection_refuses_a_claim_that_was_not_rejected(started):
     with pytest.raises(LedgerConflict):
         record_rejection(RUN_ID, "claim-1", ledger=started)
 ```
-- [ ] **Step 2: Run:** `uv run --locked pytest tests/flow/test_steps.py --no-cov 2>&1 | grep -E "^E  " | head -1`. Expected: `E   ModuleNotFoundError: No module named 'flow.steps'`.
-- [ ] **Step 3: Implement.** Create `flow/steps.py`:
+- [ ] **Step 2: Run:** `uv run --locked pytest tests/infra/functions/test_steps.py --no-cov 2>&1 | grep -E "^E  " | head -1`. Expected: `E   ModuleNotFoundError: No module named 'infra.functions.steps'`.
+- [ ] **Step 3: Implement.** Create `infra/functions/steps.py`:
 ```python
 """The ask spine's states, one function per Step Functions state (D-007, D-011, D-012).
 
@@ -288,15 +289,15 @@ def test_record_rejection_refuses_a_claim_that_was_not_rejected(started):
         reject, at the limit -> record_rejection
 
 Each function takes its state's input plus the ports it uses as keyword arguments (`ledger=`, `repository=`), so a
-local run shares one ledger across states (flow/spine.py, scripts/ask.py) and the Lambda entry points
-(flow/handlers.py) build them from config.py. Inputs and outputs are the step models (tools/models.py,
+local run shares one ledger across states (infra/functions/spine.py, scripts/ask.py) and the Lambda entry points
+(infra/functions/states.py) build them from config.py. Inputs and outputs are the step models (tools/models.py,
 tools/api_schema.py). The ledger is the only state: every function reads what it needs from it, and every state
 appends a trace step.
 """
 from uuid import uuid4
 
 from config import Settings, get_settings
-from flow.budget import require_budget
+from tools.budget import require_budget
 from tools.api_schema import AskRequest, PromptRef, RejectedClaim, TraceStep
 from tools.constants import ClaimStatus
 from tools.models import BlockerClaim, PartialAnswer, Question, Scope, Verdict
@@ -389,25 +390,25 @@ def record_rejection(run_id: str, claim_id: str, *, ledger: Ledger) -> RejectedC
     record_step(ledger, run_id, STEP_RECORD_REJECTION)
     return rejected_claim({"claim_id": claim_id, "claim": stored["claim"], "verdicts": stored["verdicts"]})
 ```
-- [ ] **Step 4: Run:** `uv run --locked pytest tests/flow/ --no-cov 2>&1 | tail -1`. Expected: `24 passed in …s` (5 cost + 4 budget + 15 steps).
+- [ ] **Step 4: Run:** `uv run --locked pytest tests/tools/test_cost.py tests/tools/test_budget.py tests/infra/functions/ --no-cov 2>&1 | tail -1`. Expected: `24 passed in …s` (5 cost + 4 budget + 15 steps).
 - [ ] **Step 5: Guards, imports, full suite and commit**
 ```bash
 uv run --locked pytest tests/test_architecture.py tests/test_code_style.py --no-cov 2>&1 | tail -1
-uv run python -c "import sys, flow.budget; print('flow.steps' in sys.modules)"
+uv run python -c "import sys, tools.budget; print('infra.functions.steps' in sys.modules)"
 uv run --locked pytest 2>&1 | grep -E "[0-9]+ (passed|failed)|TOTAL"
-git add flow/steps.py tests/flow/test_steps.py
+git add infra/functions/steps.py tests/infra/functions/test_steps.py
 git commit -m "Ask-spine ledger states: check_budget, store_claims, retry_decision, record_rejection"
 ```
-Expected: the guards pass; `False` (importing `flow.budget` doesn't load `flow.steps`); start + 19 (dry-run `274 passed`), `TOTAL ... 97%` or higher.
+Expected: the guards pass; `False` (importing `tools.budget` doesn't load `infra.functions.steps`); start + 19 (dry-run `274 passed`), `TOTAL ... 97%` or higher.
 
-**Task done when:** `uv run --locked pytest tests/flow/test_steps.py --no-cov 2>&1 | tail -1` prints `15 passed`, and `uv run --locked pytest tests/flow/test_steps.py --no-cov -k "refuses_an_out_of_scope" 2>&1 | tail -1 | cut -d, -f1` prints `1 passed`.
+**Task done when:** `uv run --locked pytest tests/infra/functions/test_steps.py --no-cov 2>&1 | tail -1` prints `15 passed`, and `uv run --locked pytest tests/infra/functions/test_steps.py --no-cov -k "refuses_an_out_of_scope" 2>&1 | tail -1 | cut -d, -f1` prints `1 passed`.
 
 ### Task 3: Docs, review and PR
-- [ ] **Step 1: `docs/DEVOPS_HANDOVER.md`.** No change yet: the `flow.steps:<name>` rows become `flow.handlers:<name>` in H2b, which ships the Lambda entry points. Write "handover unchanged (H2b)" in the ledger file.
-- [ ] **Step 2: `HANDOFF.md`.** Under `## What's real`, add: `- The ask spine's ledger states (\`flow/steps.py\`): the budget check (\`flow/budget.py\`, also called by the orchestrator), claims to the ledger, the retry guard (at most 2 attempts per claim, read from the ledger counter only) and the rejected records.`
+- [ ] **Step 1: `docs/DEVOPS_HANDOVER.md`.** No change yet: the `infra.functions.steps.<name>` rows become `infra.functions.states.<name>` in H2b, which ships the Lambda entry points. Write "handover unchanged (H2b)" in the ledger file.
+- [ ] **Step 2: `HANDOFF.md`.** Under `## What's real`, add: `- The ask spine's ledger states (\`infra/functions/steps.py\`): the budget check (\`tools/budget.py\`, also called by the orchestrator), claims to the ledger, the retry guard (at most 2 attempts per claim, read from the ledger counter only) and the rejected records.`
 - [ ] **Step 3: Commit:** `git add HANDOFF.md && git commit -m "HANDOFF: the ask spine's ledger states"`; then `uv run --locked pytest tests/test_dependencies.py --no-cov 2>&1 | tail -1`. Expected: `4 passed`.
 - [ ] **Step 4:** Review Focus by hand; results in `.superpowers/ledger-H2a.md`.
-- [ ] **Step 5:** `git diff develop --stat`. Expected: `HANDOFF.md`, `flow/budget.py`, `flow/steps.py`, `tests/flow/test_budget.py`, `tests/flow/test_steps.py` (5 files).
+- [ ] **Step 5:** `git diff develop --stat`. Expected: `HANDOFF.md`, `tools/budget.py`, `infra/functions/steps.py`, `tests/tools/test_budget.py`, `tests/infra/functions/test_steps.py` (5 files).
 - [ ] **Step 6: With Huvison's OK only:** push `feature/ask-spine-ledger-states`, PR to `develop` ("Ask spine: budget check and ledger states (H2a)"), body with the count, the signature table from the spec (for Patrick's P2/P3) and the rulings. No attribution lines.
 - [ ] **Step 7:** [[Build order]]: H2 → `in progress (H2a in review, PR #nn)`; tell Patrick `require_budget` is on `develop` once merged (P2's A1).
 
@@ -415,9 +416,10 @@ Expected: the guards pass; `False` (importing `flow.budget` doesn't load `flow.s
 
 ## Done means
 - [ ] **The budget rule exists with Patrick's signature.** *Verify:* on `develop`, the Task 1 "Task done when" command prints that signature.
-- [ ] **The four states are tested.** *Verify:* `uv run --locked pytest tests/flow/test_budget.py tests/flow/test_steps.py --no-cov 2>&1 | tail -1` prints `19 passed`.
-- [ ] **The retry limit is 2 attempts.** *Verify:* `uv run --locked pytest tests/flow/test_steps.py --no-cov -k retry_decision 2>&1 | tail -1 | cut -d, -f1` prints `4 passed`, and `uv run python -c "from config import get_settings; print(get_settings().max_claim_attempts)"` prints `2`.
-- [ ] **No import cycle.** *Verify:* `uv run python -c "import flow.steps"` exits 0.
+- [ ] **The four states are tested.** *Verify:* `uv run --locked pytest tests/tools/test_budget.py tests/infra/functions/test_steps.py --no-cov 2>&1 | tail -1` prints `19 passed`.
+- [ ] **The retry limit is 2 attempts.** *Verify:* `uv run --locked pytest tests/infra/functions/test_steps.py --no-cov -k retry_decision 2>&1 | tail -1 | cut -d, -f1` prints `4 passed`, and `uv run python -c "from config import get_settings; print(get_settings().max_claim_attempts)"` prints `2`.
+- [ ] **Tests under `tests/infra/` *(new)* are collected.** *Verify:* `grep -n norecursedirs pyproject.toml` shows a list without `"infra"`.
+- [ ] **No import cycle.** *Verify:* `uv run python -c "import infra.functions.steps"` exits 0.
 - [ ] **Nothing broke.** *Verify:* full suite after merge: start + 19, `TOTAL` ≥ 96%.
 - [ ] **Merged.** *Verify:* PR merged into `develop`; Patrick told (stand-up note or Slack message).
 
@@ -425,7 +427,7 @@ Expected: the guards pass; `False` (importing `flow.budget` doesn't load `flow.s
 - Let anything but the ledger counter decide a retry, or show the counter to a model.
 - Start a run before the scope check.
 - Change `max_claim_attempts`.
-- Import `flow.steps` from `flow/__init__.py` or `flow/budget.py`.
+- Import `infra.functions.steps` from `infra/__init__.py`, `infra/functions/__init__.py` or `tools/budget.py`.
 - Push to `develop` or `main`, or add attribution lines.
 
 Related: [[H2a - Budget and ledger states - spec]], [[H2b - Agent states, local spine and Lambda handlers - plan]], [[Build order]], [[How to execute a plan]]

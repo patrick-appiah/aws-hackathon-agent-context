@@ -71,7 +71,7 @@ The vault is the context space for this work (clone `git@github.com:patrick-appi
 **If asked about access (Q&A):** in Window B sign out, sign in as `demo-entity-lead-e4`: only Entity 4; click "What is blocking cutover for entity 2?" → "You can see E4 only. E2 is outside your access."
 
 ## Pre-flight checklist (15 minutes before)
-- [ ] `aws sts get-caller-identity --profile hackathon` shows account `486128667962`; the console region is **eu-west-1**
+- [ ] `aws sts get-caller-identity --profile hackathon` shows account `796973512193`; the console region is **eu-west-1**
 - [ ] `curl -s https://<CloudFront domain>/portal-config.json` shows `"dataSource": "http"` and the expected `authMode`
 - [ ] The portal's one screen shows 58 %, 96 %, 7 blockers (oldest 18 days), 102 days (6 behind plan) and 103 % capacity
 - [ ] **One warm-up question** asked in Window A ("What is blocking cutover for entity 4?"); its time to answer noted here: ____ s (cold-start latency known)

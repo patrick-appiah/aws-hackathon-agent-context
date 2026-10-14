@@ -16,6 +16,7 @@ The vault is the context space for this work (clone `git@github.com:patrick-appi
 2. [[M1 - Jenkins CI - spec]]: **the authority.** Where this plan and the spec disagree, the spec wins; record the conflict in the ledger.
 3. [[Workstreams]] §7 (rules) and [[Michael - DevOps]] ("What you build" step 1).
 4. [[2026-10-14 ERP-layer dataset is the single source]] (D-018 is reserved for this PR) and [[2026-10-14 Two apps in one repo]] (`cloud9-npm-token`).
+5. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 When something here is unclear, look in the vault (`04 Reference/`, `03 Sessions/`, `Open follow-ups.md`) before guessing. If the vault doesn't answer it, stop and ask Michael or Patrick.
 
@@ -104,7 +105,7 @@ Expected: two lines, both `-r tools adapters agents scripts config.py` (no `eval
 - [ ] **Step 2: Add the candidate list.** In the `environment { ... }` block, directly after the `WEB_PATHS = '^ALL$|^web/|^Jenkinsfile$'` line, add:
 ```groovy
     // Every back-end folder bandit scans once it exists, so new folders are covered the day they land.
-    BANDIT_CANDIDATES = 'tools adapters agents scripts evals api auth flow infra config.py'
+    BANDIT_CANDIDATES = 'tools adapters agents scripts evals infra config.py'
 ```
 
 - [ ] **Step 3: Pass it into the Python container.** In the `Python tests and security checks` stage, change
@@ -139,7 +140,7 @@ The surrounding `sh '''...'''` is a Groovy single-quoted string, so `$bandit_tar
 - [ ] **Step 5: Dry-run the Python stage locally, in its container.** From the repo root (Docker must be running). `UV_PROJECT_ENVIRONMENT=/tmp/venv` keeps your own `.venv` untouched:
 ```bash
 docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -e UV_PYTHON_DOWNLOADS=never -e UV_VERSION=0.13.0 \
-  -e BANDIT_CANDIDATES='tools adapters agents scripts evals api auth flow infra config.py' \
+  -e BANDIT_CANDIDATES='tools adapters agents scripts evals infra config.py' \
   -e UV_PROJECT_ENVIRONMENT=/tmp/venv -v "$PWD:/work" -w /work python:3.11-bookworm bash -euo pipefail -c '
     pip install --quiet --user "uv==${UV_VERSION}"
     export PATH="$HOME/.local/bin:$PATH"
@@ -156,7 +157,7 @@ docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -e UV_PYTHON_DOWNLOADS=never
 ```
 Expected (dry-run on `develop` merged into the PR branch):
 - `160 passed` (or `206 passed`) and `TOTAL ... 95%` (96%);
-- `--- bandit on: tools adapters agents scripts evals infra config.py (fails on high severity)` (`infra` is there because `infra/README.md` exists; `api auth flow` appear once they exist);
+- `--- bandit on: tools adapters agents scripts evals infra config.py (fails on high severity)` (`infra` is there because `infra/README.md` exists; it also covers `infra/functions/` *(new)* when that lands);
 - `No issues identified.` and `Files skipped (0):`;
 - `No known vulnerabilities found`.
 
@@ -165,7 +166,7 @@ If you run bandit outside the container, use `uvx --python 3.11 bandit==1.7.10 .
 - [ ] **Step 6: Commit**
 ```bash
 git add Jenkinsfile
-git commit -m "CI: bandit scans every back-end folder that exists (evals now; api, auth, flow, infra as they land)"
+git commit -m "CI: bandit scans every back-end folder that exists (evals now; infra, with the Lambda glue in infra/functions/, as it lands)"
 git diff origin/develop --stat
 ```
 Expected: the commit is created; the diff stat lists `DECISIONS.md` and `Jenkinsfile` only.
@@ -194,7 +195,7 @@ Expected: the push succeeds without `--force`; `MERGEABLE` (GitHub may need a fe
 Expected in the log: `Python checks: true · Frontend build: true` (the merge brought in `web/` and Python changes); gitleaks `no leaks found`; the pytest line with the Step 1 count; `--- bandit on: tools adapters agents scripts evals infra config.py`; `No known vulnerabilities found`; the front-end `yarn build` succeeds; the final status is **SUCCESS** and GitHub shows the check green.
 If the front-end stage fails with a 404 on `@amalitechnpm/at-design-system`, the credential is missing or wrong: fix Step 1, then *Build Now* on the PR job.
 
-- [ ] **Step 4: Ask Patrick to review and merge.** Post in the team channel: "PR #8 (Jenkins CI, D-018) is up to date with develop and green; bandit now scans evals too and picks up api/auth/flow/infra automatically. Ready for review." Add the Review Focus results from the ledger to the PR as a comment.
+- [ ] **Step 4: Ask Patrick to review and merge.** Post in the team channel: "PR #8 (Jenkins CI, D-018) is up to date with develop and green; bandit now scans evals too and picks up infra (and infra/functions/) automatically. Ready for review." Add the Review Focus results from the ledger to the PR as a comment.
 Expected: Patrick merges; `gh pr view 8 --repo Amali-Tech/cloud-9-hackathon --json state --jq .state` prints `MERGED`.
 
 **Task done when:**
@@ -212,7 +213,7 @@ Expected: one Jenkins status check, green (or red for a real reason shown in the
 ## Done means
 - [ ] **PR #8 is merged.** Verify: `gh pr view 8 --repo Amali-Tech/cloud-9-hackathon --json state --jq .state` → `MERGED`.
 - [ ] **`develop` has D-018 once, in order, with no markers.** Verify: `git show origin/develop:DECISIONS.md | grep -n "^### D-01[789]"` prints D-017, D-018, D-019 in that order; `git show origin/develop:DECISIONS.md | grep -cE "^(<<<<<<<|>>>>>>>)"` → `0`.
-- [ ] **Bandit covers `evals` and future folders.** Verify: `git show origin/develop:Jenkinsfile | grep "BANDIT_CANDIDATES = "` shows `tools adapters agents scripts evals api auth flow infra config.py`; the latest `develop` Jenkins log shows `--- bandit on:` with `evals` and `Files skipped (0):`.
+- [ ] **Bandit covers `evals` and future folders.** Verify: `git show origin/develop:Jenkinsfile | grep "BANDIT_CANDIDATES = "` shows `tools adapters agents scripts evals infra config.py`; the latest `develop` Jenkins log shows `--- bandit on:` with `evals` and `Files skipped (0):`.
 - [ ] **CI is green on `develop` and reports to PRs.** Verify: the Jenkins job's last `develop` build is SUCCESS; the next PR after #8 shows a Jenkins status check on GitHub (`gh pr checks <n> --repo Amali-Tech/cloud-9-hackathon` lists it).
 - [ ] **The npm token is only in Jenkins.** Verify: `git log -p origin/develop | grep -c "_authToken=npm_"` → `0`; the credential `cloud9-npm-token` is listed in Jenkins.
 - [ ] **[[Build order]] shows M1 `merged`.**

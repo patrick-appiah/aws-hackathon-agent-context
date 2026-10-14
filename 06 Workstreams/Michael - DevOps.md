@@ -15,7 +15,8 @@ You make the system **deploy from a clean AWS account**: hard gate 1, checked tw
 
 ## Shared DevOps context (same in Yaw's brief)
 - **CDK in Python:** `infra/app.py` *(new)* defines every stack; the stack list and resources are in `infra/README.md`.
-- **Bootstrap once:** `npx cdk bootstrap aws://486128667962/eu-west-1`. **`eu-west-1` only** (organiser rule). Profile `AWS_PROFILE=hackathon`; your IAM user is `michael.lamptey`.
+- **DevOps owns** `infra/app.py` *(new)*, `infra/stacks/` *(new)*, `infra/agent_runtime/` *(new)* and `infra/functions/agent_shim.py` *(new)*. The repo uses the brief's five folders (`agents/`, `tools/`, `evals/`, `infra/`, `demo/`); don't create new top-level folders (D-024).
+- **Bootstrap once:** `npx cdk bootstrap aws://796973512193/eu-west-1`. **`eu-west-1` only** (organiser rule). Profile `AWS_PROFILE=hackathon`; you sign in through the sign-in URL with your own AmaliTech email (no shared IAM users or passwords).
 - **Stack names take a prefix** (a context value, e.g. `-c prefix=demo2`), so the lead can deploy a second, fresh copy for the clean-deploy check.
 - **Deploys are manual from the README** (`cd infra && npx cdk deploy --all`). CI builds and tests only, never deploys (D-018, which lands with PR #8).
 - **Least privilege** (`ARCHITECTURE.md` §7): one role per Lambda / runtime / state machine, scoped to its S3 prefix, its table and **specific** Bedrock model ARNs. No `*`.

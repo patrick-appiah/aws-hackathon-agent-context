@@ -10,6 +10,8 @@ updated: 2026-10-14
 
 > **For the executing agent:** follow [[How to execute a plan]] exactly. Work the tasks in order, and in each task the steps in order. Write the test, run it, **watch it fail with the expected message**, implement, run it, watch it pass, commit. Compare every command's output with its `Expected:` line. If anything differs, stop and follow "When output doesn't match" in [[How to execute a plan]]. Never improvise around it.
 
+> **Note (C2, 2026-10-14):** C1 is merged. [[C2 - Repo layout - spec]] updated the DEVOPS_HANDOVER entry points to `infra.functions.<module>.<function>`; the plan below is C1's original wording with its entry-point paths brought in line.
+
 ## 0. Context: read the vault first
 The vault is the context space for this work (clone `git@github.com:patrick-appiah/aws-hackathon-agent-context.git`, then `git pull`). Read before Task 1:
 1. [[How to execute a plan]]: the procedure, the rules for commits and PRs, and what to do when stuck.
@@ -494,7 +496,7 @@ def test_every_api_model_forbids_unknown_keys():
 ```python
 """API contracts: the request and response models of the portal's six routes (D-021).
 
-One definition shared by the API handlers (api/), the eval runner, the tests and the Angular front end, which gets
+One definition shared by the API handlers (`infra/functions/api.py` *(new)*), the eval runner, the tests and the Angular front end, which gets
 these as JSON Schema (scripts/export_api_schema.py). SummaryResponse mirrors tools/metrics.portfolio_summary key for
 key, and the front end adopts these keys. Pure core: no AWS.
 """
@@ -1011,12 +1013,12 @@ Expected: `204 passed`. (`tests/test_dependencies.py` checks that the script's d
 
 - [ ] **Step 1: `docs/DEVOPS_HANDOVER.md`.** It opens: "What each Lambda and runtime is, the environment it reads (all through `config.get_settings()`), the IAM it needs, and how it is bundled. Owner: Patrick (contracts); entry points marked *planned* are built by the named workstream. DevOps (Michael, Yaw) builds the stacks from this file." Then:
   - **One table**, with columns *Function · Entry point · Trigger · Environment · IAM (actions on resources) · Owner*, one row each for:
-    - `summary`, `entity`, `rows`: `api.handlers:summary|entity|rows` *(planned, Linus)*, API GET routes. Environment: `ARTEFACT_BACKEND`, `ARTEFACTS_URI` (`s3://<bucket>/artefacts/`), `AUTH_MODE`, `DEFAULT_TENANT_ID`. IAM: `s3:GetObject` on `artefacts/*`.
-    - `ask`: `api.handlers:ask` *(planned, Linus)*. Environment: the above plus `ASK_STATE_MACHINE_ARN`. IAM: `s3:GetObject` on `artefacts/*`, `states:StartSyncExecution` on the ask machine.
-    - `publish`, `approve`: `api.handlers:publish|approve` *(planned, Linus)*. Environment: `PUBLISH_STATE_MACHINE_ARN`, `LEDGER_TABLE`. IAM: `states:StartExecution`, `states:SendTaskSuccess`, `states:SendTaskFailure` on the publish machine; DynamoDB `GetItem` on the ledger.
-    - `check_budget`, `store_claims`, `retry_decision`, `record_rejection`: `flow.steps:<name>` *(planned, Huvison)*, ask-machine states. Environment: `LEDGER_BACKEND=dynamo`, `LEDGER_TABLE`, `REJECTED_TABLE`, `RUN_BUDGET_USD`, `MAX_CLAIM_ATTEMPTS`. IAM: DynamoDB `GetItem`, `PutItem`, `UpdateItem`, `Query` on the ledger and rejected tables.
-    - `run_orchestrator`, `judge_claim`, `write_answer`: `flow.steps:<name>` *(planned, Huvison)*, ask-machine states that call agents. Environment: the ledger settings plus the model IDs (`REASONING_MODEL_ID` / `*_MODEL_ID`), `GUARDRAIL_ID`, `GUARDRAIL_VERSION`, `ARTEFACTS_URI`. IAM: the ledger actions; `bedrock:InvokeModel` on the **specific** inference-profile ARNs `arn:aws:bedrock:eu-west-1:486128667962:inference-profile/eu.anthropic.claude-sonnet-4-6` and `.../eu.amazon.nova-lite-v1:0`, plus the foundation-model ARNs those EU profiles route to; `bedrock:ApplyGuardrail` on the Guardrail ARN; `s3:GetObject` on `artefacts/*`.
-    - `start_publish`, `decide`, status-pack writer: `flow.publish:<name>` *(planned, Huvison)*, publish-machine states. Environment: `LEDGER_TABLE`, `ARTEFACTS_BUCKET`, `STATUS_PACK_PREFIX`. IAM: DynamoDB on the ledger; `s3:PutObject` **only** on `status-packs/*`.
+    - `summary`, `entity`, `rows`: `infra.functions.api.summary|entity|rows` *(planned, Linus)*, API GET routes. Environment: `ARTEFACT_BACKEND`, `ARTEFACTS_URI` (`s3://<bucket>/artefacts/`), `AUTH_MODE`, `DEFAULT_TENANT_ID`. IAM: `s3:GetObject` on `artefacts/*`.
+    - `ask`: `infra.functions.api.ask` *(planned, Linus)*. Environment: the above plus `ASK_STATE_MACHINE_ARN`. IAM: `s3:GetObject` on `artefacts/*`, `states:StartSyncExecution` on the ask machine.
+    - `publish`, `approve`: `infra.functions.api.publish|approve` *(planned, Linus)*. Environment: `PUBLISH_STATE_MACHINE_ARN`, `LEDGER_TABLE`. IAM: `states:StartExecution`, `states:SendTaskSuccess`, `states:SendTaskFailure` on the publish machine; DynamoDB `GetItem` on the ledger.
+    - `check_budget`, `store_claims`, `retry_decision`, `record_rejection`: `infra.functions.steps.<name>` *(planned, Huvison)*, ask-machine states. Environment: `LEDGER_BACKEND=dynamo`, `LEDGER_TABLE`, `REJECTED_TABLE`, `RUN_BUDGET_USD`, `MAX_CLAIM_ATTEMPTS`. IAM: DynamoDB `GetItem`, `PutItem`, `UpdateItem`, `Query` on the ledger and rejected tables.
+    - `run_orchestrator`, `judge_claim`, `write_answer`: `infra.functions.steps.<name>` *(planned, Huvison)*, ask-machine states that call agents. Environment: the ledger settings plus the model IDs (`REASONING_MODEL_ID` / `*_MODEL_ID`), `GUARDRAIL_ID`, `GUARDRAIL_VERSION`, `ARTEFACTS_URI`. IAM: the ledger actions; `bedrock:InvokeModel` on the **specific** inference-profile ARNs `arn:aws:bedrock:eu-west-1:796973512193:inference-profile/eu.anthropic.claude-sonnet-4-6` and `.../eu.amazon.nova-lite-v1:0`, plus the foundation-model ARNs those EU profiles route to; `bedrock:ApplyGuardrail` on the Guardrail ARN; `s3:GetObject` on `artefacts/*`.
+    - `start_publish`, `decide`, status-pack writer: `infra.functions.publish.<name>` *(planned, Huvison)*, publish-machine states. Environment: `LEDGER_TABLE`, `ARTEFACTS_BUCKET`, `STATUS_PACK_PREFIX`. IAM: DynamoDB on the ledger; `s3:PutObject` **only** on `status-packs/*`.
     - AgentCore runtime + shim: *(planned, Yaw / Patrick)*. Same environment and Bedrock IAM as `run_orchestrator`.
   - **A "Bundling" section:** `uv export --no-dev --format requirements-txt --no-hashes > build/requirements.txt`; copy `tools/`, `adapters/`, `agents/` (including `agents/prompts/*.txt` and `agents/prompts/prompts.lock`; `load_prompt` refuses to run without them), `config.py` and the handler package; Python 3.11.
   - **A "Rules" section:** `eu-west-1` only; `eu.*` models only; no `*` in actions or resources; one role per function.
@@ -1040,7 +1042,7 @@ Step models between the ask-spine states (`Question`, `Plan`, `RetrieveRequest`,
 ### D-021 · API and ask-spine contracts live in code, in the core
 - **What:** The six routes' request and response models, plus the error body, are pydantic models in `tools/api_schema.py`; `SummaryResponse` mirrors `metrics.portfolio_summary` exactly. The ask-spine step models (`Question`, `Plan`, `RetrieveRequest`, `Evidence`, `AnalystResult`, `OrchestratorResult`, `PartialAnswer`, `WriterInput`, `WriterResult`, `Answer`, `Usage`) are in `tools/models.py`, and every agent result carries `usage` for cost. All are strict (`extra="forbid"`). `/approve` takes `run_id`. JSON Schemas for the front end are exported by `scripts/export_api_schema.py`, and a test keeps the committed copy current. New settings (`AUTH_MODE` and others) are in `config.py`; per-function environment and IAM are in `docs/DEVOPS_HANDOVER.md`.
 - **Why:** Eight people build against these shapes in parallel. In prose they drift; in code, tests catch a renamed key the day it happens, and every later plan quotes names that exist. Usage on every agent result is the only way to measure cost per run, because the model calls happen in different workstreams.
-- **Rejected:** Models in `api/` (Linus's folder, not shared). Hand-written OpenAPI (a second source of truth). Reshaping the summary to the old front-end types. Lenient models (drift goes unnoticed). Keying approvals by `execution_arn` in a `run_id`-keyed ledger.
+- **Rejected:** Models in the handlers' module (Linus's file, not shared). Hand-written OpenAPI (a second source of truth). Reshaping the summary to the old front-end types. Lenient models (drift goes unnoticed). Keying approvals by `execution_arn` in a `run_id`-keyed ledger.
 ```
 - [ ] **Step 5: Run the doc guards and the full suite, then commit**
 ```bash

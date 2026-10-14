@@ -13,11 +13,12 @@ The team vault is the shared context space for this project: decisions, briefs, 
 1. [[How to execute a plan]] (`07 Build/`): the procedure every agent follows.
 2. [[Workstreams]] (`06 Workstreams/`): the architecture with owners (§2), the code already built (§3), the contracts (§4) and the rules (§7).
 3. [[Patrick - contracts, orchestrator, retriever]] §3 "The orchestrator": the owner's brief for this item.
-4. [[Huvison - trust and flow]] §2 (`flow/budget.py` *(new)*) and §3 (`run_orchestrator`, `store_claims`, `retry_decision`): the states that call this agent and the budget check it calls.
+4. [[Huvison - trust and flow]] §2 (`tools/budget.py` *(new)*) and §3 (`run_orchestrator`, `store_claims`, `retry_decision`): the states that call this agent and the budget check it calls.
 5. [[Linus - API, identity, blocker-analyst]] §5: the blocker-analyst this agent calls.
 6. [[Build order]]: P2 depends on **C1, H2a, and L5 (or a stub)**, and on **P1** (it calls the retriever). Check C1, P1 and H2a are `merged`.
 7. [[C1 - API and spine contracts - spec]] §4 and [[P1 - Retriever agent - spec]].
 8. `01 Decisions/`: [[2026-10-13 Ask spine is Step Functions Express, publish is Standard]] (D-007), [[2026-10-13 Metrics are code, only the blocker Q&A is agentic]] (D-001), [[2026-10-13 Artefact text is untrusted, critic fails closed]] (D-009), [[2026-10-13 Prompts as versioned locked files]] (D-014), [[2026-10-13 Scope from the token, enforced twice]] (D-010). The repo's `DECISIONS.md` D-012 (create-once ledger, re-plan keeps the claim ID). `05 Workflow/`: [[Changing a prompt]], [[Dev loop]], [[Working with AI assistants]].
+9. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 **Whenever this spec is silent or unclear, look in the vault before guessing:** `04 Reference/` for the brief, the rubrics and the guideline ([[Judging rubric]], [[Pitch track grading rubric]], [[Hackathon guideline]], [[Problem statement]]); `03 Sessions/` for what happened when; `Open follow-ups.md` for known open questions. If the vault doesn't answer it either, stop and ask the owner (Patrick). Never invent a name, a shape or a rule.
 
@@ -28,7 +29,7 @@ The team vault is the shared context space for this project: decisions, briefs, 
    - `orchestrate(question, repository, ledger, sub_agents=None, agent_factory=make_agent) -> OrchestratorResult`: the first plan for a question;
    - `replan(question, rejected_claim, verdict, repository, ledger, sub_agents=None, agent_factory=make_agent) -> OrchestratorResult`: one re-plan of one rejected claim, which keeps that claim's ID.
 3. Two constants in `tools/constants.py`: `MAX_PLAN_STEPS = 6`, `CLAIM_ID_PREFIX = "claim-"`.
-4. Doc lines: the orchestrator row in `AGENTS.md`, its owner in `agents/README.md`, a "What's real" line in `HANDOFF.md`, and, in `docs/DEVOPS_HANDOVER.md` § Bundling, a line directly after the `agents/` bullet: the agent runtime also needs `flow/budget.py`.
+4. Doc lines: the orchestrator row in `AGENTS.md`, its owner in `agents/README.md`, a "What's real" line in `HANDOFF.md`, and, in `docs/DEVOPS_HANDOVER.md` § Bundling, a line directly after the `agents/` bullet: the agent runtime also needs `tools/budget.py`.
 
 **Why:**
 - The judges weigh "one agent loop that genuinely runs" most, and the orchestrator is its head ([[Patrick - contracts, orchestrator, retriever]]). The guideline asks for a budget ceiling enforced in the orchestrator and a bounded retry.
@@ -39,7 +40,7 @@ The team vault is the shared context space for this project: decisions, briefs, 
 **Success means:**
 - Q07 (`E9`, CFO) and an E4 lead asking about E2 return a `PartialAnswer` **without any model call**.
 - For Q01 the plan is exactly the tool calls the model made (`retriever` steps, then `blocker_analyst`), and the claims are the analyst's, numbered `claim-1`, `claim-2`, … in code.
-- The budget is checked through `flow.budget.require_budget` before every step and before a re-plan; once spent, the result carries `partial` with `claims_so_far`.
+- The budget is checked through `tools.budget.require_budget` before every step and before a re-plan; once spent, the result carries `partial` with `claims_so_far`.
 - At most `MAX_PLAN_STEPS` (6) sub-agent calls per run.
 - `replan` returns at most one claim, with the rejected claim's ID; the model sees the claim's statement and chain and the critic's reason and missing evidence, never the attempt count or the critic's prompt record.
 - The orchestrator only **reads** the ledger (`budget_remaining`, through `require_budget`).
@@ -50,8 +51,8 @@ The team vault is the shared context space for this project: decisions, briefs, 
 **Assumptions about other people's interfaces (the reviewer reconciles these):**
 | # | Assumes | From | If it differs |
 |---|---|---|---|
-| A1 | `flow.budget.require_budget(ledger: Ledger, run_id: str) -> float \| PartialAnswer`: the remaining budget, or a `PartialAnswer` with a reason when it is spent. It only reads the ledger | H2a (Huvison) | Adapt the one call site in `PlanRun.step_refusal` and in `replan`; ledger a Ruling |
-| A2 | `flow/__init__.py` *(new)* exists and doesn't import `flow.steps`, so `agents.orchestrator` → `flow.budget` doesn't loop back through `flow.steps` → `agents.orchestrator` | H2a | Ask Huvison to keep `flow/__init__.py` empty |
+| A1 | `tools.budget.require_budget(ledger: Ledger, run_id: str) -> float \| PartialAnswer`: the remaining budget, or a `PartialAnswer` with a reason when it is spent. It only reads the ledger | H2a (Huvison) | Adapt the one call site in `PlanRun.step_refusal` and in `replan`; ledger a Ruling |
+| A2 | `infra/functions/__init__.py` *(new, create if missing)* exists and doesn't import `infra.functions.steps`, so `agents.orchestrator` → `tools.budget` doesn't loop back through `infra.functions.steps` → `agents.orchestrator` | H2a | Ask Huvison to keep `infra/functions/__init__.py` docstring-only |
 | A3 | `agents.blocker_analyst.analyse(scope: Scope, entity_id: str, evidence: Evidence, repository: ArtefactRepository) -> AnalystResult`, with each claim already checked by `tools.claims.validate_claim` | L5 (Linus) | Adapt `default_sub_agents` only (one inner function). Until L5 merges, `default_sub_agents` fails at call time with `ModuleNotFoundError`; every test injects stubs |
 | A4 | H2b's `run_orchestrator` state calls `orchestrate(...)` for the first plan and `replan(question, claim, verdict, ...)` after `retry_decision` says retry; it records `add_cost` from `result.usage` and the trace step with `load_prompt("orchestrator").provenance()` | H2b | The two functions are the whole interface; H2b chooses how to wrap them |
 | A5 | H2a's `store_claims` uses the claim IDs as given: `put_claim` for an ID new to the run, `revise_claim` for an ID already in it (so the attempt count is kept, D-012) | H2a | If H2a numbers IDs itself, drop the numbering here (Ruling); the re-plan must still return the rejected claim's ID |
@@ -68,8 +69,8 @@ Other assumptions: C1 and P1 are merged (`Question`, `Plan`, `PlanStep`, `Lead`,
 | Claim IDs | Numbered in code, `claim-1`, `claim-2`, … in the order the analyst returned them across calls (`CLAIM_ID_PREFIX`). A re-plan overwrites the ID with the rejected claim's, through `tools.ports.revised_claim` | The analyst model's IDs (`ARCHITECTURE.md` §7: "Claim IDs are assigned by the state machine"; the `Ledger` docstring: "never by a model"); fresh IDs on a re-plan (dodges the retry limit, D-012) |
 | Who writes the ledger on a re-plan | **Not the orchestrator.** It returns the revised claim under the old ID; `store_claims` (H2a) calls `Ledger.revise_claim`. The orchestrator only reads the budget | The orchestrator calling `revise_claim` itself (an agent writing state; `AGENTS.md` gives it `budget_remaining` read-only; two writers for one claim) |
 | Entity gate | Code, before any model call: `scope.require(entity_id)` (→ `OutOfScope`), then the entity must have a row in `entities` (`queries.rows_for_entity`). Either failure → `PartialAnswer`, empty plan | Letting the model find out (it would guess, Q07); a new query function in `tools/queries.py` (Linus's file; the existing one is enough) |
-| Budget | `flow.budget.require_budget` before every step and at the start of `replan`. Spent → the tool returns `{"error": "budget_spent"}`, the run stops, `partial = PartialAnswer(reason, claims_so_far)` | Reading `Ledger.budget_remaining` directly (two budget rules; the brief names H2a's function); checking only once per run (guideline: before each step) |
-| In-flight cost | `require_budget` sees what the ledger has recorded. The orchestrator's own and its sub-agents' usage is recorded by `run_orchestrator` (H2b) when the call returns, so one run can overshoot by at most `MAX_PLAN_STEPS` sub-agent calls | Pricing tokens here (`flow/cost.py` *(new)* is H5, not merged; two cost rules) |
+| Budget | `tools.budget.require_budget` before every step and at the start of `replan`. Spent → the tool returns `{"error": "budget_spent"}`, the run stops, `partial = PartialAnswer(reason, claims_so_far)` | Reading `Ledger.budget_remaining` directly (two budget rules; the brief names H2a's function); checking only once per run (guideline: before each step) |
+| In-flight cost | `require_budget` sees what the ledger has recorded. The orchestrator's own and its sub-agents' usage is recorded by `run_orchestrator` (H2b) when the call returns, so one run can overshoot by at most `MAX_PLAN_STEPS` sub-agent calls | Pricing tokens here (`tools/cost.py` *(new)* is H5, not merged; two cost rules) |
 | Step cap | `MAX_PLAN_STEPS = 6` in `tools/constants.py`; past it, `{"error": "step_limit"}` and no step | No cap (an injected row could loop the planner); a setting (it's a domain limit, like `MAX_RETRIEVER_TOOL_CALLS`) |
 | `analyse` with nothing fetched | `{"error": "no_evidence"}`, no step, no analyst call | Calling the analyst on an empty `Evidence` (wasted call, invented claims risk) |
 | What the analyst gets | Every row fetched so far in the run, each once, in first-fetch order | Only the last retrieval's rows (breaks the cross-artefact chain, Q01) |
@@ -133,8 +134,8 @@ Tool `analyse(reason: str = "") -> dict`: refuse if stopped or at the cap; `no_e
 ## 5. Out of scope
 - The state functions (`check_budget`, `run_orchestrator`, `store_claims`, `retry_decision`, …): H2a and H2b. The critic and the writer: Huvison.
 - The blocker-analyst (L5), its prompt and `validate_claim`.
-- Pricing tokens (`flow/cost.py`, H5).
+- Pricing tokens (`tools/cost.py`, H5).
 - AgentCore hosting and the shim (Y3).
-- Running the full loop end to end (P3 `scripts/ask.py` *(new)*, H6 `flow/local.py` *(new)*).
+- Running the full loop end to end (P3 `scripts/ask.py` *(new)*, H6 `infra/functions/local.py` *(new)*).
 
 Related: [[Build order]], [[Patrick - contracts, orchestrator, retriever]], [[P2 - Orchestrator agent - plan]]

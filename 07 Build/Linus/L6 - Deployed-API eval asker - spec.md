@@ -15,8 +15,9 @@ The team vault is the shared context space for this project: decisions, briefs, 
 3. The repo's `evals/run.py` (its docstring is the **asker contract**) and `EVALS.md` (the 14 questions, how a run is recorded).
 4. [[L3 - Ask, publish and approve entry points - spec]]: the `/ask` route this asker calls, and its 403 `out_of_scope` refusal (Q11).
 5. [[Abdul - evals, Cognito, docs]] (the test users per role, the results write-up) and [[Michael - DevOps]] / [[Yaw - DevOps]] (the Cognito pool, the API's base path `/api`).
-6. [[Huvison - trust and flow]] §7: the **local** asker (`flow/local.py` *(new)*), which applies `inject`; this one can't.
+6. [[Huvison - trust and flow]] §7: the **local** asker (`infra/functions/local.py` *(new)*), which applies `inject`; this one can't.
 7. `01 Decisions/`: [[2026-10-13 Scope from the token, enforced twice]] (D-010); `05 Workflow/`: [[Deploy and demo checks]], [[Handling security findings]].
+8. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 **Whenever this note is silent or unclear, look in the vault before guessing:** `04 Reference/` for the brief, the rubrics and the guideline ([[Problem statement]], [[Judging rubric]], [[Pitch track grading rubric]], [[Hackathon guideline]]); `03 Sessions/` for what happened when; `Open follow-ups.md` for known open questions. If the vault doesn't answer it either, stop and ask Linus. Never invent a name, a shape or a rule.
 

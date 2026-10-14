@@ -2,8 +2,8 @@
 tags: [reference, area/team]
 ---
 # Team and roles
-- Team lead: Patrick (IAM `patrick-admin`)
-- 7 teammates, IAM users `first.last` in `hackathon-admins`
+- Team lead: Patrick
+- 7 teammates, each signing in with their own AmaliTech email (no shared IAM users or passwords)
 - Problem owner + oversight: named in the [[Problem statement]] PDF (AmaliTech Ventures, ERP modernisation track)
 - Organiser contact for the sandbox: the AmaliTech hackathon organiser who issued the account
 

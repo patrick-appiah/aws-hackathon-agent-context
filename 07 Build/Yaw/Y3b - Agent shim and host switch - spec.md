@@ -18,6 +18,7 @@ The vault is the shared context space: decisions, briefs, rules, the build order
 6. [[Y3a - AgentCore runtime - spec]], [[Y2a - Express ask spine - spec]] (§3, the step contract) and [[Y2b - Standard publish flow - spec]].
 7. [[Patrick - contracts, orchestrator, retriever]] (the agents) and TEAM_PLAN §5 in the repo (the AgentCore risk and its fallback).
 8. `01 Decisions/`: [[2026-10-13 Ask spine is Step Functions Express, publish is Standard]], [[2026-10-13 Team are admins, workload roles least-privilege]].
+9. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 **Whenever this note is silent or unclear, look in the vault before guessing:** `04 Reference/` for the brief, the rubrics and the guideline; `03 Sessions/` for what happened when; `Open follow-ups.md` for known open questions. If the vault doesn't answer it either, stop and ask Yaw (owner) or Patrick. Never invent a name, a shape or a rule.
 

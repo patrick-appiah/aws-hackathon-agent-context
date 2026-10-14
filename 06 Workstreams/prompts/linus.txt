@@ -8,6 +8,7 @@ Linus owns workstream 3:
 He pairs with Abdul, who doesn't write Python, and is the back end's main contact for DevOps.
 
 REPO: ~/amalitech/aws-hackathon/erp-migration-portal (GitHub Amali-Tech/cloud-9-hackathon, branch develop).
+Linus owns infra/functions/api.py and infra/functions/scope.py. The repo uses the brief's five folders (agents/, tools/, evals/, infra/, demo/); don't create new top-level folders (D-024).
 VAULT (team notes): /mnt/c/dev/aws-hackathon/aws-hackathon (Obsidian; git repo patrick-appiah/aws-hackathon-agent-context).
 
 READ FIRST, IN THIS ORDER, BEFORE PROPOSING ANYTHING:
@@ -39,15 +40,15 @@ HOW TO WORK:
 - Ask Linus before pushing, opening PRs or touching AWS.
 
 FIRST TASK: branch feature/api-summary-and-scope.
-- auth/scope.py: scope_from_claims, with tests for a CFO, an E4 entity lead, missing claims, two groups, a bad entity.
-- api/handlers.py: summary(event, context), returning metrics.portfolio_summary for that scope.
+- infra/functions/scope.py: scope_from_claims, with tests for a CFO, an E4 entity lead, missing claims, two groups, a bad entity.
+- infra/functions/api.py: summary(event, context), returning metrics.portfolio_summary for that scope.
 Then: entity and rows (out-of-scope citations go to "missing"), the error body, the ask entry with the Q11 refusal,
-the publish/approve entries calling Huvison's flow/publish.py, scripts/export_summary.py for the front-end fixtures,
+the publish/approve entries calling Huvison's infra/functions/publish.py, scripts/export_summary.py for the front-end fixtures,
 agents/blocker_analyst.py. The eval runner already exists (evals/run.py, Michael's PR #16): run it after merges, and on
 Day 2 add evals/api_asker.py so the same questions run against the deployed API.
 
 IF A DEPENDENCY ISN'T READY: Patrick's tools/api_schema.py isn't merged? Return portfolio_summary as-is and add
-schema validation when it lands. Huvison's flow/ isn't ready? Stub the ask/publish entries. Tell the owner.
+schema validation when it lands. Huvison's infra/functions/ step modules aren't ready? Stub the ask/publish entries. Tell the owner.
 
 NEVER: compute numbers in handlers; read scope from a request body; let the analyst invent a figure; edit web/
-(front end), infra/ (DevOps) or flow/ (Huvison).
+(front end), infra/ (DevOps) or infra/functions/ other than api.py and scope.py (Huvison).

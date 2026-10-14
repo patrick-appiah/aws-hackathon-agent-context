@@ -8,6 +8,8 @@ updated: 2026-10-14
 # C1: API and ask-spine contracts (spec)
 > **Every other build item depends on this one.** Until C1 is merged, no plan may invent its own names for these types. Repo: `Amali-Tech/cloud-9-hackathon`, branch from `develop`. The repo is the source of truth for code; the vault is the source of context.
 
+> **Note (C2, 2026-10-14):** C1 is merged. [[C2 - Repo layout - spec]] updated the DEVOPS_HANDOVER entry points to `infra.functions.<module>.<function>`; the text below is C1's original wording with its entry-point paths brought in line.
+
 ## 0. Context: read the vault first
 The team vault is the shared context space for this project: decisions, briefs, rules, the build order and the reasons behind them. Clone it from `git@github.com:patrick-appiah/aws-hackathon-agent-context.git` (lead's machine: `/mnt/c/dev/aws-hackathon/aws-hackathon/`) and run `git pull` first. **Before writing any code, read, in this order:**
 1. [[How to execute a plan]] (`07 Build/`): the procedure every agent follows.
@@ -42,7 +44,7 @@ The team vault is the shared context space for this project: decisions, briefs, 
 ## 2. Decisions
 | Question | Decision | Rejected |
 |---|---|---|
-| Where the API models live | `tools/api_schema.py`, the core. Plain pydantic, no AWS, shared by handlers, the eval runner and the schema export | an `api/` subfolder (Linus's folder: "stay in your folders"); OpenAPI written by hand (a second source of truth) |
+| Where the API models live | `tools/api_schema.py`, the core. Plain pydantic, no AWS, shared by handlers, the eval runner and the schema export | a module in the handlers' folder (Linus's: "stay in your folders"); OpenAPI written by hand (a second source of truth) |
 | Summary shape | **Exactly what `metrics.portfolio_summary` returns today.** The models describe it; they don't reshape it. The front end adopts these keys (spec decision in the briefs) | Reshaping to the old front-end types |
 | Model strictness | Responses: `extra="forbid"`, so a renamed key fails the tests instead of silently disappearing. Requests (`AskRequest`, `PublishRequest`, `ApproveRequest`): `extra="forbid"` plus field validators (entity ID pattern, question 1–500 chars, `run_id` non-empty) | Lenient models (drift goes unnoticed) |
 | Where step models live | `tools/models.py`, next to `BlockerClaim` and `Verdict`, which they reuse | A new module (more imports, no gain) |
@@ -141,9 +143,9 @@ Defaults are named constants at the top of `config.py`, like the existing ones. 
 One row per function: **name**, **entry point** (planned until built), **trigger**, **environment variables** (from §5 and the existing settings), **IAM** (actions on specific resources: the S3 `artefacts/` prefix read; the `status-packs/` write for the publish writer only; the ledger and rejected tables; `states:StartSyncExecution` on the ask machine; `states:StartExecution` / `SendTaskSuccess` / `SendTaskFailure` on the publish machine; `bedrock:InvokeModel` on the **specific** `eu.anthropic.claude-sonnet-4-6` and `eu.amazon.nova-lite-v1:0` inference-profile ARNs and the Guardrail ARN), and **bundling** (`uv export --no-dev --format requirements-txt --no-hashes`; include `agents/prompts/` and `prompts.lock` wherever prompts load).
 
 Functions:
-- `summary`, `entity`, `rows`, `ask`, `publish`, `approve` (Linus, `api/handlers.py` *(new)* *(planned)*);
-- `check_budget`, `run_orchestrator`, `store_claims`, `judge_claim`, `retry_decision`, `record_rejection`, `write_answer` (Huvison, `flow/steps.py` *(new)* *(planned)*);
-- `start_publish`, `decide` and the status-pack writer (Huvison, `flow/publish.py` *(new)* *(planned)*);
+- `summary`, `entity`, `rows`, `ask`, `publish`, `approve` (Linus, `infra/functions/api.py` *(new)* *(planned)*);
+- `check_budget`, `run_orchestrator`, `store_claims`, `judge_claim`, `retry_decision`, `record_rejection`, `write_answer` (Huvison, `infra/functions/steps.py` *(new)* *(planned)*);
+- `start_publish`, `decide` and the status-pack writer (Huvison, `infra/functions/publish.py` *(new)* *(planned)*);
 - the AgentCore runtime and its shim (Yaw).
 
 ## 8. Doc updates

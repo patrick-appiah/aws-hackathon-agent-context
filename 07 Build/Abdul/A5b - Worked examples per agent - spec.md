@@ -16,6 +16,7 @@ The team vault is the shared context space for this project: decisions, briefs, 
 4. [[Linus - API, identity, blocker-analyst]] §8 ("help him capture the worked examples … from real runs"), [[Patrick - contracts, orchestrator, retriever]] (P1, P2, P3 `scripts/ask.py`), [[Huvison - trust and flow]] (H3 writer, H6 local asker).
 5. [[C1 - API and spine contracts - spec]] §4 (the step models each agent takes and returns).
 6. `04 Reference/`: [[Pitch track grading rubric]] ("Worked examples and tests", 4 points: "a real input and real output committed **for each agent**"). `Open follow-ups.md`: "Commit one real input + output per agent in `evals/expected/`".
+7. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 **Whenever this spec is silent or unclear, look in the vault before guessing:** `04 Reference/`, `03 Sessions/`, `Open follow-ups.md`. If it's still unclear, stop and ask Linus. Never type or "tidy" an agent's output.
 
@@ -37,7 +38,7 @@ The team vault is the shared context space for this project: decisions, briefs, 
 - `uv run --locked pytest` and `uv run python -m evals.run` still pass/run unchanged (the runner reads only `Q*.json`: verified by dry-run, a `critic.json` in `evals/expected/` → `204 passed`, runner unchanged `11 not run · 1 manual · 2 not applicable`).
 
 **Assumptions (to reconcile with the owners):**
-- **A5b-1:** Linus (with Patrick's `scripts/ask.py` *(new, P3)* or Huvison's `flow/local.py` *(new, H6)*) can print each agent's input and output as JSON for one run, using the step models' `model_dump(mode="json", by_alias=True)` (so the critic's verdict shows `"pass"`). How he prints them is his choice; you receive JSON text.
+- **A5b-1:** Linus (with Patrick's `scripts/ask.py` *(new, P3)* or Huvison's `infra/functions/local.py` *(new, H6)*) can print each agent's input and output as JSON for one run, using the step models' `model_dump(mode="json", by_alias=True)` (so the critic's verdict shows `"pass"`). How he prints them is his choice; you receive JSON text.
 - **A5b-2:** each agent's prompt provenance is available as `{agent, version, sha256}` (`agents/prompt_loader.py` `Prompt.provenance()`; `TraceStep.prompt` in C1's `AskResponse.trace`).
 - **A5b-3:** the run is local (CSV data, synthetic) or deployed; either way it contains only synthetic data and no token.
 
@@ -60,7 +61,7 @@ The team vault is the shared context space for this project: decisions, briefs, 
     "run_id": "<run_id of the run>",
     "commit": "<short commit hash the run used>",
     "captured_at": "<UTC time, e.g. 2026-10-15T11:40:00+00:00>",
-    "captured_by": "Linus printed it from <scripts/ask.py | flow.local:ask>; Abdul recorded it unchanged"
+    "captured_by": "Linus printed it from <scripts/ask.py | infra.functions.local.ask>; Abdul recorded it unchanged"
   },
   "prompt": {"agent": "<agent>", "version": "<version>", "sha256": "<sha256>"},
   "model_id": "<the model ID the call used, e.g. eu.anthropic.claude-sonnet-4-6>",

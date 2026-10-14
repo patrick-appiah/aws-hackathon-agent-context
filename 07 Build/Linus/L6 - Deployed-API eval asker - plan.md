@@ -16,6 +16,7 @@ The vault is the context space for this work (clone `git@github.com:patrick-appi
 2. [[L6 - Deployed-API eval asker - spec]]: **the authority**, including the token and refusal rules.
 3. The repo's `evals/run.py` docstring (the asker contract) and `tests/evals/test_run.py` (how askers are tested).
 4. [[Abdul - evals, Cognito, docs]] (users, results write-up), [[Deploy and demo checks]], [[Handling security findings]].
+5. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 **Whenever this note is silent or unclear, look in the vault before guessing:** `04 Reference/` for the brief, the rubrics and the guideline ([[Problem statement]], [[Judging rubric]], [[Pitch track grading rubric]], [[Hackathon guideline]]); `03 Sessions/` for what happened when; `Open follow-ups.md` for known open questions. If the vault doesn't answer it either, stop and ask Linus. Never invent a name, a shape or a rule.
 
@@ -35,7 +36,7 @@ The vault is the context space for this work (clone `git@github.com:patrick-appi
 - **Never weaken a security rule** (the scope gate, the create-once ledger, the fail-closed critic, the `<evidence>` escaping) to make a test pass.
 - **Tests** live in `tests/`, mirroring the code; run `uv run --locked pytest` from the repo root. Coverage must not drop below the start state. **No layout or "meta" guard tests**: test behaviour, not where files sit.
 - **Git:** small commits, one per task, with the messages given. **No `Co-Authored-By` and no "Generated with" lines.** Never push to `develop` or `main`; the PR goes to `develop` after the owner's OK, and Patrick merges.
-- **Stay in your folders** (`docs/TEAM_PLAN.md` §2, workstream 3: `api/`, `auth/`, `tools/metrics.py`, `tools/queries.py`, `tools/agent_tools.py`, `tools/claims.py`, `agents/blocker_analyst.py` *(new)*, `agents/prompts/blocker_analyst.txt` *(new)*, `scripts/export_summary.py` *(new)*, the eval runner). Any other file this plan touches is named in its task, with the owner who must review it.
+- **Stay in your folders** (`docs/TEAM_PLAN.md` §2, workstream 3: `infra/functions/api.py` *(new)*, `infra/functions/scope.py` *(new)*, `tests/infra/functions/` *(new)*, `tools/metrics.py`, `tools/queries.py`, `tools/agent_tools.py`, `tools/claims.py`, `agents/blocker_analyst.py` *(new)*, `agents/prompts/blocker_analyst.txt` *(new)*, `scripts/export_summary.py` *(new)*, the eval runner). Any other file this plan touches is named in its task, with the owner who must review it.
 - **Tokens are secrets for an hour.** The tokens file lives outside the repo (for example `~/eval-id-tokens.json`), is never committed, never pasted into Slack or the vault, and deleted after the run. Check `git status` before every commit.
 - **Shared files touched:** `config.py` and `tests/test_config.py` (Patrick's: two settings; he reviews), `EVALS.md` (one paragraph; tell Abdul).
 
@@ -278,7 +279,7 @@ an AUTH_MODE=none deployment answers. ID tokens expire after an hour: fetch fres
 
 Replies: 200 → the AskResponse body. 403 out_of_scope → that body plus "refused": true and "status_code": 403 (Q11).
 Any other status raises AskFailed. Questions this asker can't send raise before anything is sent, so the runner records
-them as failed: an `inject` condition (Q08, Q09; the API has no fault switch, by design: use flow.local:ask) and a
+them as failed: an `inject` condition (Q08, Q09; the API has no fault switch, by design: use infra.functions.local.ask) and a
 question without an entity (POST /ask needs one).
 """
 import json
@@ -309,7 +310,7 @@ class DeployedApiCannotAsk(ValueError):
 
 
 class InjectNeedsTheLocalAsker(DeployedApiCannotAsk):
-    """Q08 and Q09 plant a fault; only the local asker (flow.local:ask) can, because the API has no fault switch."""
+    """Q08 and Q09 plant a fault; only the local asker (infra.functions.local.ask) can, because the API has no fault switch."""
 
 
 class NoEntityToAsk(DeployedApiCannotAsk):
@@ -353,7 +354,7 @@ def post_ask(url: str, body: bytes, id_token: str | None) -> tuple[int, dict]:
 def ask(case_input: EvalInput, scope: Scope, _repository) -> dict:
     """The asker contract (evals/run.py): the /ask response, or "refused": true when the scope gate refused it."""
     if case_input.inject:
-        raise InjectNeedsTheLocalAsker(f"{case_input.id} plants '{case_input.inject}': run it with flow.local:ask")
+        raise InjectNeedsTheLocalAsker(f"{case_input.id} plants '{case_input.inject}': run it with infra.functions.local.ask")
     if case_input.entity_id is None:
         raise NoEntityToAsk(f"{case_input.id} names no entity, and POST /ask needs one")
     base_url = get_settings().eval_api_base_url or ""

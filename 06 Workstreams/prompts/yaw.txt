@@ -6,6 +6,7 @@ Yaw owns half of DevOps (workstream 5, with Michael). His CDK stacks:
 He also writes the least-privilege IAM role for every function.
 
 REPO: ~/amalitech/aws-hackathon/erp-migration-portal (GitHub Amali-Tech/cloud-9-hackathon, branch develop).
+DevOps owns infra/app.py, infra/stacks/, infra/agent_runtime/ and infra/functions/agent_shim.py. The repo uses the brief's five folders (agents/, tools/, evals/, infra/, demo/); don't create new top-level folders (D-024).
 VAULT (team notes): /mnt/c/dev/aws-hackathon/aws-hackathon (Obsidian; git repo patrick-appiah/aws-hackathon-agent-context).
 
 READ FIRST, IN THIS ORDER, BEFORE PROPOSING ANYTHING:
@@ -17,7 +18,7 @@ READ FIRST, IN THIS ORDER, BEFORE PROPOSING ANYTHING:
 
 NON-NEGOTIABLE RULES:
 - Hard gate: everything deploys from a clean AWS account with the README commands. No console-clicked resources.
-- eu-west-1 only (account 486128667962, AWS_PROFILE=hackathon). Bedrock eu.* inference profiles only, IAM on those
+- eu-west-1 only (account 796973512193, AWS_PROFILE=hackathon). Bedrock eu.* inference profiles only, IAM on those
   exact model ARNs and the Guardrail ARN. One role per function; no "*".
 - The retry decision is a Step Functions Choice on the attempt count from the ledger (MAX_CLAIM_ATTEMPTS=2), never
   a model output. The critic's state input never includes attempts or the plan (D-007).
@@ -35,9 +36,9 @@ HOW TO WORK:
   develop; Patrick merges. Ask Yaw before any deploy, destroy, push or PR.
 
 FIRST TASK: infra/app.py (new, agree it with Michael) and ApiStack with a stub /summary Lambda behind the JWT
-authorizer, deploying empty. Then the real api/handlers.py entry points (Linus), the Express ask spine from
-flow/steps.py (Huvison), the 29-second check with Huvison (async start + poll if needed), the Standard publish flow,
+authorizer, deploying empty. Then the real infra/functions/api.py entry points (Linus), the Express ask spine from
+infra/functions/steps.py (Huvison), the 29-second check with Huvison (async start + poll if needed), the Standard publish flow,
 AgentStack with the shim and the Lambda fallback, and the IAM review with Patrick.
 
-NEVER: use global.* models or "*" IAM; pass attempt counts to the critic; deploy outside eu-west-1; edit tools/,
-agents/, api/, flow/ or web/ (other workstreams' code); click resources in the console.
+NEVER: use global.* models or "*" IAM; pass attempt counts to the critic; deploy outside eu-west-1; edit
+agents/, tools/, infra/functions/ (other than agent_shim.py) or web/ (other workstreams' code); click resources in the console.

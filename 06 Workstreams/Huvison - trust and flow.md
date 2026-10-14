@@ -17,7 +17,7 @@ You also own **cost per run**, the **Guardrail settings**, and timing `/ask` aga
 
 ## Where you sit in the architecture
 ```
- POST /ask ─▶ Step Functions Express (Yaw writes the ASL; each state is one of YOUR flow/ functions)
+ POST /ask ─▶ Step Functions Express (Yaw writes the ASL; each state is one of YOUR `infra/functions/` functions)
    ★check_budget★ ─▶ ★run_orchestrator★ (Patrick's agent) ─▶ ★store_claims★ ─▶ ledger (put_claim / revise_claim + add_cost)
    ─▶ ★judge_claim★ (agents/critic.py judge: pre-check in code, then the blind critic) ─▶ ★retry_decision★ (attempts < 2?)
         ├─ pass ─▶ ★write_answer★ (★WRITER★) ─▶ AskResponse (Patrick's schema)
@@ -34,10 +34,12 @@ You also own **cost per run**, the **Guardrail settings**, and timing `/ask` aga
 |---|---|
 | `agents/critic.py`, `agents/prompts/critic.txt`, `agents/prompt_loader.py` | exist (critic v1.0.0, fails closed, prompt provenance) |
 | `agents/writer.py` *(new)*, `agents/prompts/writer.txt` *(new)* | the writer |
-| `flow/` *(new)*: `flow/steps.py` *(new)*, `flow/budget.py` *(new)*, `flow/publish.py` *(new)*, `flow/cost.py` *(new)* | the step functions |
+| `infra/functions/` *(new)*: `infra/functions/steps.py` *(new)*, `tools/budget.py` *(new)*, `infra/functions/publish.py` *(new)*, `tools/cost.py` *(new)* | the step functions |
 | `tools/ports.py` (the `Ledger` port only, coordinate with Patrick), `adapters/memory_ledger.py`, `adapters/dynamo_ledger.py` | exist; you extend them |
 | `tests/adapters/test_ledgers.py` | exists; one suite run against **both** ledgers |
 | `AGENTS.md` rows: critic, writer; `HANDOFF.md` lines for your parts | your docs |
+
+**Huvison owns** `tools/budget.py`, `tools/cost.py` and `infra/functions/{steps,spine,local,states,publish}.py`. The repo uses the brief's five folders (`agents/`, `tools/`, `evals/`, `infra/`, `demo/`); don't create new top-level folders (D-024).
 
 ## What you build
 Each task has a spec and plan first (superpowers), test-first code, and a PR to `develop`.
@@ -56,14 +58,14 @@ Extend the `Ledger` port in `tools/ports.py` and **both** adapters. Every method
 
 Keep the integrity rules (D-012): create-once runs, claims and rejections; updates to unknown items raise `LedgerConflict`; the attempt counter and spent cost can never be reset.
 
-### 2. The budget check: `flow/budget.py`
+### 2. The budget check: `tools/budget.py`
 One function, `require_budget(ledger, run_id) -> float | PartialAnswer`, with two callers:
 - your `check_budget` state;
 - Patrick's orchestrator, before each re-plan (guideline: "budget ceiling enforced in the orchestrator").
 
 The default ceiling is `config.py` `run_budget_usd` (0.50).
 
-### 3. The step functions: `flow/steps.py`
+### 3. The step functions: `infra/functions/steps.py`
 One function per state. Each takes and returns the step models from Patrick's contracts PR (`Question`, claims, `Verdict`, `WriterInput`, `Answer`, `PartialAnswer`, `Usage`); Step Functions passes JSON, so validate on the way in.
 1. `check_budget(question)`: start the run (`Ledger.start_run(run_id, scope, budget_usd)`), then `require_budget`.
 2. `run_orchestrator(question)`: calls `agents/orchestrator.py` (Patrick), and records the trace step and `add_cost` from its `Usage`.
@@ -80,25 +82,25 @@ Test the whole sequence locally with `InMemoryLedger` and stub agents (Q01 passe
 - **Code check after the model:** drop any bullet with no citation, or whose citations don't all belong to a passed claim, and log the drop. The writer never adds a claim (`AGENTS.md`, writer row). Figures appear only as the claims state them.
 - **Model:** `get_settings().writer_model_id` with the Guardrail, using the `make_agent` pattern from `agents/critic.py`. Stub-model tests.
 
-### 5. Publish and approve: `flow/publish.py`
+### 5. Publish and approve: `infra/functions/publish.py`
 - `start_publish(run_id, user)`: starts the Standard execution (`publish_state_machine_arn` from Patrick's settings). The first state stores its task token with `put_task_token(run_id, token)`. Returns `{run_id, execution_arn, status: "awaiting_approval"}`.
 - `decide(run_id, decision, note, approver_scope)`:
   - only a `delivery_lead` may approve;
   - `approve` → `SendTaskSuccess`, and the last state writes `s3://<artefacts_bucket>/<status_pack_prefix><run_id>.json`;
   - `send_back` → `SendTaskFailure`, logged on the run in the ledger.
-- Linus's `api/handlers.py` *(new)* entry points call these two functions.
+- Linus's `infra/functions/api.py` *(new)* entry points call these two functions.
 - Test with moto (Step Functions + S3) or fakes; no real AWS in unit tests.
 
-### 6. Cost: `flow/cost.py` + a price table in `tools/constants.py`
+### 6. Cost: `tools/cost.py` + a price table in `tools/constants.py`
 - **Price table:** `MODEL_PRICES_USD_PER_1K_TOKENS = {model_id: (input, output)}` for every model ID in `config.py`. The prices and their sources come from Abdul's research (Bedrock eu-west-1 on-demand).
 - `cost_usd(usage) -> float`. Every state that runs an agent calls `add_cost` with it. The total per run lands in `AskResponse.cost_usd`, and `COST.md` is filled from real runs (Abdul).
 
-### 7. The local asker for the eval runner: `flow/local.py` *(new)*
+### 7. The local asker for the eval runner: `infra/functions/local.py` *(new)*
 Michael's runner (`evals/run.py`, PR #16) calls an asker: `(case_input, scope, repository) -> dict`, returning the `/ask` response plus `"refused": true` when refused.
-- Write `flow/local.py: ask`. It runs your step sequence in-process (`CsvRepository`, `InMemoryLedger`, the real agents) and **applies the input's `inject` itself**:
+- Write `infra/functions/local.py: ask`. It runs your step sequence in-process (`CsvRepository`, `InMemoryLedger`, the real agents) and **applies the input's `inject` itself**:
   - `strip_citations` (Q08): strip the citations from one analyst claim, so the critic pre-check must reject it without a model call;
   - `force_unsupportable_claim` (Q09): the asker forces a claim no evidence supports, the **real** critic rejects it until the retry guard stops it, and the claim lands in rejected records (as `evals/inputs/Q09.json` says).
-- Run it with `uv run python -m evals.run --asker flow.local:ask`. Patrick's `scripts/ask.py` can call the same function.
+- Run it with `uv run python -m evals.run --asker infra.functions.local.ask`. Patrick's `scripts/ask.py` can call the same function.
 - **No fault switch exists in the API or production config.** Only the eval asker applies `inject`.
 - **Q09 is decided (D-022):** at most 2 attempts per claim in total, one retry. Keep `max_claim_attempts = 2` and `attempts < 2`; a claim rejected twice lands in rejected records with **2 verdicts**.
 
@@ -120,10 +122,10 @@ By D1 18:00, time a full `/ask` with one retry. API Gateway cuts synchronous cal
 | You produce | For | Exact name |
 |---|---|---|
 | Ledger methods | Linus (runner), Patrick, Yaw (IAM) | `tools/ports.py` `Ledger` + both adapters |
-| Step functions | Yaw (FlowStack Lambdas), Patrick (`scripts/ask.py` *(new)*) | `flow/steps.py` |
-| Budget check | Patrick | `flow/budget.py` `require_budget` |
-| Publish functions | Linus (`api/handlers.py`) | `flow/publish.py` `start_publish`, `decide` |
-| Local asker (applies `inject`) | the eval runner, Patrick (`scripts/ask.py`) | `flow/local.py` *(new)* |
+| Step functions | Yaw (FlowStack Lambdas), Patrick (`scripts/ask.py` *(new)*) | `infra/functions/steps.py` |
+| Budget check | Patrick | `tools/budget.py` `require_budget` |
+| Publish functions | Linus (`infra/functions/api.py`) | `infra/functions/publish.py` `start_publish`, `decide` |
+| Local asker (applies `inject`) | the eval runner, Patrick (`scripts/ask.py`) | `infra/functions/local.py` *(new)* |
 | Guardrail settings | Michael | in `docs/DEVOPS_HANDOVER.md` *(new)* |
 
 ## Dependencies
@@ -152,11 +154,11 @@ By D1 18:00, time a full `/ask` with one retry. API Gateway cuts synchronous cal
 
 ## Definition of done
 - [ ] Ledger extensions on both adapters, create-once kept, all of `tests/adapters/test_ledgers.py` green.
-- [ ] `flow/` step functions tested; the local sequence passes Q01 and handles a rejection.
+- [ ] `infra/functions/` step functions tested; the local sequence passes Q01 and handles a rejection.
 - [ ] Writer drops uncited bullets (tested); prompt locked; `AGENTS.md` critic and writer rows true.
 - [ ] Publish needs a `delivery_lead` approval; the status pack is written only after approval; send-back is logged.
 - [ ] Cost per run comes from real `Usage`; the price table is sourced.
-- [ ] `uv run python -m evals.run --asker flow.local:ask` runs; Q08, Q09 (2 verdicts, D-022), Q12 pass; the 29-second check done.
+- [ ] `uv run python -m evals.run --asker infra.functions.local.ask` runs; Q08, Q09 (2 verdicts, D-022), Q12 pass; the 29-second check done.
 - [ ] Your `HANDOFF.md` lines (what's real, what's faked, what breaks first).
 
 ## Rules and pitfalls specific to you

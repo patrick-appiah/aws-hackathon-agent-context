@@ -16,6 +16,7 @@ The vault is the context space for this work (clone `git@github.com:patrick-appi
 2. [[H3 - Writer agent - spec]]: **the authority.** Where this plan and the spec disagree, the spec wins; ledger the conflict.
 3. [[Huvison - trust and flow]] §4; [[P1 - Retriever agent - spec]] §3 (`agent_support`); [[Changing a prompt]].
 4. `01 Decisions/` D-001, D-009, D-014; [[Working with AI assistants]].
+5. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 When something here is unclear, look in the vault (`04 Reference/`, `03 Sessions/`, `Open follow-ups.md`) before guessing. If the vault doesn't answer it, stop and ask Huvison.
 
@@ -248,7 +249,7 @@ Expected: start + 5 (dry-run: `248 passed`), `TOTAL ... 96%`.
 
 **Files:** Modify `agents/writer.py`, `tests/agents/test_writer.py`
 
-**Produces:** `agents.writer.QUESTION_TAG`, `CLAIMS_TAG`, `CLAIM_FIELDS_SHOWN_TO_WRITER`, `build_input(writer_input: WriterInput) -> str`, `make_agent(prompt: Prompt) -> Callable`, `write(writer_input: WriterInput, agent: Callable | None = None) -> WriterResult`. **Consumes:** `agents.agent_support.bedrock_model`, `tagged`, `usage_of` (P1); `config.get_settings().writer_model_id`; `tools.models.WriterInput`, `WriterResult`, `Answer` (C1; its headline and bullets reject markup). **Consumed by:** H2b (`flow.steps.real_writer` returns `write`).
+**Produces:** `agents.writer.QUESTION_TAG`, `CLAIMS_TAG`, `CLAIM_FIELDS_SHOWN_TO_WRITER`, `build_input(writer_input: WriterInput) -> str`, `make_agent(prompt: Prompt) -> Callable`, `write(writer_input: WriterInput, agent: Callable | None = None) -> WriterResult`. **Consumes:** `agents.agent_support.bedrock_model`, `tagged`, `usage_of` (P1); `config.get_settings().writer_model_id`; `tools.models.WriterInput`, `WriterResult`, `Answer` (C1; its headline and bullets reject markup). **Consumed by:** H2b (`infra.functions.steps.real_writer` returns `write`).
 
 - [ ] **Step 1: Failing tests.** In `tests/agents/test_writer.py`, replace the import block (from `import logging` to `from tools.models import BlockerClaim, Bullet, Citation`) with:
 ```python

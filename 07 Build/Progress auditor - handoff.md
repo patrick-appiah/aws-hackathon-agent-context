@@ -32,7 +32,7 @@ Patrick's answers on the open points:
 1. **Delivery:** per person and per build item, done, in progress, not started or blocked, by comparing:
    - the briefs' tasks, milestones and done-lists;
    - the `07 Build` plans' task checkboxes and `Build order` statuses;
-   - the repo: branches, commits, open and merged PRs (`gh pr list --repo Amali-Tech/cloud-9-hackathon --state all`; `gh` is logged in as `patrick-appiah`), files that should exist (for example `tools/api_schema.py` *(new)*, `api/handlers.py` *(new)*, `flow/steps.py` *(new)*, `agents/orchestrator.py` *(new)*).
+   - the repo: branches, commits, open and merged PRs (`gh pr list --repo Amali-Tech/cloud-9-hackathon --state all`; `gh` is logged in as `patrick-appiah`), files that should exist (for example `tools/api_schema.py` *(new)*, `infra/functions/api.py` *(new)*, `infra/functions/steps.py` *(new)*, `agents/orchestrator.py` *(new)*).
 
    Compare against the timeline (`Workstreams.md` §5): what should be done by now.
 2. **Conformance:** the work against its spec, plan and contracts:

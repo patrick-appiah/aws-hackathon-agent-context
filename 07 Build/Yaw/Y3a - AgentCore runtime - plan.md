@@ -19,6 +19,7 @@ The vault is the shared context space: decisions, briefs, rules, the build order
 5. [[Build order]]: what this item depends on and unblocks.
 6. [[M2 - App, DataStack and LedgerStack - spec]]: the CDK app, `build_stacks`, the prefix, the test fixtures and the patterns every DevOps item follows.
 7. [[Y2a - Express ask spine - spec]] §3, [[Y1 - ApiStack - spec]], [[M4b - Observability - spec]].
+8. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 **Whenever this note is silent or unclear, look in the vault before guessing:** `04 Reference/` for the brief, the rubrics and the guideline; `03 Sessions/` for what happened when; `Open follow-ups.md` for known open questions. If the vault doesn't answer it either, stop and ask Yaw (owner). Never invent a name, a shape or a rule.
 
@@ -29,7 +30,7 @@ The vault is the shared context space: decisions, briefs, rules, the build order
 **Tech stack:** Python 3.11 standard library (`http.server`), `aws-cdk-lib` 2.273+ (`aws_bedrockagentcore.Runtime`, `AgentRuntimeArtifact`, `AgentCoreRuntime`), CDK CLI 2.1144.0, pytest, uv.
 
 ## Global Constraints
-- **Repo:** `~/amalitech/aws-hackathon/erp-migration-portal`. **Branch:** `feature/infra-agentcore` from an up-to-date `develop`, **after Y2a and H2 are merged** (the runtime bundle needs `flow/`).
+- **Repo:** `~/amalitech/aws-hackathon/erp-migration-portal`. **Branch:** `feature/infra-agentcore` from an up-to-date `develop`, **after Y2a and H2 are merged** (the runtime bundle needs `infra/functions/` *(new)*).
 - **Start state:** `uv run --locked pytest` → all passed, `TOTAL` 96%; write the count as **S** (dry-run: C1 + M2 + stand-ins for M3a/M3b + Y1 + Y2a + Y2b, S = 265; Y2b isn't required, the n is the same without it). Every count is **S + n** [dry-run].
 - `eu-west-1` only (`config.DEFAULT_REGION`); Bedrock `eu.*` inference profiles only; synthetic data only; **no secrets anywhere** (no tokens, passwords or keys in code, the repo, the vault or Slack).
 - Settings only in `config.py`; domain constants only in `tools/constants.py`; deploy-time constants in `infra/` modules as named constants; descriptive names; **no single-character names** (the style test scans `infra/`); no magic numbers or strings. The core (`tools/`) imports no boto3, Strands, adapters, config or os, and never imports `infra`.
@@ -40,7 +41,7 @@ The vault is the shared context space: decisions, briefs, rules, the build order
 - Tests in `tests/`, mirroring the code; `uv run --locked pytest` from the repo root; coverage must not drop (96%). CDK tests never bundle (`SKIP_ALL_BUNDLING`) and never call AWS.
 - **No AWS calls while building:** only `cdk synth` with credentials unset (`env -u AWS_PROFILE AWS_CONFIG_FILE=/dev/null AWS_SHARED_CREDENTIALS_FILE=/dev/null npx cdk synth -q`) and the tests. Steps marked **verify in AWS** run only after Yaw's OK, with `export AWS_PROFILE=hackathon AWS_REGION=eu-west-1`. Deploys are manual (D-018); CI never deploys.
 - Branch `<type>/<short-topic>` from `develop` after the dependencies are merged; PR to `develop`; Patrick merges; never push to `develop` or `main`; **no `Co-Authored-By` and no "Generated with" lines**.
-- Stay in DevOps's files: `infra/`, `tests/infra/` *(new)* (and `Jenkinsfile` *(new)*, Michael's). Need a change elsewhere (`config.py`, `api/`, `flow/`, `docs/`)? Ask its owner.
+- Stay in DevOps's files: `infra/` (`app.py`, `stacks/`, `agent_runtime/`, `bundling.py`, and in `infra/functions/` only `agent_shim.py` and the stubs), `tests/infra/` *(new; `tests/infra/functions/` is Linus's and Huvison's)* (and `Jenkinsfile` *(new)*, Michael's). Need a change elsewhere (`config.py`, `tools/`, Linus's and Huvison's modules in `infra/functions/`, `docs/`)? Ask its owner.
 - No layout or "meta" guard tests: the tests check what the stacks synthesise and what the functions do.
 
 ## Review Focus (what the tests don't fully cover; check by hand at the end)
@@ -57,7 +58,7 @@ The vault is the shared context space: decisions, briefs, rules, the build order
 **Files:**
 - Create: `infra/agent_runtime/server.py`, `tests/infra/agent_runtime/test_server.py` *(new)*
 
-**Produces:** `handle_invocation(body: bytes, load_steps=...) -> tuple[int, dict]`, `AgentRequestHandler`, `AGENT_STEPS`, `HEALTHY`, `LISTEN_ADDRESS`. **Consumes:** `flow.steps` at run time only (imported lazily). **Consumed by:** Task 2 (the bundle's root file), Y3b's shim (the payload).
+**Produces:** `handle_invocation(body: bytes, load_steps=...) -> tuple[int, dict]`, `AgentRequestHandler`, `AGENT_STEPS`, `HEALTHY`, `LISTEN_ADDRESS`. **Consumes:** `infra.functions.steps` at run time only (imported lazily). **Consumed by:** Task 2 (the bundle's root file), Y3b's shim (the payload).
 
 - [ ] **Step 1: Branch and baseline**
 ```bash
@@ -138,7 +139,7 @@ Expected: `E   ModuleNotFoundError: No module named 'infra.agent_runtime'` and `
 Create `infra/agent_runtime/server.py`:
 ```python
 """The AgentCore Runtime entry point (Y3a): the HTTP contract AgentCore expects, on port 8080, with no extra
-dependency. POST /invocations runs one agent step of flow/steps.py; GET /ping reports health.
+dependency. POST /invocations runs one agent step of infra/functions/steps.py; GET /ping reports health.
 
 Payload: {"step": "run_orchestrator" | "judge_claim" | "write_answer", "input": <that step's input JSON>}.
 The step's own output JSON is returned unchanged, so the state machine sees the same shape as the Lambda path.
@@ -152,7 +153,7 @@ LISTEN_ADDRESS = ("0.0.0.0", 8080)   # nosec B104: AgentCore requires 0.0.0.0:80
 INVOCATIONS_PATH = "/invocations"
 PING_PATH = "/ping"
 HEALTHY = {"status": "Healthy"}
-STEPS_MODULE = "flow.steps"
+STEPS_MODULE = "infra.functions.steps"
 AGENT_STEPS = frozenset({"run_orchestrator", "judge_claim", "write_answer"})
 JSON_CONTENT_TYPE = "application/json"
 
@@ -293,14 +294,14 @@ API_BUNDLE = BundleSpec(
 ```
 with:
 ```python
-AGENT_RUNTIME_BUNDLE = BundleSpec("agent-runtime", (*CORE_CODE, "flow"), python_platform=AGENT_RUNTIME_PYTHON_PLATFORM,
+AGENT_RUNTIME_BUNDLE = BundleSpec("agent-runtime", (*CORE_CODE, "infra/functions"), python_platform=AGENT_RUNTIME_PYTHON_PLATFORM,
                                   root_files=("infra/agent_runtime/server.py",))
 API_BUNDLE = BundleSpec(
 ```
 
 Create `infra/stacks/agent_stack.py`:
 ```python
-"""AgentStack: the AgentCore Runtime that hosts the Strands agents (Y3a). It runs the agent steps of flow/steps.py
+"""AgentStack: the AgentCore Runtime that hosts the Strands agents (Y3a). It runs the agent steps of infra/functions/steps.py
 behind infra/agent_runtime/server.py, from a code zip (no container image, no Docker), on ARM64 Python 3.11.
 
 Its role gets exactly what the agent steps' Lambdas get (FlowStack): the ledger, the two eu.* models, the Guardrail
@@ -388,7 +389,7 @@ git commit -m "infra: AgentStack, AgentCore Runtime from an ARM64 code zip with 
 cd infra && env -u AWS_PROFILE -u AWS_ACCESS_KEY_ID -u AWS_SECRET_ACCESS_KEY AWS_CONFIG_FILE=/dev/null AWS_SHARED_CREDENTIALS_FILE=/dev/null npx cdk synth -q 2>&1 | grep -E "Successfully|rror"; cd ..
 ls infra/cdk.out/bundles/agent-runtime/ | grep -E '^server.py$|aarch64'; ls infra/cdk.out/bundles/agent-runtime/agents/prompts/prompts.lock
 ```
-Expected: `5 passed`; S + 12 passed [277], `TOTAL ... 96%`; `Successfully synthesized`; `_cffi_backend.cpython-311-aarch64-linux-gnu.so` and `server.py`; the lock file listed. (Dry-run note: `api/`, `auth/` and `flow/` didn't exist when this plan was written, so its synth was dry-run with empty stand-in packages; on `develop` they are the real ones.)
+Expected: `5 passed`; S + 12 passed [277], `TOTAL ... 96%`; `Successfully synthesized`; `_cffi_backend.cpython-311-aarch64-linux-gnu.so` and `server.py`; the lock file listed. (Dry-run note: `infra/functions/api.py` *(new)*, `infra/functions/scope.py` *(new)* and the other `infra/functions/` modules didn't exist when this plan was written, so its synth was dry-run with empty stand-in packages; on `develop` they are the real ones.)
 
 **Task done when:** the full suite is at S + 12; the synthesized runtime bundle holds `server.py`, ARM64 wheels and `prompts.lock`.
 
@@ -402,7 +403,7 @@ export AWS_PROFILE=hackathon AWS_REGION=eu-west-1
 cd infra && npx cdk deploy AgentStack --require-approval never 2>&1 | grep -E "✅|AgentRuntimeArn"; cd ..
 RUNTIME_ARN=$(aws cloudformation describe-stacks --stack-name demo-AgentStack --query "Stacks[0].Outputs[?OutputKey=='AgentRuntimeArn'].OutputValue" --output text)
 ```
-Expected (verify in AWS): `✅  AgentStack (demo-AgentStack)` and `AgentRuntimeArn = arn:aws:bedrock-agentcore:eu-west-1:486128667962:runtime/demo_erp_portal_agents-...`.
+Expected (verify in AWS): `✅  AgentStack (demo-AgentStack)` and `AgentRuntimeArn = arn:aws:bedrock-agentcore:eu-west-1:796973512193:runtime/demo_erp_portal_agents-...`.
 
 - [ ] **Step 2: Refused step, then a real one**
 ```bash

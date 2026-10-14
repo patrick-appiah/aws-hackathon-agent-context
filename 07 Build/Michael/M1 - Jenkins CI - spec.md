@@ -15,13 +15,14 @@ The vault is the shared context space: decisions, briefs, rules, the build order
 3. [[Michael - DevOps]]: the owner's brief; this is "What you build" step 1.
 4. [[Build order]]: M1 depends on nothing and is milestone M0.
 5. `01 Decisions/`: [[2026-10-14 ERP-layer dataset is the single source]] (why D-018 is reserved for this PR) and [[2026-10-14 Two apps in one repo]] (Node 22, the `cloud9-npm-token` credential); `05 Workflow/`: [[Dev loop]], [[Handling security findings]], [[Working with AI assistants]].
+6. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 **Whenever this spec is silent or unclear, look in the vault before guessing:** `04 Reference/` for the brief, rubrics and guideline; `03 Sessions/` for what happened when; `Open follow-ups.md` for known open questions. If the vault doesn't answer it either, stop and ask Michael (the owner) or Patrick (who merges). Never invent a name, a shape or a rule.
 
 ## 1. Intent
 **What:**
 1. Bring PR #8 up to date with `develop` by **merging `develop` into `chore/ci-minimal-checks`** (no rebase, no force-push). The only conflict is `DECISIONS.md`: `develop` added D-019 and D-020 where the PR adds D-018. Keep both: D-018 sits between D-017 and D-019.
-2. **Bandit scans every back-end folder that exists.** Today it scans `tools adapters agents scripts config.py`. `evals/` is already on `develop` (PR #16) and unscanned. `api/`, `auth/`, `flow/` and `infra/` land in the next hours. The Jenkinsfile gets one candidate list, `BANDIT_CANDIDATES = 'tools adapters agents scripts evals api auth flow infra config.py'`, and the Python stage scans those that exist.
+2. **Bandit scans every back-end folder that exists.** Today it scans `tools adapters agents scripts config.py`. `evals/` is already on `develop` (PR #16) and unscanned. `infra/` (the CDK and the Lambda glue in `infra/functions/` *(new)*) lands in the next hours. The Jenkinsfile gets one candidate list, `BANDIT_CANDIDATES = 'tools adapters agents scripts evals infra config.py'`, and the Python stage scans those that exist.
 3. **The Jenkins credential `cloud9-npm-token` exists** (read-only npm token, secret text), so the front-end build stage passes.
 4. Patrick reviews and merges. Every later PR shows one green Jenkins status check.
 
@@ -53,7 +54,7 @@ The vault is the shared context space: decisions, briefs, rules, the build order
 **Jenkinsfile `environment` block** gains, after `WEB_PATHS`:
 ```groovy
     // Every back-end folder bandit scans once it exists, so new folders are covered the day they land.
-    BANDIT_CANDIDATES = 'tools adapters agents scripts evals api auth flow infra config.py'
+    BANDIT_CANDIDATES = 'tools adapters agents scripts evals infra config.py'
 ```
 **Python stage:** `-e BANDIT_CANDIDATES` is passed into the container, and both bandit calls scan `$bandit_targets`, built as:
 ```bash

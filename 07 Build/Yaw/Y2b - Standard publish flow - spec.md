@@ -18,14 +18,15 @@ The vault is the shared context space: decisions, briefs, rules, the build order
 6. [[Y2a - Express ask spine - spec]] (FlowStack, the stub pattern) and [[Y1 - ApiStack - spec]] (the routes, `PortalFunction`).
 7. [[Huvison - trust and flow]] §5 (publish and approve: `start_publish`, `decide`, the task token keyed by `run_id`, the status pack) and [[Linus - API, identity, blocker-analyst]] (the `/publish` and `/approve` entry points).
 8. `01 Decisions/`: [[2026-10-13 Ask spine is Step Functions Express, publish is Standard]], [[2026-10-13 Team are admins, workload roles least-privilege]]; hard gate 3 in [[Workstreams]] §6 (human approval before the only write).
+9. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 **Whenever this note is silent or unclear, look in the vault before guessing:** `04 Reference/` for the brief, the rubrics and the guideline; `03 Sessions/` for what happened when; `Open follow-ups.md` for known open questions. If the vault doesn't answer it either, stop and ask Yaw (owner) or Huvison (the publish functions). Never invent a name, a shape or a rule.
 
 ## 1. Intent
 **What:**
 1. A **Standard** state machine `Publish` in `FlowStack`: `WaitForApproval` (Lambda `store_task_token`, **`waitForTaskToken`**, 48-hour timeout) → `WriteStatusPack` (Lambda `write_status_pack`) → `Published`. `SendTaskFailure` with error **`SentBack`** ends at `SentBack` (a Succeed, nothing written); a timeout ends at `ApprovalTimedOut` (Fail).
-2. Two Lambdas (`PortalFunction`): `store_task_token` (ledger `GetItem`/`PutItem`/`UpdateItem` on the **ledger table only**) and `write_status_pack` (the same, plus **`s3:PutObject` on `status-packs/*` only**: the system's only write). Stubs first (`infra/functions/stub_publish.py` *(new)*: store nothing, write nothing), then Huvison's `flow.publish.*` (`PUBLISH_STEPS_WITH_REAL_HANDLERS`).
-3. **API wiring:** `/publish` gets `PUBLISH_STATE_MACHINE_ARN`, `LEDGER_BACKEND=dynamo`, `LEDGER_TABLE`, `states:StartExecution` on this machine and `dynamodb:GetItem` on the ledger; `/approve` gets the same settings, `states:SendTaskSuccess` + `SendTaskFailure` on this machine, and `GetItem` + `UpdateItem` on the ledger. `API_BUNDLE` gains `flow/` (the handlers call `flow.publish`).
+2. Two Lambdas (`PortalFunction`): `store_task_token` (ledger `GetItem`/`PutItem`/`UpdateItem` on the **ledger table only**) and `write_status_pack` (the same, plus **`s3:PutObject` on `status-packs/*` only**: the system's only write). Stubs first (`infra/functions/stub_publish.py` *(new)*: store nothing, write nothing), then Huvison's `infra.functions.publish.*` (`PUBLISH_STEPS_WITH_REAL_HANDLERS`).
+3. **API wiring:** `/publish` gets `PUBLISH_STATE_MACHINE_ARN`, `LEDGER_BACKEND=dynamo`, `LEDGER_TABLE`, `states:StartExecution` on this machine and `dynamodb:GetItem` on the ledger; `/approve` gets the same settings, `states:SendTaskSuccess` + `SendTaskFailure` on this machine, and `GetItem` + `UpdateItem` on the ledger. `API_BUNDLE` gains `infra/functions/publish.py` (the handlers call `infra.functions.publish`).
 4. Output `PublishStateMachineArn`; attributes `.publish_state_machine`, `.publish_log_group`, `.publish_functions`, `.publish_start_statement()`, `.publish_decision_statement()`.
 
 **Why:** hard gate 3, "human approval before the only write": the status pack is written only after a delivery lead approves (Huvison's `decide` checks the role). Standard, not Express, because a human may take hours.
@@ -36,9 +37,9 @@ The vault is the shared context space: decisions, briefs, rules, the build order
 - **Verify in AWS:** a publish execution waits at `WaitForApproval`; `send-task-success` moves it to `Published`; `send-task-failure --error SentBack` ends at `SentBack`; after H4, `POST /api/publish` then `POST /api/approve` as the delivery lead puts `s3://<bucket>/status-packs/<run_id>.json`, and nothing appears before the approval.
 
 **Assumptions** (reconcile with the named owner before the PR):
-- **Huvison (H4):** `flow.publish` exposes two more Lambda handlers besides `start_publish` and `decide`: **`store_task_token(event, context)`** with `event = {"run_id", "task_token"}` (calls `Ledger.put_task_token`) and **`write_status_pack(event, context)`** with `event = {"run_id", "approval"}` (writes `<status_pack_prefix><run_id>.json` to `artefacts_bucket`). The handover calls the second one "the status-pack writer"; the names are this spec's proposal.
+- **Huvison (H4):** `infra.functions.publish` exposes two more Lambda handlers besides `start_publish` and `decide`: **`store_task_token(event, context)`** with `event = {"run_id", "task_token"}` (calls `Ledger.put_task_token`) and **`write_status_pack(event, context)`** with `event = {"run_id", "approval"}` (writes `<status_pack_prefix><run_id>.json` to `artefacts_bucket`). The handover calls the second one "the status-pack writer"; the names are this spec's proposal.
 - **Huvison (H4):** `start_publish` starts the machine with input `{"run_id", "requested_by"}`; `decide` answers with `SendTaskSuccess(output = {"decision": "approve", "note", "approver"})` or `SendTaskFailure(error = "SentBack")`, and logs a send-back on the run in the ledger (hence `UpdateItem` for `/approve`: **a deviation from the handover**, which lists `GetItem` only; tell Patrick).
-- **Linus (L3):** `api.handlers.publish` / `approve` call `flow.publish.start_publish` / `decide` and read settings through `config.get_settings()` (`publish_state_machine_arn`, `ledger_table`, `ledger_backend`).
+- **Linus (L3):** `infra.functions.api.publish` / `approve` call `infra.functions.publish.start_publish` / `decide` and read settings through `config.get_settings()` (`publish_state_machine_arn`, `ledger_table`, `ledger_backend`).
 - The status-pack writer needs no artefacts read (the handover gives it `LEDGER_TABLE`, `ARTEFACTS_BUCKET`, `STATUS_PACK_PREFIX` only); `STATUS_PACK_PREFIX` keeps its `config.py` default `status-packs/`, which is also the IAM prefix.
 
 ## 2. Decisions
@@ -54,10 +55,10 @@ The vault is the shared context space: decisions, briefs, rules, the build order
 ## 3. Tests (new, in `tests/`)
 - `tests/infra/functions/test_stub_publish.py` *(new)*: the stubs store and write nothing.
 - `tests/infra/stacks/test_publish_flow.py` *(new)*: a Standard machine with tracing; `WaitForApproval` uses `lambda:invoke.waitForTaskToken`, passes `$$.Task.Token`, waits 48 h, then `WriteStatusPack`; `SentBack` and `States.Timeout` are caught; only one policy has `s3:PutObject`, on `/status-packs/*`; the output exists; `/publish` alone may `StartExecution`, `/approve` alone may `SendTaskSuccess`, both with the ledger settings.
-- `tests/infra/test_bundling.py` *(new)* (appended): the API bundle carries `flow/publish.py` *(new)*.
+- `tests/infra/test_bundling.py` *(new)* (appended): the API bundle carries `infra/functions/publish.py` *(new)*.
 
 ## 4. Out of scope
-- `flow/publish.py` (Huvison, H4), the handlers (Linus, L3), the portal's publish screens (Clement, F5).
+- `infra/functions/publish.py` (Huvison, H4), the handlers (Linus, L3), the portal's publish screens (Clement, F5).
 - The status-pack format and the approval role check (Huvison's `decide`).
 
 Related: [[Build order]], [[Yaw - DevOps]], [[Workstreams]]

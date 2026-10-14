@@ -13,14 +13,15 @@ The team vault is the shared context space for this project: decisions, briefs, 
 1. [[How to execute a plan]] (`07 Build/`): the procedure. For you, every command is run by Linus or Michael.
 2. [[Workstreams]] §2 (sign-in: "Cognito: groups = roles, claims tenant_id + entity_ids") and §7 (rules: scope comes from the token; no console-clicked resources; no secrets).
 3. [[Abdul - evals, Cognito, docs]] §5 (your brief for this item).
-4. [[Michael - DevOps]] "What you build" item 5 (AuthStack and its acceptance), [[Linus - API, identity, blocker-analyst]] §1 (`auth/scope.py` reads the claims), [[Clement - front end]] (sign-in, the E4 lead sees only E4).
+4. [[Michael - DevOps]] "What you build" item 5 (AuthStack and its acceptance), [[Linus - API, identity, blocker-analyst]] §1 (`infra/functions/scope.py` reads the claims), [[Clement - front end]] (sign-in, the E4 lead sees only E4).
 5. [[Build order]]: A2 feeds M3\* (GuardrailStack + AuthStack), which feeds Y1 (the JWT authorizer), F3 (sign-in) and L6 (the deployed-API asker uses one ID token per scope).
 6. `01 Decisions/`: [[2026-10-13 Scope from the token, enforced twice]], [[2026-10-13 POC plus one target slice, target as 90-day roadmap]] (Cognito sign-in with entity scope is the one target slice). `05 Workflow/`: [[Deploy and demo checks]] (the D2 12:00 Cognito go/no-go).
+7. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 **Whenever this spec is silent or unclear, look in the vault before guessing:** `04 Reference/` for the brief and rubrics; `03 Sessions/`; `Open follow-ups.md`. If it's still unclear, stop and ask Michael (Cognito) or Linus (claims → scope). Never invent a claim name or a group.
 
 ## 1. Intent
-**What:** one agreed list, used by AuthStack, `auth/scope.py`, the front end and the evals:
+**What:** one agreed list, used by AuthStack, `infra/functions/scope.py`, the front end and the evals:
 1. **Four groups:** `cfo`, `sponsor`, `delivery_lead`, `entity_lead` (exactly the `Role` values in `tools/models.py`).
 2. **Two custom attributes (strings):** `tenant_id` and `entity_ids`, read from the ID token as `custom:tenant_id` and `custom:entity_ids`.
 3. **Five test users:** one per role, plus a second entity lead (E2) for the scope demo and Q11.
@@ -39,7 +40,7 @@ The team vault is the shared context space for this project: decisions, briefs, 
 - At D2 12:00, each of the five users signs in to the portal; the E4 lead sees only E4 and gets a refusal on E2.
 
 **Assumptions (to reconcile with the owners):**
-- **A2-1:** Linus's `auth/scope.py` *(new)* `scope_from_claims(claims, settings)` maps `cognito:groups` (exactly one) → `Scope.role`, `custom:tenant_id` → `tenant_id`, `custom:entity_ids` (comma-separated, or `*`) → `entity_ids`, `sub` → `user_id` (his brief §1).
+- **A2-1:** Linus's `infra/functions/scope.py` *(new)* `scope_from_claims(claims, settings)` maps `cognito:groups` (exactly one) → `Scope.role`, `custom:tenant_id` → `tenant_id`, `custom:entity_ids` (comma-separated, or `*`) → `entity_ids`, `sub` → `user_id` (his brief §1).
 - **A2-2:** Michael's AuthStack creates the users in CDK (for example `CfnUserPoolUser` and `CfnUserPoolUserToGroupAttachment`) with **no password in code**; Patrick sets the passwords out of band and shares them privately (your brief §5; Michael's "passwords set out of band, never in code").
 - **A2-3:** the front end (Clement, F3) sends the **ID token** to the API (custom claims are only in the ID token), and the portal is reached at the CloudFront URL Michael's WebStack outputs.
 - **A2-4:** sign-in is by **username**. If AuthStack requires an email attribute, Michael uses `<username>@example.com` (`example.com` is reserved for documentation, so it's never a real address), and that's still listed in `HANDOFF.md` as "email: `<username>@example.com` (not a real mailbox)".
@@ -97,7 +98,7 @@ No code. The checks are:
 - **End to end (D2 12:00):** each user signs in; E4 lead sees only E4 and is refused E2; E2 lead sees only E2.
 
 ## 6. Out of scope
-- AuthStack code (Michael, M3\*), the JWT authorizer (Yaw, Y1), `auth/scope.py` (Linus, L1), the sign-in UI (Clement, F3).
+- AuthStack code (Michael, M3\*), the JWT authorizer (Yaw, Y1), `infra/functions/scope.py` (Linus, L1), the sign-in UI (Clement, F3).
 - Passwords (Patrick, out of band).
 - Federation with a client identity provider, Verified Permissions, a second tenant (roadmap Phase 1 and 3).
 

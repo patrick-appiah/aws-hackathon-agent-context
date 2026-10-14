@@ -16,6 +16,7 @@ The vault is the context space for this work (clone `git@github.com:patrick-appi
 2. [[M3b - AuthStack - spec]]: **the authority.** Where this plan and the spec disagree, the spec wins; record the conflict in the ledger.
 3. [[M2 - App, DataStack and LedgerStack - spec]] (the CDK patterns), [[Michael - DevOps]], [[Abdul - evals, Cognito, docs]] §5, [[Linus - API, identity, blocker-analyst]] §1.
 4. [[2026-10-13 Scope from the token, enforced twice]] and [[Working with AI assistants]].
+5. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 When something here is unclear, look in the vault (`04 Reference/`, `03 Sessions/`, `Open follow-ups.md`) before guessing. If the vault doesn't answer it, stop and ask Michael (or Abdul for users, Linus for claims).
 
@@ -36,7 +37,7 @@ When something here is unclear, look in the vault (`04 Reference/`, `03 Sessions
 - Tests in `tests/`, mirroring the code; `uv run --locked pytest` from the repo root; coverage must not drop (96%).
 - Deploys are manual (D-018); CI builds and tests only. `export AWS_PROFILE=hackathon AWS_REGION=eu-west-1` before any `aws` or `cdk deploy` command.
 - PR to `develop`; Patrick merges; never push to `develop` or `main`; **no `Co-Authored-By` and no "Generated with" lines**.
-- Stay in DevOps's files: `infra/`, `tests/infra/` *(new)*.
+- Stay in DevOps's files: `infra/` (not Linus's `api.py` and `scope.py` or Huvison's `steps`, `spine`, `local`, `states` and `publish` modules in `infra/functions/` *(new)*), `tests/infra/` *(new)* (not `tests/infra/functions/` *(new)*).
 - No layout or "meta" guard tests.
 
 ## Review Focus (what the tests don't fully cover; check by hand at the end)
@@ -174,7 +175,7 @@ Expected: `E   ImportError: cannot import name 'COGNITO_DEMO_USERS' from 'infra.
     # Cognito (AuthStack): the one target slice, sign-in with role and entity claims (D-015).
     USER_POOL_BASE_NAME = "erp-portal-users"
     MANAGED_LOGIN_DOMAIN_BASE = "erp-portal"          # + "-<account id>": Cognito domain prefixes are unique per region
-    TENANT_ID_ATTRIBUTE = "tenant_id"                 # in tokens as custom:tenant_id (auth/scope.py, Linus)
+    TENANT_ID_ATTRIBUTE = "tenant_id"                 # in tokens as custom:tenant_id (infra/functions/scope.py, Linus)
     ENTITY_IDS_ATTRIBUTE = "entity_ids"               # in tokens as custom:entity_ids, comma-separated, "*" = all
     CUSTOM_ATTRIBUTE_PREFIX = "custom:"
     LOCAL_PORTAL_URL = "http://localhost:4200"        # `yarn start`; WebStack adds the CloudFront URL (M4a)
@@ -202,7 +203,7 @@ Expected: `E   ImportError: cannot import name 'COGNITO_DEMO_USERS' from 'infra.
 - [ ] **Step 5: Implement the stack.** Create `infra/stacks/auth_stack.py`:
 ```python
 """AuthStack: Cognito sign-in. Groups are the roles; custom:tenant_id and custom:entity_ids become the Scope
-(auth/scope.py). The portal signs in through managed login with the authorization code flow and PKCE."""
+(infra/functions/scope.py). The portal signs in through managed login with the authorization code flow and PKCE."""
 from typing import get_args
 
 from aws_cdk import Aws, CfnOutput, Duration, RemovalPolicy, Stack
@@ -333,7 +334,7 @@ Expected: `237 passed`, `TOTAL ... 96%`.
 export AWS_PROFILE=hackathon AWS_REGION=eu-west-1
 cd infra && npx cdk deploy AuthStack --require-approval never 2>&1 | tail -6; cd ..
 ```
-Expected (verify in AWS): `✅  demo-AuthStack` and four outputs: `UserPoolId = eu-west-1_<...>`, `UserPoolClientId = <26 characters>`, `IssuerUrl = https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_<...>`, `ManagedLoginUrl = https://demo-erp-portal-486128667962.auth.eu-west-1.amazoncognito.com`.
+Expected (verify in AWS): `✅  demo-AuthStack` and four outputs: `UserPoolId = eu-west-1_<...>`, `UserPoolClientId = <26 characters>`, `IssuerUrl = https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_<...>`, `ManagedLoginUrl = https://demo-erp-portal-796973512193.auth.eu-west-1.amazoncognito.com`.
 
 - [ ] **Step 2: Read the outputs into the shell**
 ```bash

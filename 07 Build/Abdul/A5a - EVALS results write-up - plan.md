@@ -16,12 +16,13 @@ The vault is the context space for this work (clone `git@github.com:patrick-appi
 2. [[A5a - EVALS results write-up - spec]]: **the authority** (§3 row template, §4 "What still fails"). Where this plan and the spec disagree, the spec wins; record the conflict in your ledger.
 3. [[A1 - Eval set review and manual checks - plan]] Task 6 (the manual-check lines).
 4. [[Linus - API, identity, blocker-analyst]] §6.
+5. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 When something here is unclear, look in the vault (`04 Reference/`, `03 Sessions/`, `Open follow-ups.md`) before guessing. If it's still unclear, stop and ask Linus.
 
 **Goal:** every recorded eval run is committed with an honest `EVALS.md` row, and "What still fails" describes the latest run.
 
-**Architecture:** `uv run python -m evals.run --asker flow.local:ask` (Linus) → `evals/results/run-*.json` (the folder `evals/results/` *(new)* is created by the eval runner's first committed run, your first PR) → you → `EVALS.md` + the file committed.
+**Architecture:** `uv run python -m evals.run --asker infra.functions.local.ask` (Linus) → `evals/results/run-*.json` (the folder `evals/results/` *(new)* is created by the eval runner's first committed run, your first PR) → you → `EVALS.md` + the file committed.
 
 **Tech stack:** VS Code (JSON search, Markdown preview), Git, GitHub.
 
@@ -44,7 +45,7 @@ When something here is unclear, look in the vault (`04 Reference/`, `03 Sessions
 
 **Files:** none yet.
 
-- [ ] **Step 1: Ask Linus for the run.** *"Please run `uv run python -m evals.run --asker flow.local:ask` on develop (and the deployed-API asker if it's ready), plus `uv run --locked pytest 2>&1 | grep -E "[0-9]+ (passed|failed)|TOTAL"`, and send me the console output and the results file(s). Is this a recorded run?"*
+- [ ] **Step 1: Ask Linus for the run.** *"Please run `uv run python -m evals.run --asker infra.functions.local.ask` on develop (and the deployed-API asker if it's ready), plus `uv run --locked pytest 2>&1 | grep -E "[0-9]+ (passed|failed)|TOTAL"`, and send me the console output and the results file(s). Is this a recorded run?"*
 Expected: console output ending with a summary line such as `8 pass · 3 fail · 1 manual · 2 not applicable` and `Results written to evals/results/run-<yyyymmdd>-<hhmmss>.json`; the file; "recorded: yes"; the pytest lines.
 
 - [ ] **Step 2: Check the top of the file.**

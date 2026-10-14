@@ -39,7 +39,7 @@ The DevOps split between Michael and Yaw, and the front-end split between Mildre
    │ JWT
    ▼
  API Gateway + JWT authorizer ............................................. Yaw
-   ├─ GET /summary, /entity/{id}, /rows ─▶ KPI Lambda (api/) ─▶ tools/metrics.py ─▶ S3 artefacts .. Linus / Michael
+   ├─ GET /summary, /entity/{id}, /rows ─▶ KPI Lambda (`infra/functions/api.py` *(new)*) ─▶ tools/metrics.py ─▶ S3 artefacts .. Linus / Michael
    ├─ POST /ask ─▶ Step Functions Express "ask spine" ........................ Huvison (handlers) / Yaw (definition)
    │      budget check ─▶ orchestrator ─▶ retriever / blocker-analyst ─▶ run ledger (DynamoDB)
    │      ─▶ citation pre-check (code) ─▶ critic (blind) ─▶ retry guard (Choice, reads ledger; < 2)
@@ -92,9 +92,9 @@ Dashboard figures: 18,420 of 31,700 records reconciled (58.1%); C3 pass rate 96.
 | Agent tools | done | Patrick, Linus | `tools/agent_tools.py` |
 | Ledger port and its extensions (rejected records, read methods, steps, tokens, task tokens) | Huvison | Huvison, Linus (eval runner), Yaw (IAM) | `tools/ports.py`, `adapters/*_ledger.py` |
 | Lambda handover: entry points, environment variables, IAM needs, bundling (`uv export`, prompts included) | Patrick, Linus, Huvison | Yaw, Michael | `docs/DEVOPS_HANDOVER.md` *(new)* (new) |
-| Token claims → `Scope` | Linus (code), Abdul + Michael (Cognito) | every handler | `auth/` |
-| Eval runner, inputs and expectations (**built, PR #16**) | Michael (runner), Abdul (review, Q10, write-up) | the local asker (Huvison, `flow/local.py` *(new)*), the deployed-API asker (Linus) | `evals/run.py`, `evals/inputs/`, `evals/expected/` (worked examples per agent in `evals/expected/<agent>.json` *(new)*) |
-| Budget check (one function, two callers: the `check_budget` state and the orchestrator before each re-plan) | Huvison | Patrick, Yaw | `flow/budget.py` *(new)* (new) |
+| Token claims → `Scope` | Linus (code), Abdul + Michael (Cognito) | every handler | `infra/functions/scope.py` *(new)* |
+| Eval runner, inputs and expectations (**built, PR #16**) | Michael (runner), Abdul (review, Q10, write-up) | the local asker (Huvison, `infra/functions/local.py` *(new)*), the deployed-API asker (Linus) | `evals/run.py`, `evals/inputs/`, `evals/expected/` (worked examples per agent in `evals/expected/<agent>.json` *(new)*) |
+| Budget check (one function, two callers: the `check_budget` state and the orchestrator before each re-plan) | Huvison | Patrick, Yaw | `tools/budget.py` *(new)* (new) |
 
 ## 5. Timeline (`docs/TEAM_PLAN.md` §4)
 - **D1 09:00:** kick-off. Everyone reads this note, their own note, `AGENTS.md` and `ARCHITECTURE.md`.
@@ -148,7 +148,7 @@ git clone git@github.com:Amali-Tech/cloud-9-hackathon.git && cd cloud-9-hackatho
 curl -LsSf https://astral.sh/uv/install.sh | sh        # once per machine
 uv sync && uv run --locked pytest                      # back end: 160 passed
 cd web && corepack enable && yarn install --frozen-lockfile && yarn start   # front end (needs the npm token, see web/README.md)
-export AWS_PROFILE=hackathon AWS_REGION=eu-west-1       # sandbox account 486128667962, your IAM user first.last
+export AWS_PROFILE=hackathon AWS_REGION=eu-west-1       # sandbox account 796973512193, you sign in with your own AmaliTech email through the sign-in URL
 ```
 This vault: `git clone git@github.com:patrick-appiah/aws-hackathon-agent-context.git`, then open the folder as an Obsidian vault. Run `git pull` before you start.
 

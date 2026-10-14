@@ -16,6 +16,7 @@ The vault is the shared context space: decisions, briefs, rules, the build order
 4. [[M2 - App, DataStack and LedgerStack - spec]] (the CDK patterns), [[M3b - AuthStack - spec]] (the pool and client this item extends), [[Y1 - ApiStack - spec]] (`api.http_api`, the stage named `api`).
 5. [[Build order]]: M4a depends on M2 and M3b, and on Y1 for the app wiring.
 6. `01 Decisions/`: [[2026-10-13 Front end]], [[2026-10-14 Two apps in one repo]], [[2026-10-13 Scope from the token, enforced twice]]; `05 Workflow/`: [[Deploy and demo checks]].
+7. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 **Whenever this spec is silent or unclear, look in the vault before guessing:** `04 Reference/` for the brief, the rubrics and the guideline; `03 Sessions/` for what happened when; `Open follow-ups.md` for known open questions. If the vault doesn't answer it either, stop and ask Michael (owner), Yaw (the API) or Clement (sign-in). Never invent a name, a shape or a rule.
 

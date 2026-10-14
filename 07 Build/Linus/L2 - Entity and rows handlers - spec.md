@@ -17,12 +17,13 @@ The team vault is the shared context space for this project: decisions, briefs, 
 5. [[Build order]]: L2 depends on C1 and L1; Mildred's F2 (click a number → `/rows`) waits on it.
 6. [[Mildred - front end]] (what the screen calls, `{rows, missing}`), [[Yaw - DevOps]] (the routes `GET /entity/{id}` and `GET /rows`).
 7. `01 Decisions/`: [[2026-10-13 Scope from the token, enforced twice]] (D-010), [[2026-10-13 Metrics are code, only the blocker Q&A is agentic]] (D-001); [[Dev loop]].
+8. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 **Whenever this note is silent or unclear, look in the vault before guessing:** `04 Reference/` for the brief, the rubrics and the guideline ([[Problem statement]], [[Judging rubric]], [[Pitch track grading rubric]], [[Hackathon guideline]]); `03 Sessions/` for what happened when; `Open follow-ups.md` for known open questions. If the vault doesn't answer it either, stop and ask Linus. Never invent a name, a shape or a rule.
 
 ## 1. Intent
 **What:**
-1. `entity(event, context)` in `api/handlers.py` *(new)*: `GET /entity/{id}` → `EntityResponse` (the entity row, its open blockers, failing reconciliations and calendar conflicts), built by C1's `entity_response(repository, scope, entity_id)`.
+1. `entity(event, context)` in `infra/functions/api.py` *(new)*: `GET /entity/{id}` → `EntityResponse` (the entity row, its open blockers, failing reconciliations and calendar conflicts), built by C1's `entity_response(repository, scope, entity_id)`.
 2. `rows(event, context)`: `GET /rows?cite=artefact:row_id,...` → `RowsResponse {rows, missing}`, built by `rows_response(repository, scope, citations_from_query(cite))`.
 3. The 400 and 404 paths of the error body, which L1's `returns_contract_errors` already maps (`ValueError` → 400 `invalid_input`, `KeyError` → 404 `not_found`, `OutOfScope` → 403 `out_of_scope`).
 
@@ -44,7 +45,7 @@ The team vault is the shared context space for this project: decisions, briefs, 
 ## 2. Decisions
 | Question | Decision | Rejected |
 |---|---|---|
-| Where the logic lives | Nowhere new: `entity_response`, `rows_response` and `citations_from_query` (C1) do it; the handlers only read the path or query and call them | Re-implementing the visibility rule in `api/` (C1 Review Focus 2: reuse `queries.in_entity_view`) |
+| Where the logic lives | Nowhere new: `entity_response`, `rows_response` and `citations_from_query` (C1) do it; the handlers only read the path or query and call them | Re-implementing the visibility rule in `infra/functions/api.py` (C1 Review Focus 2: reuse `queries.in_entity_view`) |
 | Missing path parameter | Read as `""`, so `Scope.require` raises `ValueError` → 400 | A `KeyError` (that would read as 404 "not found") |
 | Order of checks in `/rows` | Scope first, then the `cite` parameter: an unsigned caller always gets 401 | Parsing first (a malformed request would leak 400 to someone not signed in) |
 | An unknown entity for an entity lead (`E9` asked by the E4 lead) | 403 `out_of_scope` (`Scope.require` runs before the lookup), so a lead can't probe which entities exist | 404 (tells a lead an entity doesn't exist) |
@@ -53,13 +54,13 @@ The team vault is the shared context space for this project: decisions, briefs, 
 ## 3. Shapes and behaviour
 | Handler | Request | 200 body | Errors |
 |---|---|---|---|
-| `api.handlers:entity` | `pathParameters.id` | `EntityResponse {entity, blockers, failing_reconciliations, calendar_conflicts}` | 400 malformed or missing ID; 401 no token; 403 `forbidden` bad token, `out_of_scope` other entity; 404 unknown entity |
-| `api.handlers:rows` | `queryStringParameters.cite` = `artefact:row_id,...` | `RowsResponse {rows: [Row], missing: [Citation]}` | 400 missing or malformed `cite`, unknown artefact; 401; 403 `forbidden` |
+| `infra.functions.api.entity` | `pathParameters.id` | `EntityResponse {entity, blockers, failing_reconciliations, calendar_conflicts}` | 400 malformed or missing ID; 401 no token; 403 `forbidden` bad token, `out_of_scope` other entity; 404 unknown entity |
+| `infra.functions.api.rows` | `queryStringParameters.cite` = `artefact:row_id,...` | `RowsResponse {rows: [Row], missing: [Citation]}` | 400 missing or malformed `cite`, unknown artefact; 401; 403 `forbidden` |
 
-New constants in `api/handlers.py`: `ENTITY_PATH_PARAMETER = "id"`, `CITE_QUERY_PARAMETER = "cite"`. Same environment and IAM as `summary` (`docs/DEVOPS_HANDOVER.md`: `s3:GetObject` on `artefacts/*`).
+New constants in `infra/functions/api.py`: `ENTITY_PATH_PARAMETER = "id"`, `CITE_QUERY_PARAMETER = "cite"`. Same environment and IAM as `summary` (`docs/DEVOPS_HANDOVER.md`: `s3:GetObject` on `artefacts/*`).
 
 ## 4. Tests
-`tests/api/test_handlers.py` *(new)*, 12 new tests (with fake HTTP API v2 events from L1's `make_event`): E4 for the CFO; four `/entity` errors (another entity, unknown entity, malformed ID, no token); a missing path parameter; `/rows` visible vs missing; four malformed `cite` cases; `/rows` without a token.
+`tests/infra/functions/test_api.py` *(new)*, 12 new tests (with fake HTTP API v2 events from L1's `make_event`): E4 for the CFO; four `/entity` errors (another entity, unknown entity, malformed ID, no token); a missing path parameter; `/rows` visible vs missing; four malformed `cite` cases; `/rows` without a token.
 
 ## 5. Out of scope
 - `/ask`, `/publish`, `/approve` (L3).

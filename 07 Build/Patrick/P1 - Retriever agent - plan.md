@@ -618,7 +618,7 @@ Shared plumbing for every agent (the Bedrock model with the Guardrail, token usa
 ```markdown
 - The retriever (`agents/retriever.py`): a Strands agent on Nova Lite picks the scoped tools to call; the rows it returns are the tools' rows recorded in code, never the model's text (unit-tested with a scripted model).
 ```
-- [ ] **Step 4: Live smoke check (verify in AWS; not dry-run in the plan's test suite).** With your IAM user on the sandbox:
+- [ ] **Step 4: Live smoke check (verify in AWS; not dry-run in the plan's test suite).** With your own sign-in on the sandbox:
 ```bash
 export AWS_PROFILE=hackathon AWS_REGION=eu-west-1
 uv run python -c "

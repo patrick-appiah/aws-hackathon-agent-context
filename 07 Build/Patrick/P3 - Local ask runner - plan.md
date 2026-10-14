@@ -15,35 +15,36 @@ The vault is the context space for this work (clone `git@github.com:patrick-appi
 1. [[How to execute a plan]]: the procedure, the rules for commits and PRs, and what to do when stuck.
 2. [[P3 - Local ask runner - spec]]: **the authority**. Where this plan and the spec disagree, the spec wins; record the conflict in the ledger.
 3. [[Workstreams]] §2 and §7, [[Patrick - contracts, orchestrator, retriever]] §4–§5, [[Huvison - trust and flow]] §3 and §7.
-4. [[H2b - Agent states, local spine and Lambda handlers - spec]] (`flow.spine.run_spine`, `SpineAgents`), [[L1 - Scope from the token and the summary handler - spec]] (`auth.scope.demo_scope`), [[P2 - Orchestrator agent - spec]] and [[C1 - API and spine contracts - spec]] §3 (`AskResponse`).
+4. [[H2b - Agent states, local spine and Lambda handlers - spec]] (`infra.functions.spine.run_spine`, `SpineAgents`), [[L1 - Scope from the token and the summary handler - spec]] (`infra.functions.scope.demo_scope`), [[P2 - Orchestrator agent - spec]] and [[C1 - API and spine contracts - spec]] §3 (`AskResponse`).
 5. `01 Decisions/`: [[2026-10-13 Ask spine is Step Functions Express, publish is Standard]]; `05 Workflow/`: [[Dev loop]], [[Deploy and demo checks]], [[Working with AI assistants]].
+6. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 When something here is unclear, look in the vault (`04 Reference/`, `03 Sessions/`, `Open follow-ups.md`) before guessing. If the vault doesn't answer it, stop and ask Patrick.
 
-**Goal:** `uv run python scripts/ask.py --entity E4 "What is blocking cutover?"` builds the demo CFO's `Question`, runs Huvison's `flow.spine.run_spine` on a fresh `InMemoryLedger` and the committed CSVs, and prints the cited answer, the could-not-verify claims, the trace and the cost.
+**Goal:** `uv run python scripts/ask.py --entity E4 "What is blocking cutover?"` builds the demo CFO's `Question`, runs Huvison's `infra.functions.spine.run_spine` on a fresh `InMemoryLedger` and the committed CSVs, and prints the cited answer, the could-not-verify claims, the trace and the cost.
 
-**Architecture:** the script holds no spine logic. `main` parses the command line, builds the `Question` (validated before anything runs), calls `run_spine(question, ledger=InMemoryLedger(), repository=CsvRepository(DEFAULT_ARTEFACTS_URI))` and prints `render(response)` or the JSON. The state order, the retry guard and the partial answers are H2b's (`flow/spine.py` *(new)*). `local_scope` is the demo CFO: L1's `auth.scope.demo_scope(settings)` once L1 is merged, until then the same CFO scope built here. Tests monkeypatch `run_spine`, or drive the real one with stub agents: no Bedrock, no AWS.
+**Architecture:** the script holds no spine logic. `main` parses the command line, builds the `Question` (validated before anything runs), calls `run_spine(question, ledger=InMemoryLedger(), repository=CsvRepository(DEFAULT_ARTEFACTS_URI))` and prints `render(response)` or the JSON. The state order, the retry guard and the partial answers are H2b's (`infra/functions/spine.py` *(new)*). `local_scope` is the demo CFO: L1's `infra.functions.scope.demo_scope(settings)` once L1 is merged, until then the same CFO scope built here. Tests monkeypatch `run_spine`, or drive the real one with stub agents: no Bedrock, no AWS.
 
 **Tech stack:** Python 3.11, pydantic 2, argparse, pytest, uv. Run the tests with `uv run --locked pytest` from the repo root.
 
-**Dry-run status of this plan:** every step was run on C1 as reviewed (`94970fd`) + P1 + H1 + H5 + H3 + H2a + H2b (Huvison's dry-run code) + P2. The L1 variant of `local_scope` (Task 2, Step 4) was run against a stand-in `auth/scope.py` *(new)* with L1's `demo_scope`. The counts below are **deltas** from your start count; the failure messages are the real ones. The Q01 live run (Task 3, Step 1) needs Bedrock: "verify in AWS".
+**Dry-run status of this plan:** every step was run on C1 as reviewed (`94970fd`) + P1 + H1 + H5 + H3 + H2a + H2b (Huvison's dry-run code) + P2. The L1 variant of `local_scope` (Task 2, Step 4) was run against a stand-in `infra/functions/scope.py` *(new)* with L1's `demo_scope`. The counts below are **deltas** from your start count; the failure messages are the real ones. The Q01 live run (Task 3, Step 1) needs Bedrock: "verify in AWS".
 
 ## Global Constraints
 - **Repo:** `~/amalitech/aws-hackathon/erp-migration-portal` (or your clone of `Amali-Tech/cloud-9-hackathon`). Branch: **`feature/local-ask-runner`** from an up-to-date `develop` **after H2b is merged** (and so C1, H1, H2a, H3, H5).
 - **Start state:** `uv run --locked pytest` → **`N passed`** (and `1 skipped` if P2 is merged and L5 isn't), where `N` is whatever `develop` gives after H2b; `TOTAL` coverage ≥ 96%. Write `N` in the ledger. Every count below is `N + k`.
 - **Region and models:** `eu-west-1` only; `eu.*` inference profiles only, from `config.get_settings()`. Synthetic data only. No secrets anywhere.
 - **Clean code (enforced by tests):** settings only in `config.py`; domain constants only in `tools/constants.py`; descriptive names; **no single-character names**; no magic numbers. Scripts run as `uv run python scripts/...` in every doc and docstring (`tests/test_dependencies.py`).
-- **No spine logic in the script.** The state order, the retry (the ledger's `retry_decision`) and the partial answers belong to `flow.spine.run_spine` (H2b). The script never loops over claims. When H6 (`flow/local.py` *(new)*) lands, the script **keeps calling `run_spine`**: `flow/local.py` is the eval asker's, not this runner's.
+- **No spine logic in the script.** The state order, the retry (the ledger's `retry_decision`) and the partial answers belong to `infra.functions.spine.run_spine` (H2b). The script never loops over claims. When H6 (`infra/functions/local.py` *(new)*) lands, the script **keeps calling `run_spine`**: `infra/functions/local.py` is the eval asker's, not this runner's.
 - **The scope is the demo user, built in code** (`local_scope`), never from the command line. `AUTH_MODE` defaults to `cognito` since C1's review; the runner never reads it: `local_scope` builds the demo user itself, or through L1's `demo_scope`, which doesn't check `AUTH_MODE` either. So no `AUTH_MODE=none` is needed in your shell.
 - **`AskResponse` carries `partial_reason` exactly when `partial` is true** (C1 validator): never set one without the other, in code or in tests.
 - **No Bedrock or AWS calls in tests.** The live run is manual.
 - **Never weaken a security rule** (scope gate, create-once ledger, fail-closed critic, escaping) to pass a test.
 - **Tests in `tests/`, mirroring the code** (`tests/scripts/test_ask.py`). **No layout or "meta" guard tests.**
-- **Stay in your folders:** `scripts/ask.py`, `tests/scripts/test_ask.py`, one line in `HANDOFF.md`. Don't touch `flow/` (Huvison) or `auth/` (Linus).
+- **Stay in your folders:** `scripts/ask.py`, `tests/scripts/test_ask.py`, one line in `HANDOFF.md`. Don't touch `infra/functions/steps.py` *(new)*, `spine.py` or `local.py` (Huvison) or `infra/functions/scope.py` (Linus).
 - **Commits:** one per task, with the messages given. No `Co-Authored-By` and no "Generated with" lines. **Never push to `develop` or `main`;** the PR is Task 4, after Patrick's OK.
 
 ## Review Focus (what the tests don't fully cover; check by hand at the end)
-1. **`run_spine`'s signature against the merged `flow/spine.py`.** It must take `ledger=` and `repository=` as keywords and return an `AskResponse` (Task 1, Step 1). A different signature: adapt only the one call in `main` and its test stand-in (`spine_returning`), ledger a Ruling, tell Huvison.
+1. **`run_spine`'s signature against the merged `infra/functions/spine.py`.** It must take `ledger=` and `repository=` as keywords and return an `AskResponse` (Task 1, Step 1). A different signature: adapt only the one call in `main` and its test stand-in (`spine_returning`), ledger a Ruling, tell Huvison.
 2. **One demo user.** With L1 merged, `local_scope` must be `demo_scope(settings)` (Task 2, Step 4); without it, the CFO scope here must equal L1's (`demo-cfo`, `cfo`, `*`, the default tenant). Note: L1's `demo_scope` follows `DEMO_ROLE`, so `DEMO_ROLE=delivery_lead` in your shell makes the local run ask as a delivery lead. Unset it for the demo rehearsal.
 3. **No spine logic crept in.** `grep -nE "while |for claim|retry" scripts/ask.py` prints nothing.
 4. **Partial responses carry the cost.** After the E9 run (Task 3, Step 1) the `Cost:` line is `$0.0000` (no model call); after the Q01 run it is above `$0.0000` and below `$0.5000`.
@@ -62,16 +63,16 @@ When something here is unclear, look in the vault (`04 Reference/`, `03 Sessions
 ```bash
 cd ~/amalitech/aws-hackathon/erp-migration-portal && git switch develop && git pull
 uv sync && uv run --locked pytest 2>&1 | grep -E "[0-9]+ (passed|failed|skipped)|TOTAL"
-uv run python -c "import inspect; from flow.spine import run_spine; print(inspect.signature(run_spine))"
-uv run python -c "from auth.scope import demo_scope; print('L1 merged')"
+uv run python -c "import inspect; from infra.functions.spine import run_spine; print(inspect.signature(run_spine))"
+uv run python -c "from infra.functions.scope import demo_scope; print('L1 merged')"
 git switch -c feature/local-ask-runner
 mkdir -p .superpowers && printf '# Ledger: P3 Local ask runner\n' > .superpowers/ledger-P3.md
 ```
-Expected: `N passed` (write it in the ledger); then `(question: tools.models.Question, *, ledger: tools.ports.Ledger, repository: tools.ports.ArtefactRepository, agents: flow.spine.SpineAgents = SpineAgents(orchestrator=None, writer=None, critic_agent=None)) -> tools.api_schema.AskResponse`. `No module named 'flow'` or `'flow.spine'`: stop, H2b isn't merged. Then either `L1 merged` (write "L1 variant" in the ledger: Task 2, Step 4 applies) or `ModuleNotFoundError: No module named 'auth'` (write "pre-L1 variant"; skip Task 2, Step 4).
+Expected: `N passed` (write it in the ledger); then `(question: tools.models.Question, *, ledger: tools.ports.Ledger, repository: tools.ports.ArtefactRepository, agents: infra.functions.spine.SpineAgents = SpineAgents(orchestrator=None, writer=None, critic_agent=None)) -> tools.api_schema.AskResponse`. `No module named 'flow'` or `'infra.functions.spine'`: stop, H2b isn't merged. Then either `L1 merged` (write "L1 variant" in the ledger: Task 2, Step 4 applies) or `ModuleNotFoundError: No module named 'auth'` (write "pre-L1 variant"; skip Task 2, Step 4).
 
 - [ ] **Step 2: Write the failing tests.** Create `tests/scripts/test_ask.py`:
 ```python
-"""scripts/ask.py: the local runner builds the demo CFO's question, runs flow.spine.run_spine on a fresh in-memory
+"""scripts/ask.py: the local runner builds the demo CFO's question, runs infra.functions.spine.run_spine on a fresh in-memory
 ledger and the committed CSVs, and prints what /ask returns. No test calls Bedrock or AWS."""
 from config import get_settings
 from scripts import ask
@@ -124,7 +125,7 @@ Expected: `E   ImportError: cannot import name 'ask' from 'scripts' (unknown loc
 Usage, from the repo root (AWS_PROFILE=hackathon AWS_REGION=eu-west-1 for the model calls):
   uv run python scripts/ask.py --entity E4 "What is blocking cutover?"
   uv run python scripts/ask.py --entity E4 "What is blocking cutover?" --json   # the AskResponse as JSON
-It calls Huvison's flow.spine.run_spine, which runs the ask-spine states (flow/steps.py) in the Express state
+It calls Huvison's infra.functions.spine.run_spine, which runs the ask-spine states (infra/functions/steps.py) in the Express state
 machine's order with the real agents. The user is the demo CFO (AUTH_MODE=none). It prints the answer and its
 citations, the claims that could not be verified, the trace with prompt versions, and the cost.
 """
@@ -148,7 +149,7 @@ CITATION_SEPARATOR = ", "
 
 def local_scope(settings: Settings) -> Scope:
     """The demo user of AUTH_MODE=none: the CFO, every entity of the default tenant (the same user as L1's
-    auth.scope.demo_scope)."""
+    infra.functions.scope.demo_scope)."""
     return Scope(user_id=DEMO_USER_ID, role=DEMO_ROLE, tenant_id=settings.default_tenant_id,
                  entity_ids=(ALL_ENTITIES_WILDCARD,))
 
@@ -197,16 +198,16 @@ Expected: `N+3 passed`, coverage unchanged (`scripts/` is outside the coverage s
 - `uv run --locked pytest tests/scripts/test_ask.py --no-cov` prints `3 passed`.
 - `git log -1 --format=%s` prints the commit message above.
 
-### Task 2: The command line on `flow.spine.run_spine`
+### Task 2: The command line on `infra.functions.spine.run_spine`
 
 **Files:**
 - Modify: `scripts/ask.py`, `tests/scripts/test_ask.py` (both replaced by the full files below)
 
-**Produces:** `scripts.ask.main(argv: list[str] | None = None) -> int`; constants `LOCAL_RUN_PREFIX = "local-"`, `JSON_INDENT = 2`, `EXIT_OK = 0`. **Consumes:** `flow.spine.run_spine(question, *, ledger, repository, agents=SpineAgents()) -> AskResponse` and `flow.spine.SpineAgents` (H2b); `adapters.csv_repo.CsvRepository`, `adapters.memory_ledger.InMemoryLedger`, `config.DEFAULT_ARTEFACTS_URI`, `get_settings`, `tools.models.Question`, `OrchestratorResult`, `PartialAnswer`, `Plan` (exist); with L1, `auth.scope.demo_scope(settings) -> Scope`.
+**Produces:** `scripts.ask.main(argv: list[str] | None = None) -> int`; constants `LOCAL_RUN_PREFIX = "local-"`, `JSON_INDENT = 2`, `EXIT_OK = 0`. **Consumes:** `infra.functions.spine.run_spine(question, *, ledger, repository, agents=SpineAgents()) -> AskResponse` and `infra.functions.spine.SpineAgents` (H2b); `adapters.csv_repo.CsvRepository`, `adapters.memory_ledger.InMemoryLedger`, `config.DEFAULT_ARTEFACTS_URI`, `get_settings`, `tools.models.Question`, `OrchestratorResult`, `PartialAnswer`, `Plan` (exist); with L1, `infra.functions.scope.demo_scope(settings) -> Scope`.
 
 - [ ] **Step 1: Write the failing tests.** Replace the whole of `tests/scripts/test_ask.py` with:
 ```python
-"""scripts/ask.py: the local runner builds the demo CFO's question, runs flow.spine.run_spine on a fresh in-memory
+"""scripts/ask.py: the local runner builds the demo CFO's question, runs infra.functions.spine.run_spine on a fresh in-memory
 ledger and the committed CSVs, and prints what /ask returns. No test calls Bedrock or AWS."""
 import functools
 import json
@@ -250,7 +251,7 @@ def writer_that_must_not_run(writer_input):
 
 
 def spine_returning(response: AskResponse, seen: dict):
-    """A stand-in for flow.spine.run_spine: records what main passed, returns the response under the run's ID."""
+    """A stand-in for infra.functions.spine.run_spine: records what main passed, returns the response under the run's ID."""
     def fake_run_spine(question, *, ledger, repository):
         seen.update(question=question, ledger=ledger, repository=repository)
         return response.model_copy(update={"run_id": question.run_id})
@@ -336,7 +337,7 @@ Expected: `E       AttributeError: <module 'scripts.ask' from '…/scripts/ask.p
 Usage, from the repo root (AWS_PROFILE=hackathon AWS_REGION=eu-west-1 for the model calls):
   uv run python scripts/ask.py --entity E4 "What is blocking cutover?"
   uv run python scripts/ask.py --entity E4 "What is blocking cutover?" --json   # the AskResponse as JSON
-It calls Huvison's flow.spine.run_spine, which runs the ask-spine states (flow/steps.py) in the Express state
+It calls Huvison's infra.functions.spine.run_spine, which runs the ask-spine states (infra/functions/steps.py) in the Express state
 machine's order with the real agents. The user is the demo CFO (AUTH_MODE=none). It prints the answer and its
 citations, the claims that could not be verified, the trace with prompt versions, and the cost.
 """
@@ -354,7 +355,7 @@ from pydantic import ValidationError  # noqa: E402
 from adapters.csv_repo import CsvRepository  # noqa: E402
 from adapters.memory_ledger import InMemoryLedger  # noqa: E402
 from config import DEFAULT_ARTEFACTS_URI, Settings, get_settings  # noqa: E402
-from flow.spine import run_spine  # noqa: E402
+from infra.functions.spine import run_spine  # noqa: E402
 from tools.api_schema import AskResponse, TraceStep  # noqa: E402
 from tools.constants import ALL_ENTITIES_WILDCARD  # noqa: E402
 from tools.models import Question, Scope  # noqa: E402
@@ -371,7 +372,7 @@ EXIT_OK = 0
 
 def local_scope(settings: Settings) -> Scope:
     """The demo user of AUTH_MODE=none: the CFO, every entity of the default tenant (the same user as L1's
-    auth.scope.demo_scope)."""
+    infra.functions.scope.demo_scope)."""
     return Scope(user_id=DEMO_USER_ID, role=DEMO_ROLE, tenant_id=settings.default_tenant_id,
                  entity_ids=(ALL_ENTITIES_WILDCARD,))
 
@@ -432,12 +433,12 @@ if __name__ == "__main__":
 ```
 
 - [ ] **Step 4: Only if Task 1, Step 1 printed `L1 merged`: use L1's demo user.** In `scripts/ask.py`:
-  - directly after `from adapters.memory_ledger import InMemoryLedger  # noqa: E402`, add `from auth.scope import demo_scope  # noqa: E402`;
+  - directly after `from adapters.memory_ledger import InMemoryLedger  # noqa: E402`, add `from infra.functions.scope import demo_scope  # noqa: E402`;
   - delete the line `from tools.constants import ALL_ENTITIES_WILDCARD  # noqa: E402` and the two lines `DEMO_USER_ID = "demo-cfo"` and `DEMO_ROLE = "cfo"`;
   - replace the whole `local_scope` function with:
 ```python
 def local_scope(settings: Settings) -> Scope:
-    """The demo user of AUTH_MODE=none, built by L1's auth.scope.demo_scope, so the API and this runner agree."""
+    """The demo user of AUTH_MODE=none, built by L1's infra.functions.scope.demo_scope, so the API and this runner agree."""
     return demo_scope(settings)
 ```
   The tests don't change: L1's demo user is the same CFO (`demo-cfo`, `cfo`, `*`, the default tenant).
@@ -455,14 +456,14 @@ Expected: `8 passed in …s`; then `usage: ask.py [-h] --entity ENTITY [--json] 
 uv run --locked pytest tests/test_dependencies.py tests/test_code_style.py --no-cov 2>&1 | tail -1
 uv run --locked pytest 2>&1 | grep -E "[0-9]+ (passed|failed|skipped)|TOTAL"
 git add scripts/ask.py tests/scripts/test_ask.py
-git commit -m "Local ask runner: the command line runs flow.spine.run_spine on an in-memory ledger and the committed CSVs; --json"
+git commit -m "Local ask runner: the command line runs infra.functions.spine.run_spine on an in-memory ledger and the committed CSVs; --json"
 ```
 Expected: `15 passed` (the guards; more if later items added some); then `N+8 passed`, coverage unchanged.
 
 **Task done when:**
 - `uv run --locked pytest tests/scripts/test_ask.py --no-cov` prints `8 passed`.
 - `uv run python scripts/ask.py --entity E-4 "x"; echo $?` ends with `2`.
-- `grep -c "from flow.spine import run_spine" scripts/ask.py` prints `1`.
+- `grep -c "from infra.functions.spine import run_spine" scripts/ask.py` prints `1`.
 
 ### Task 3: The local and live runs, and the HANDOFF line
 
@@ -483,7 +484,7 @@ Expected:
   Copy the outputs into the ledger. If P2, L5 or H3 isn't merged, write "run deferred: <item> not merged" for the runs that need it and do them after. A missing citation is a finding for the agents (P1, P2, L5), not for this script: note it and go on.
 - [ ] **Step 2: `HANDOFF.md`.** Under `## What's real`, directly after the line that starts `- The orchestrator (` (P2; if P2 isn't merged yet, as the last line of that section), add:
 ```markdown
-- `uv run python scripts/ask.py --entity E4 "What is blocking cutover?"` runs the whole ask spine on one machine (`flow.spine.run_spine`: CSV data, in-memory ledger, real Bedrock agents) in the state machine's order, and prints the cited answer, what could not be verified, the trace and the cost.
+- `uv run python scripts/ask.py --entity E4 "What is blocking cutover?"` runs the whole ask spine on one machine (`infra.functions.spine.run_spine`: CSV data, in-memory ledger, real Bedrock agents) in the state machine's order, and prints the cited answer, what could not be verified, the trace and the cost.
 ```
 - [ ] **Step 3: Guards, full suite and commit**
 ```bash
@@ -512,7 +513,7 @@ Expected: the guards pass (`15 passed` or more, 0 failed); `N+8 passed`.
 ## Done means
 - [ ] **The runner is tested.** *Verify:* on `develop`, `uv run --locked pytest tests/scripts/test_ask.py --no-cov` prints `8 passed`.
 - [ ] **The suite is green.** *Verify:* `uv run --locked pytest 2>&1 | grep -E "passed|TOTAL"` shows 0 failed and `TOTAL` ≥ 96%.
-- [ ] **The script runs H2b's spine and holds no spine logic.** *Verify:* `grep -c "from flow.spine import run_spine" scripts/ask.py` prints `1`; `grep -nE "while |for claim|retry" scripts/ask.py` prints nothing.
+- [ ] **The script runs H2b's spine and holds no spine logic.** *Verify:* `grep -c "from infra.functions.spine import run_spine" scripts/ask.py` prints `1`; `grep -nE "while |for claim|retry" scripts/ask.py` prints nothing.
 - [ ] **One demo user.** *Verify:* `uv run --locked pytest tests/scripts/test_ask.py -k local_scope --no-cov` prints `1 passed`; with L1 on `develop`, `grep -n "return demo_scope(settings)" scripts/ask.py` shows one line.
 - [ ] **Bad input never starts a run.** *Verify:* `uv run python scripts/ask.py --entity E-4 "What is blocking cutover?"; echo $?` prints `invalid question: entity_id: …` and `2`.
 - [ ] **An unknown entity is a partial answer, without a model call.** *Verify:* with P2 merged and no AWS credentials, `uv run python scripts/ask.py --entity E9 "What is blocking cutover for E9?"` prints `Partial answer: unknown entity: E9 is not in this programme` and `Cost: $0.0000`.
@@ -521,11 +522,11 @@ Expected: the guards pass (`15 passed` or more, 0 failed); `N+8 passed`.
 - [ ] **Merged.** *Verify:* the PR shows `Merged` into `develop`; [[Build order]] row P3 is `merged`.
 
 ## Never
-- Sequence the states, decide a retry, or read or reset an attempt count in the script: that is `flow.spine.run_spine` (H2b).
-- Switch the script to `flow/local.py` when H6 lands; it keeps calling `run_spine`.
+- Sequence the states, decide a retry, or read or reset an attempt count in the script: that is `infra.functions.spine.run_spine` (H2b).
+- Switch the script to `infra/functions/local.py` when H6 lands; it keeps calling `run_spine`.
 - Take the scope from the command line; build it only in `local_scope` (L1's `demo_scope` once merged, which follows `config.py`'s `demo_role`).
 - Call Bedrock or AWS in a test.
-- Edit `flow/` or `auth/` to make the script fit; adapt the call in `main` and tell the owner.
+- Edit `infra/functions/` *(new)* to make the script fit; adapt the call in `main` and tell the owner.
 - Push to `develop` or `main`; add attribution lines.
 
 Related: [[P3 - Local ask runner - spec]], [[Build order]], [[How to execute a plan]]

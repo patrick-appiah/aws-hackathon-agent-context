@@ -16,6 +16,7 @@ The vault is the shared context space: decisions, briefs, rules, the build order
 4. [[M2 - App, DataStack and LedgerStack - spec]] (patterns, `LOG_RETENTION`), [[Y1 - ApiStack - spec]] (`api.http_api`), [[Y2a - Express ask spine - spec]] (`flow.ask_state_machine`, `flow.ask_log_group`), [[M4a - WebStack - spec]] (the app fixture with a portal build).
 5. [[Build order]]: M4b depends on M2, and on Y1, Y2a and M4a for the wiring.
 6. `01 Decisions/`: [[2026-10-13 Ask spine is Step Functions Express, publish is Standard]], [[2026-10-13 Default models]]; `05 Workflow/`: [[Deploy and demo checks]].
+7. [[C2 - Repo layout - spec]]: where every file goes (no `api/`, `auth/`, `flow/`).
 
 **Whenever this spec is silent or unclear, look in the vault before guessing:** `04 Reference/` for the brief, the rubrics and the guideline; `03 Sessions/` for what happened when; `Open follow-ups.md` for known open questions. If the vault doesn't answer it either, stop and ask Michael (owner), Yaw (the stacks it reads) or Huvison (cost). Never invent a name, a shape or a rule.
 
@@ -42,7 +43,7 @@ The vault is the shared context space: decisions, briefs, rules, the build order
 - **Yaw (Y1):** `api.http_api` is an `aws_apigatewayv2.HttpApi`; its standard `AWS/ApiGateway` metrics (`Latency`, `4xx`, `5xx` by `ApiId`) are what the dashboard reads.
 - **Yaw (Y2a):** `flow.ask_state_machine` is the **Express** ask spine and `flow.ask_log_group` its log group, with logging level `ALL` and `include_execution_data=True`, `tracing_enabled=True`, and the group created with `retention=LOG_RETENTION` and `RemovalPolicy.DESTROY`. Its successful execution's output is the C1 `AskResponse` JSON (with `run_id` and `cost_usd`). The app-wide tests in Task 2 enforce the tracing and retention parts.
 - **Yaw (Y1, Y3):** every log group his stacks declare uses `LOG_RETENTION` and `DESTROY` (enforced by the same test), and his Lambdas and the AgentCore runtime have tracing / observability switched on where they are created (Y3 enables AgentCore observability on the runtime; M4b only turns Transaction Search on).
-- **Huvison (H5):** `cost_usd` in `AskResponse` is the run's real cost (`flow/cost.py` *(new)*). The dashboard shows what the spine returns; it doesn't compute cost.
+- **Huvison (H5):** `cost_usd` in `AskResponse` is the run's real cost (`tools/cost.py` *(new)*). The dashboard shows what the spine returns; it doesn't compute cost.
 - **Bedrock metrics:** the `AWS/Bedrock` `ModelId` dimension carries the inference-profile IDs the agents call (`eu.anthropic.claude-sonnet-4-6`, `eu.amazon.nova-lite-v1:0`). **Verify in AWS** after the first run; if the dimension differs, change only `BEDROCK_MODEL_IDS`' source.
 
 ## 2. Decisions
