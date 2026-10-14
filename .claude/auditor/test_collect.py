@@ -3,6 +3,7 @@ python3 -m unittest discover -s .claude -p "test_*.py"
 """
 import datetime
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -177,6 +178,130 @@ class GitFactTests(unittest.TestCase):
             return collect.CommandResult(128, "", "fatal: not a git repository\nmore")
         with self.assertRaisesRegex(collect.Unavailable, "fatal: not a git repository"):
             collect.collect_tree(self.repo, self.sha, failing_runner)
+
+
+PR_JSON = json.dumps([{
+    "number": 8, "title": "Add minimal CI", "state": "OPEN", "isDraft": True,
+    "headRefName": "chore/ci-minimal-checks", "baseRefName": "develop",
+    "author": {"login": "someone"}, "createdAt": "2026-10-14T11:35:16Z", "mergedAt": None,
+    "statusCheckRollup": [{"name": "jenkins", "conclusion": "FAILURE", "status": "COMPLETED"}],
+    "files": [{"path": "Jenkinsfile"}],
+}])
+
+PYTEST_OUTPUT = """........
+---------- coverage: platform linux, python 3.11.14-final-0 ----------
+Name    Stmts   Miss  Cover
+TOTAL    1200     60    95%
+160 passed in 12.34s
+"""
+
+
+class FakeRunner:
+    """Real git for everything except the commands given canned results."""
+
+    def __init__(self, canned):
+        self.canned = canned
+        self.calls = []
+
+    def __call__(self, argv, cwd, timeout, env=None):
+        self.calls.append((list(argv), env))
+        for prefix, result in self.canned.items():
+            if tuple(argv[: len(prefix)]) == prefix:
+                return result
+        return collect.run_command(argv, cwd, timeout, env)
+
+
+class PrTests(unittest.TestCase):
+    def test_prs_are_summarised(self):
+        runner = FakeRunner({("gh", "pr", "list"): collect.CommandResult(0, PR_JSON, "")})
+        prs = collect.collect_prs("Amali-Tech/cloud-9-hackathon", Path("."), runner)
+        self.assertEqual(prs["items"][0], {
+            "number": 8, "title": "Add minimal CI", "state": "OPEN", "draft": True,
+            "head": "chore/ci-minimal-checks", "base": "develop", "author": "someone",
+            "created": "2026-10-14T11:35:16Z", "merged": None,
+            "checks": [{"name": "jenkins", "result": "FAILURE"}], "files": ["Jenkinsfile"],
+        })
+
+    def test_gh_failure_is_unavailable(self):
+        runner = FakeRunner({("gh",): collect.CommandResult(4, "", "gh: To get started, please run: gh auth login")})
+        prs = collect.collect_prs("Amali-Tech/cloud-9-hackathon", Path("."), runner)
+        self.assertEqual(prs, {"status": "unavailable", "reason": "gh pr list failed: gh: To get started, please run: gh auth login"})
+
+
+class PytestParseTests(unittest.TestCase):
+    def test_counts_and_coverage(self):
+        parsed = collect.parse_pytest(PYTEST_OUTPUT, 0, "a" * 40)
+        self.assertEqual((parsed["passed"], parsed["failed"], parsed["errors"], parsed["coverage_total"]), (160, 0, 0, 95))
+
+    def test_failures_are_counted(self):
+        parsed = collect.parse_pytest("3 failed, 157 passed, 1 error in 9.1s\nTOTAL 10 1 90%\n", 1, "a" * 40)
+        self.assertEqual((parsed["passed"], parsed["failed"], parsed["errors"], parsed["coverage_total"]), (157, 3, 1, 90))
+
+    def test_unrecognised_output_is_unavailable(self):
+        self.assertEqual(collect.parse_pytest("uv: command not found", 127, "a" * 40)["status"], "unavailable")
+
+
+class TestRunTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.repo = build_repo(self.temp.name)
+        self.sha = collect.resolve_sha(self.repo, "develop", collect.run_command)
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def worktrees(self):
+        return collect.run_command(["git", "worktree", "list"], self.repo, 30).stdout.strip().splitlines()
+
+    def test_worktree_run_reports_results_and_cleans_up(self):
+        runner = FakeRunner({("uv",): collect.CommandResult(0, PYTEST_OUTPUT, "")})
+        tests = collect.collect_tests(self.repo, self.sha, runner)
+        self.assertEqual(tests["passed"], 160)
+        self.assertEqual(len(self.worktrees()), 1)
+
+    def test_aws_variables_are_dropped(self):
+        runner = FakeRunner({("uv",): collect.CommandResult(0, PYTEST_OUTPUT, "")})
+        os.environ["AWS_PROFILE"] = "hackathon"
+        try:
+            collect.collect_tests(self.repo, self.sha, runner)
+        finally:
+            del os.environ["AWS_PROFILE"]
+        uv_env = [env for argv, env in runner.calls if argv[0] == "uv"][0]
+        self.assertNotIn("AWS_PROFILE", uv_env)
+
+    def test_timeout_is_unavailable_and_still_cleans_up(self):
+        runner = FakeRunner({("uv",): collect.CommandResult(collect.TIMEOUT_EXIT_CODE, "", "timed out after 300s")})
+        tests = collect.collect_tests(self.repo, self.sha, runner)
+        self.assertEqual(tests, {"status": "unavailable", "reason": "pytest timed out after 300s"})
+        self.assertEqual(len(self.worktrees()), 1)
+
+
+class VaultTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.vault = Path(self.temp.name)
+        (self.vault / "06 Workstreams").mkdir()
+        (self.vault / "06 Workstreams" / "Good.md").write_text("Body\n\nRelated: [[Workstreams]]\n")
+        (self.vault / "06 Workstreams" / "No footer.md").write_text("Body\n")
+        (self.vault / "08 Progress").mkdir()
+        (self.vault / "08 Progress" / "Progress.md").write_text("Related: [[Workstreams]]\n")
+        (self.vault / "08 Progress" / "2026-10-14 0900.md").write_text("Related: [[Progress]]\n")
+        (self.vault / "08 Progress" / "2026-10-14 1300.md").write_text("Related: [[Progress]]\n")
+        (self.vault / ".git").mkdir()
+        (self.vault / ".git" / "ignored.md").write_text("no footer, but inside .git\n")
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def test_unsafe_names_and_missing_footers(self):
+        runner = FakeRunner({("git",): collect.CommandResult(0, " M 06 Workstreams/Good.md\n", "")})
+        vault = collect.collect_vault(self.vault, runner, names=["Bad: name.md", "Fine.md"])
+        self.assertEqual(vault["unsafe_names"], ["Bad: name.md"])
+        self.assertEqual(vault["missing_related_footer"], ["06 Workstreams/No footer.md"])
+        self.assertEqual(vault["git_status"], [" M 06 Workstreams/Good.md"])
+
+    def test_previous_report_is_the_newest(self):
+        self.assertEqual(collect.previous_report(self.vault), "08 Progress/2026-10-14 1300.md")
 
 
 if __name__ == "__main__":
