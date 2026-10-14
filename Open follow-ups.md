@@ -44,9 +44,9 @@ Tick with the commit/run id that closed it; never delete.
 - [ ] Delete `team-credentials.txt` (IAM user credentials file) once everyone has signed in
 
 ## From [[2026-10-14]] (evening)
-- [ ] **Abdul (A3a follow-up):** add the Claude Opus 4.6 price (`eu.anthropic.claude-opus-4-6-v1`) to `COST.md`'s unit-price table and its per-question row. Take it from the "Geo and In-region Cross-region Inference" row on https://aws.amazon.com/bedrock/pricing/ (Europe (Ireland)), per 1K tokens like the others, with the date checked. Opus 4.6 is now the analyst and critic model (D-025, PR #29) #area/cost
+- [x] (done by Abdul, COST.md: 0.0055 / 0.0275 per 1K) **Abdul (A3a follow-up):** add the Claude Opus 4.6 price (`eu.anthropic.claude-opus-4-6-v1`) to `COST.md`'s unit-price table and its per-question row. Take it from the "Geo and In-region Cross-region Inference" row on https://aws.amazon.com/bedrock/pricing/ (Europe (Ireland)), per 1K tokens like the others, with the date checked. Opus 4.6 is now the analyst and critic model (D-025, PR #29) #area/cost
 - [ ] **Linus (L5):** the blocker-analyst's `make_agent` must bound its model loop with `agents.agent_support.ModelCallBudget` and set `MODEL_CALL_BUDGET_ATTRIBUTE`, as the `AgentFactory` contract in `agents/retriever.py` requires (P2 re-review, 2026-10-14). P2 passes the analyst the scope narrowed to the question's entity #area/agents
-- [ ] Ask the organisers to enable Claude Opus 5.5, Sonnet 5.5 and Haiku 5.5 (eu-west-1, `eu.anthropic.claude-*-5-5`) in account 796973512193; then re-test and switch the defaults (D-025 target) #area/bedrock
+- [ ] Ask the organisers to enable Claude Opus 5.5, Sonnet 5.5 and Haiku 5.5 (eu-west-1, `eu.anthropic.claude-*-5-5`) in account 796973512193; then re-test; per D-026 a 5.5 model replaces a default only when evals or cost show the needs (D-025 target) #area/bedrock
 - [x] (2026-10-14) Anthropic use-case form submitted; Opus 4.6, Sonnet 4.6 and Haiku 4.5 answer in the new account #area/bedrock
 - [x] (2026-10-14, account moved to AmaliTech-email sign-in) Delete `team-credentials.txt` once everyone has signed in: obsolete; delete the file #area/iam
 
