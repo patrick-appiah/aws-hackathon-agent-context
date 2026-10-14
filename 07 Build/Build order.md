@@ -90,7 +90,7 @@ Work in parallel: an item starts as soon as its dependencies are merged into `de
 ## Front end
 | ID | Item | Owner | Depends on | Milestone | Status | Spec / plan |
 |---|---|---|---|---|---|---|
-| F1a | Types from the JSON Schema; all 14 artefacts | Mildred | C1 | M2 | spec + plan ready | [[F1a - Contract types and the 14 artefacts - spec]] · [[F1a - Contract types and the 14 artefacts - plan]] |
+| F1a | Types from the JSON Schema; all 14 artefacts | Mildred | C1 | M2 | **merged** (PR #35, ec0aa53) | [[F1a - Contract types and the 14 artefacts - spec]] · [[F1a - Contract types and the 14 artefacts - plan]] |
 | F1b | Fixtures from L4; dashboard on the contract keys | Mildred | F1a, L4 | M2 | spec + plan ready | [[F1b - Real fixtures and the dashboard on the contract keys - spec]] · [[F1b - Real fixtures and the dashboard on the contract keys - plan]] |
 | F2 | Click a number → `/rows`; `http` against the deployed API | Mildred | F1b, L2, Y1, M4a | M2 | spec + plan ready | [[F2 - Click a number and the live API - spec]] · [[F2 - Click a number and the live API - plan]] |
 | F3a | Cognito sign-in (managed login + PKCE) | Clement | M3b, Y1, F2 | M3 | spec + plan ready | [[F3a - Cognito sign-in - spec]] · [[F3a - Cognito sign-in - plan]] |
