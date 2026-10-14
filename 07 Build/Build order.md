@@ -92,7 +92,7 @@ Work in parallel: an item starts as soon as its dependencies are merged into `de
 |---|---|---|---|---|---|---|
 | F1a | Types from the JSON Schema; all 14 artefacts | Mildred | C1 | M2 | **merged** (PR #35, ec0aa53) | [[F1a - Contract types and the 14 artefacts - spec]] · [[F1a - Contract types and the 14 artefacts - plan]] |
 | F1b | Fixtures from L4; dashboard on the contract keys | Mildred | F1a, L4 | M2 | **merged** (PR #48, d10d43e) | [[F1b - Real fixtures and the dashboard on the contract keys - spec]] · [[F1b - Real fixtures and the dashboard on the contract keys - plan]] |
-| F2 | Click a number → `/rows`; `http` against the deployed API | Mildred | F1b, L2, Y1, M4a | M2 | **merged** (PR #53, 09084a6) | [[F2 - Click a number and the live API - spec]] · [[F2 - Click a number and the live API - plan]] |
+| F2 | Click a number → `/rows`; `http` against the deployed API | Mildred | F1b, L2, Y1, M4a | M2 | **merged** (PR #53, 09084a6; deploy-config fix PR #56, 6a77814); live check (Task 4) pending F3a: `/api/*` needs a Cognito token | [[F2 - Click a number and the live API - spec]] · [[F2 - Click a number and the live API - plan]] |
 | F3a | Cognito sign-in (managed login + PKCE) | Clement | M3b, Y1, F2 | M3 | spec + plan ready | [[F3a - Cognito sign-in - spec]] · [[F3a - Cognito sign-in - plan]] |
 | F3b | Role views and the 403 refusal | Clement | F1b, L1 | M3 | spec + plan ready | [[F3b - Role views and the 403 refusal - spec]] · [[F3b - Role views and the 403 refusal - plan]] |
 | F4a | Ask panel on `/ask` (trace, cost, partial, could-not-verify) | Clement | C1, F1b, L3 | M3 | spec + plan ready | [[F4a - Ask panel on the real ask contract - spec]] · [[F4a - Ask panel on the real ask contract - plan]] |
