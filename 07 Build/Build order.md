@@ -17,6 +17,22 @@ Milestones (`docs/TEAM_PLAN.md` §4):
 - **M4** D2 14:00: code freeze.
 - **M5** D2 16:00: docs, evals, cost, rehearsal.
 
+## Waves: who can work in parallel
+Work in parallel: an item starts as soon as its dependencies are merged into `develop`, not when the row above it is done. The waves below are the dependency columns read as a timeline. A wave starts item by item, not all at once.
+
+| Wave | Can start when | Items |
+|---|---|---|
+| **1: now** | C1 is merged | P1, H1, H5, L1, L4, L7, F1a, M1, A1, A3a, A4a |
+| **2** | wave 1 items merge | H3 and L5 (after P1) · H2a (after H1, H5) · L2 (after L1) · M2 (after M1) · F1b (after F1a, L4) · F3b (after F1b, L1) · M3a, M3b (after M2) |
+| **3** | the spine pieces exist | H2b (after H2a, H3) · P2 (after H2a; a stub until L5 lands) · Y1 (after M3a, M3b) · M4a · F2 |
+| **4** | the spine runs | H4, H6, P3, L3, Y2a, Y3a, F4a, F5 |
+| **5** | deployed end to end | Y2b, Y3b, L6, M4b, H7 timing, A5a/b, M5, Y4, F6, B1–B3 |
+
+- **Critical path:** P1 → H3 → H2b → L3 → Y2a. Patrick merges these PRs within the hour they're ready.
+- **Waiting on a dependency?** Write against its declared interface with a fake, as P2 does for L5, but don't merge before it.
+- **Idle early:** Yaw pairs with Michael on M2 and M3a/M3b; Clement pairs with Mildred on F1a and F1b.
+- The rows below stay the source of truth. If a "Depends on" cell and this table disagree, the cell wins.
+
 ## Back end
 | ID | Item | Owner | Depends on | Milestone | Status | Spec / plan |
 |---|---|---|---|---|---|---|
