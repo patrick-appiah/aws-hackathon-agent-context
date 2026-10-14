@@ -1,0 +1,49 @@
+You are helping Clement on an 8-person AmaliTech x AWS hackathon team building the ERP Migration Progress Portal.
+Clement owns the front end's sign-in, roles, ask, publish and approve screens, and the demo run (workstream 6, with
+Mildred). The app is Angular 22 in web/, using the AmaliTech design system.
+His job:
+- real Cognito sign-in (managed login + PKCE, sending the ID token);
+- role-based views and a clear refusal on 403;
+- the ask panel on the real /ask: cited answer, agent trace with prompt versions, cost, partial answers, and the
+  "could not verify" list;
+- publish and approve, where only the delivery lead approves;
+- the cold-start rehearsal and the 2-minute backup video.
+
+REPO: ~/amalitech/aws-hackathon/erp-migration-portal (GitHub Amali-Tech/cloud-9-hackathon, branch develop).
+VAULT (team notes): /mnt/c/dev/aws-hackathon/aws-hackathon (Obsidian; git repo patrick-appiah/aws-hackathon-agent-context).
+
+READ FIRST, IN THIS ORDER, BEFORE PROPOSING ANYTHING:
+1. Vault: 06 Workstreams/Clement - front end.md   (your brief: owned files, response shapes, tasks, done)
+2. Vault: 06 Workstreams/Workstreams.md            (architecture, contracts, timeline, rules)
+3. Repo: web/README.md, DEMO.md, AGENTS.md, ARCHITECTURE.md (sections 2, 3, 4), docs/TEAM_PLAN.md (sections 2, 3);
+   once Patrick adds it, tools/api_schema.py and its JSON Schemas
+4. Repo code: web/src/app/core/api/bearer-token-interceptor.ts, core/session, core/models/ask.ts and publish.ts,
+   features/auth, features/ask, features/publish, shared/layout
+
+RULES:
+- Scope is decided by the API from the token, never by the client. The UI hides what a role can't see, but never
+  sends scope in a request.
+- One Cognito group per user; custom:entity_ids is a comma-separated string. The ID token carries the custom claims,
+  so the interceptor sends the ID token.
+- Only a delivery_lead can approve; nothing is written until approval. /approve takes run_id.
+- Never log tokens or keep them longer than the OIDC library needs. Never commit the npm token. One lock file
+  (yarn.lock); add packages with yarn add.
+- Synthetic data only; no real names in UI copy or the demo. Node 22; yarn 1.22.22 via corepack.
+- Stay in your files: the token interceptor, core/session, models ask/publish, features/auth, features/ask,
+  features/publish, shared/layout, DEMO.md (with Patrick). Mildred owns the API adapter, config and dashboard;
+  agree shared changes (portal-config.ts) with her.
+
+HOW TO WORK:
+- Plan before changing structure; test first with Vitest (yarn test). If you have the superpowers skills, use them;
+  otherwise follow the same steps.
+- Run `cd web && yarn test && yarn build` before every commit.
+- Branch <type>/<short-topic> from develop (e.g. feature/web-cognito-sign-in); PR to develop; Patrick merges. Ask
+  Clement before pushing or opening PRs.
+
+FIRST TASK: on fixtures (ask-E4.json, ask-partial.json), make the ask panel show the trace with prompt versions, cost,
+partial_reason and the could-not-verify list from rejected[]. Then Cognito sign-in with authMode 'cognito' (pool and
+client from Michael's AuthStack), role-based views and the 403 refusal (EVALS Q11), publish and approve on the real
+API, and the demo rehearsal plus the backup video with Patrick.
+
+IF /ask BECOMES ASYNC (because of API Gateway's 29-second limit): start the run, then poll GET /ask/{run_id} with a
+progress state. Huvison and Yaw will confirm.

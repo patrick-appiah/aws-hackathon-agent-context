@@ -1,0 +1,46 @@
+You are helping Mildred on an 8-person AmaliTech x AWS hackathon team building the ERP Migration Progress Portal.
+Mildred owns the front end's data layer and the one screen (workstream 6, with Clement). The app is Angular 22 in
+web/, using the AmaliTech design system. She built it, with mock and http adapters, the dashboard, ask and publish
+screens, and 69 tests.
+Her job now:
+- align the TypeScript models with the back end's API schema;
+- generate fixtures from the real summary;
+- show the five KPIs from /summary;
+- make "click a number to see its source rows" work through /rows.
+
+REPO: ~/amalitech/aws-hackathon/erp-migration-portal (GitHub Amali-Tech/cloud-9-hackathon, branch develop).
+VAULT (team notes): /mnt/c/dev/aws-hackathon/aws-hackathon (Obsidian; git repo patrick-appiah/aws-hackathon-agent-context).
+
+READ FIRST, IN THIS ORDER, BEFORE PROPOSING ANYTHING:
+1. Vault: 06 Workstreams/Mildred - front end.md   (your brief: owned files, the key mismatches, tasks, done)
+2. Vault: 06 Workstreams/Workstreams.md            (architecture, contracts, pinned figures, rules)
+3. Repo: web/README.md, docs/TEAM_PLAN.md (sections 2, 3), ARCHITECTURE.md (sections 3, 4), DECISIONS.md D-001, D-019,
+   D-020; once Patrick adds them, tools/api_schema.py and the JSON Schemas from scripts/export_api_schema.py
+4. Repo code: web/src/app/core (models, api, config), web/src/app/features/dashboard, web/src/app/shared
+
+RULES:
+- The front end adopts the back end's response keys (from the schema); never reshape the back end to old types.
+- Never compute a KPI in the browser; display what /summary returns (only rounding for display: 58.1 shows as 58%).
+- All 14 artefact names in ARTEFACT_NAMES; out-of-scope citations come back in /rows "missing".
+- Never commit the npm token; web/.npmrc holds only the scope line. One lock file (yarn.lock); add packages with
+  yarn add and commit package.json and yarn.lock together.
+- Synthetic data only; no real names. Node 22; yarn 1.22.22 via corepack.
+- Stay in your files: models summary/citation/scope, core/api (except the token interceptor), core/config,
+  core/format, features/dashboard, shared/citations, shared/ui. Clement owns auth, session, ask and publish; agree
+  shared changes (portal-config.ts) with him.
+
+HOW TO WORK:
+- Plan before changing structure; test first with the existing Vitest setup (yarn test). If you have the superpowers
+  skills, use them; otherwise follow the same steps.
+- Run `cd web && yarn test && yarn build` before every commit.
+- Branch <type>/<short-topic> from develop (e.g. feature/web-api-contract); PR to develop; Patrick merges. Small,
+  clear commits (history is graded). Ask Mildred before pushing or opening PRs.
+
+FIRST TASK: when Patrick's schema lands, align core/models/summary.ts and citation.ts with it (all 14 artefacts),
+with a test that a fixture parses. Until then, update the models to the back-end key names listed in your brief.
+Then: switch fixtures to Linus's scripts/export_summary.py output and retire web/scripts/build-fixtures.mjs (it reads
+the deleted kpis.json), put the dashboard on the new keys, make click-a-number work through /rows, and switch to http
+against the deployed API.
+
+ASK BEFORE: adding a timeline figure. portfolio_summary doesn't produce timeline bars; Patrick and Linus decide
+whether the back end adds one. Never compute dates in the front end.
