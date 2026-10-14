@@ -39,7 +39,7 @@ Tick with the commit/run id that closed it; never delete.
 - [ ] Write the contracts spec (Patrick, first): API shapes incl. /rows, /entity, rejected[], partial_reason, trace, /approve statuses, error body; ask-spine step I/O; new config.py settings; DevOps handover
 - [ ] Draft one GitHub issue per workstream's first milestone and a project board
 - [ ] Tell each teammate: read `06 Workstreams/<you>.md` (after [[Workstreams]]), and paste `prompts/<you>.txt` into your AI assistant
-- [ ] Q09 verdict count: EVALS.md says 3 verdicts, but `max_claim_attempts = 2` with `attempts < 2` gives 2. Huvison decides; code and EVALS.md must agree
+- [x] (Patrick, 2026-10-14: D-022, branch `fix/q09-attempt-limit`) Q09 verdict count: at most 2 attempts in total (one retry), 2 verdicts on a rejected claim; EVALS.md and Q09 files corrected
 - [ ] Timeline bars: `portfolio_summary` has no timeline figure. Patrick + Linus decide whether metrics adds one (Mildred waits)
 - [ ] Delete `team-credentials.txt` (IAM user credentials file) once everyone has signed in
 

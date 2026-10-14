@@ -138,7 +138,7 @@ Expected: you find **exactly these** (they are listed in the spec §3 "Known gap
   - **Q03:** `mismatch`: "'zero invented blockers' not checked." Proposed fix: "keep as a manual read in A1's checks" (Task 6 Step 1b; no field exists for "no bullet cites a defect").
   - **Q05:** `mismatch`: "EVALS.md says the figure must equal `role_utilisation`; the file checks `metrics.capacity_used`; and the answer text is never checked for 133.3 %." Proposed fix: "add `"must_contain": ["133(\\.3)? ?%"]` (a new key: the file's existing `must_contain_any` list means *any one* of its patterns, so adding 133 % there would let 'testers' alone pass); and Linus to confirm both functions return Tester 8 / 6 / 133.3; if yes, change EVALS.md's wording to `capacity_used` (A5)."
   - **Q06:** `match`, with the note "`\b6\b` matches any 6 in the answer; blunt but acceptable".
-  - **Q09:** `mismatch`: "3 verdicts in EVALS.md and `manual_check`; `config.py` `DEFAULT_MAX_CLAIM_ATTEMPTS = 2`." Proposed fix: "Huvison decides (open follow-up); then the `manual_check` sentence and EVALS.md use his number."
+  - **Q09:** expected `match` after the `fix/q09-attempt-limit` PR merges: `EVALS.md`, `evals/inputs/Q09.json` and `evals/expected/Q09.json` all say **2 verdicts** (at most 2 attempts in total, one retry; D-022). If any still says 3, that's a `mismatch` with the proposed fix "use 2 verdicts (D-022)".
   - **Q12:** `match`, with the note "'critic verdicts unchanged' is manual only; the answer isn't required to cite `DEF-0462`".
   If you find **more** than these, or **fewer** (a gap is already fixed on `develop`), write exactly what you see; that's not an error.
 
@@ -170,8 +170,8 @@ Baseline: `uv run --locked pytest` <N> passed (<coverage>%); `uv run python -m e
   Click "Submit new issue".
 Expected: the issue page opens with a number (`#nn`) and the table renders as a table. Write `#nn` in the ledger.
 
-- [ ] **Step 2: Ask Huvison about Q09** (Slack or the issue, in writing): *"Q09: EVALS.md says the rejected claim ends with 3 verdicts after 2 retries; config.py has DEFAULT_MAX_CLAIM_ATTEMPTS = 2, and the claim is retried only while its attempts are below that, so today that is at most one retry. How many verdicts will the claim have in rejected records, how many retries does a run make before it says 'could not verify' (the pitch quotes this), and will your PR change the EVALS.md Q09 row, or should I?"*
-Expected: a written answer with the verdict count (2 or 3), the retry limit in words (for example "at most one retry"), and who edits `EVALS.md`. Write all three in the ledger as `Q09: <n> verdicts; retry limit: <his words>; EVALS.md edited by <name>`; B2 and B3c quote the retry limit from this line. Until it arrives, Q09 stays open; continue.
+- [ ] **Step 2: Record the Q09 decision.** Q09 is decided: a claim gets at most 2 attempts in total (one retry), so a rejected claim shows **2 verdicts** (`DECISIONS.md` D-022).
+Expected: the ledger line `Q09: 2 verdicts; retry limit: at most one retry (D-022)`. B2 and B3c quote the retry limit from this line.
 
 - [ ] **Step 3: Wait for Michael's answers** in the issue. Copy each into the last column of your table.
 Expected: an answer on every mismatch row. If none by D1 13:00, ask him at the 13:00 stand-up.
@@ -216,7 +216,7 @@ Expected: `Switched to a new branch 'docs/eval-review'`.
     "133(\\.3)? ?%"
   ],
 ```
-  - **Q09 (only once Huvison has answered, and only if he said you edit):** in `evals/expected/Q09.json`, replace `3 verdicts` in `manual_check` with `<his number> verdicts`.
+  - **Q09:** nothing to edit. D-022 already corrected the Q09 files; if your review found one still saying 3, tell Patrick.
   - Any other agreed fix: apply exactly the words Michael wrote in the issue.
   Save each file.
 Expected: VS Code's Problems panel (Ctrl+Shift+M) shows **0 problems**; Source Control lists only the files you changed.

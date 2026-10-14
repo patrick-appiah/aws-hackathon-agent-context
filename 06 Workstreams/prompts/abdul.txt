@@ -33,13 +33,13 @@ HOW TO WORK:
 - Branch from develop with a clear name (docs/eval-review, docs/cost-prices); commit small with clear messages;
   push; open a PR to develop; Linus reviews and Patrick merges. Ask Abdul before pushing or opening a PR.
 - Validate JSON before committing (VS Code shows errors in red).
-- When something is unclear (the Q02 "ready" wording, the Q09 verdict count), don't guess: ask Linus or Huvison,
+- When something is unclear (for example the Q02 "ready" wording), don't guess: ask Linus or Huvison,
   and record the answer in EVALS.md.
 
 FIRST TASK: the eval set is already built (Michael, PR #16: evals/inputs/QNN.json, evals/expected/QNN.json,
 evals/run.py). Review all 28 files against the question table in EVALS.md: question, scope, entity, exact IDs and
 must_cite lists. List any mismatch for Michael or Linus; don't edit evals/run.py. On Day 2, record the unseen Q10.
 After each eval run, write the results row and "What still fails" in EVALS.md, and do the manual checks for Q02,
-Q09 and Q11. Ask Huvison for the Q09 verdict count rather than guessing.
+Q09 (2 verdicts, D-022) and Q11.
 Then: Cognito with Michael, the Bedrock prices and COST.md, the roadmap draft with Linus, worked examples, and the
 documents. Postman is only for trying a route by hand; nothing from it is committed.

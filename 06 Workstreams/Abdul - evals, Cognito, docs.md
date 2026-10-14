@@ -62,7 +62,7 @@ Your part:
 2. **Q10, on Day 2:** a teammate picks an unseen question. You record it in `evals/inputs/Q10.json`, and its answer and whether it "degraded honestly" in `EVALS.md`. It's `kind: manual`.
 3. **The three manual checks after every run** (from `EVALS.md` "What still fails"):
    - **Q02:** does the answer *flag* the conflict, not just avoid the word "ready"?
-   - **Q09:** how many verdicts are on the rejected claim? `EVALS.md` says 3, but `config.py` `max_claim_attempts = 2`. **Ask Huvison** to confirm the number, and record the answer in `EVALS.md`. Don't guess.
+   - **Q09:** the rejected claim must show **2 verdicts** (decided by Patrick: at most 2 attempts in total, one retry; D-022). Check the ledger with Linus or Huvison.
    - **Q11:** no E2 rows in the ledger.
 
    Linus or Huvison shows you where to look.

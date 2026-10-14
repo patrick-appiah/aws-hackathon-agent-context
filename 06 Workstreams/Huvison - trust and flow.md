@@ -100,7 +100,7 @@ Michael's runner (`evals/run.py`, PR #16) calls an asker: `(case_input, scope, r
   - `force_unsupportable_claim` (Q09): the asker forces a claim no evidence supports, the **real** critic rejects it until the retry guard stops it, and the claim lands in rejected records (as `evals/inputs/Q09.json` says).
 - Run it with `uv run python -m evals.run --asker flow.local:ask`. Patrick's `scripts/ask.py` can call the same function.
 - **No fault switch exists in the API or production config.** Only the eval asker applies `inject`.
-- **Decide the Q09 verdict count:** `EVALS.md` says 3 verdicts; `max_claim_attempts = 2` with `attempts < 2` gives 2. Pick the rule (D-012 intent: "two retries" means 3 verdicts), make the code and `EVALS.md` agree, and tell Abdul.
+- **Q09 is decided (D-022):** at most 2 attempts per claim in total, one retry. Keep `max_claim_attempts = 2` and `attempts < 2`; a claim rejected twice lands in rejected records with **2 verdicts**.
 
 ### 8. Guardrail settings
 Write down the settings Michael deploys in GuardrailStack: a PII filter, and the prompt-attack filter on input. Check that every agent's `make_agent` passes `guardrail_id` and `guardrail_version` when set (the critic already does). EVALS Q12: the `DEF-0462` text must stay data.
@@ -156,7 +156,7 @@ By D1 18:00, time a full `/ask` with one retry. API Gateway cuts synchronous cal
 - [ ] Writer drops uncited bullets (tested); prompt locked; `AGENTS.md` critic and writer rows true.
 - [ ] Publish needs a `delivery_lead` approval; the status pack is written only after approval; send-back is logged.
 - [ ] Cost per run comes from real `Usage`; the price table is sourced.
-- [ ] `uv run python -m evals.run --asker flow.local:ask` runs; Q08, Q09, Q12 pass; the Q09 verdict count decided; the 29-second check done.
+- [ ] `uv run python -m evals.run --asker flow.local:ask` runs; Q08, Q09 (2 verdicts, D-022), Q12 pass; the 29-second check done.
 - [ ] Your `HANDOFF.md` lines (what's real, what's faked, what breaks first).
 
 ## Rules and pitfalls specific to you

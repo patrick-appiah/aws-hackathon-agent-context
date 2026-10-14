@@ -65,7 +65,7 @@ When something here is unclear, look in the vault (`04 Reference/`, `03 Sessions
   - Huvison's `/ask` timing decision (synchronous within 29 s, or async start plus polling) → `Fact: ask timing <decision>` (`DECISIONS.md` if recorded).
 
   Then copy two facts that are already written down:
-  - the retry limit: Huvison's written Q09 answer ([[A1 - Eval set review and manual checks - plan]] Task 4 Step 2; the `Fact: retry limit` line in B2's PR body) → `Fact: retry limit <his words, for example "at most one retry">`. Never "two retries" from memory: the code today allows at most one retry (`max_claim_attempts = 2`, retried only while attempts are below 2), and the decision is his;
+  - the retry limit: D-022 (`DECISIONS.md`: at most 2 attempts in total, one retry) ([[A1 - Eval set review and manual checks - plan]] Task 4 Step 2; the `Fact: retry limit` line in B2's PR body) → `Fact: retry limit <his words, for example "at most one retry">`. Never "two retries" from memory: the code today allows at most one retry (`max_claim_attempts = 2`, retried only while attempts are below 2), and the decision is his;
   - the slide 5 path: B2's ledger `Slide 5 path:` line and any slide-5 `Ruling:` (both in B2's PR body) → `Fact: slide 5 path <main | (a) | (b)>; slide 5 shows <the rejected claim, verbatim, and its question ID>`.
 
   Expected: five `Fact:` lines.
