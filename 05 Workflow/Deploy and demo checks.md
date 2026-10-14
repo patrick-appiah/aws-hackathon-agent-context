@@ -14,7 +14,7 @@ The checks that protect the hard gates and the demo. Full detail lives in the re
 
 ## Before the freeze (Day 2 14:00)
 - Eval set run and recorded **with failures** (`EVALS.md`).
-- One worked example per agent committed in `evals/expected/agents/`.
+- One worked example per agent committed in `evals/expected/<agent>.json`.
 - `COST.md` filled from measured ledger costs.
 
 ## Demo (Day 2 16:00–17:00)

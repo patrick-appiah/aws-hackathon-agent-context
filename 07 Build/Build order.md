@@ -36,16 +36,20 @@ Milestones (`docs/TEAM_PLAN.md` §4):
 | L4 | `scripts/export_summary.py` *(new)* (front-end fixtures) | Linus | C1 | M2 | not specced | |
 | L5 | Blocker-analyst agent + prompt | Linus | C1 | M2 | not specced | |
 | L6 | Deployed-API eval asker `evals/api_asker.py` *(new)* | Linus | L3, Y1, M3* | M4 | not specced | |
-| L7 | `docs/ROADMAP.md` draft (with Abdul) | Linus | (none) | M5 | not specced | |
+| L7 | `docs/ROADMAP.md` review and update (exists on develop) | Linus | (none) | M5 | not specced | |
 
 ## Evals, Cognito, docs (Abdul, no Python)
-| ID | Item | Owner | Depends on | Milestone | Status |
-|---|---|---|---|---|---|
-| A1 | Review the 28 eval files against `EVALS.md`; Q10 on Day 2; manual checks (Q02, Q09, Q11) after each run | Abdul | (none) | M0, then every run | not specced |
-| A2 | Cognito groups, claims and test users (with Michael) | Abdul | (none) | M3 | not specced |
-| A3 | Bedrock eu-west-1 prices; `COST.md` measured | Abdul | (none), then H5 | M5 | not specced |
-| A4 | Target diagram v2; `HANDOFF.md`/`DEMO.md` lines; prompt wording review | Abdul | (none) | M5 | not specced |
-| A5 | `EVALS.md` results + worked examples per agent (`evals/expected/<agent>.json`) | Abdul (with Linus) | H6 | M5 | not specced |
+| ID | Item | Owner | Depends on | Milestone | Status | Spec / plan |
+|---|---|---|---|---|---|---|
+| A1 | Review the 28 eval files against `EVALS.md`; Q10 on Day 2; manual checks (Q02, Q03, Q09, Q11) after each run | Abdul | (none); Task 6: H6/L6 | M0, then every run | spec + plan ready | [[A1 - Eval set review and manual checks - spec]] · [[A1 - Eval set review and manual checks - plan]] |
+| A2 | Cognito groups, claims and test users (with Michael) | Abdul | (none); Tasks 3–4: M3*, Y1, L1–L2, F3, F4 | M3 | spec + plan ready | [[A2 - Cognito groups, claims and test users - spec]] · [[A2 - Cognito groups, claims and test users - plan]] |
+| A3a | Bedrock unit prices | Abdul | (none) | M2 | spec + plan ready | [[A3a - Bedrock unit prices - spec]] · [[A3a - Bedrock unit prices - plan]] |
+| A3b | COST measured figures | Abdul | A3a, H5, H6, A5a | M5 | spec + plan ready | [[A3b - COST measured figures - spec]] · [[A3b - COST measured figures - plan]] |
+| A4a | Target architecture diagram v2 | Abdul | (none) | M5 | spec + plan ready | [[A4a - Target architecture diagram v2 - spec]] · [[A4a - Target architecture diagram v2 - plan]] |
+| A4b | HANDOFF and DEMO lines | Abdul | A5a, A3b, A2 | M5 | spec + plan ready | [[A4b - HANDOFF and DEMO lines - spec]] · [[A4b - HANDOFF and DEMO lines - plan]] |
+| A4c | Prompt wording review | Abdul | P1, P2, L5, H3 PRs | M4 | spec + plan ready | [[A4c - Prompt wording review - spec]] · [[A4c - Prompt wording review - plan]] |
+| A5a | EVALS results write-up | Abdul (with Linus) | H6 | M5 | spec + plan ready | [[A5a - EVALS results write-up - spec]] · [[A5a - EVALS results write-up - plan]] |
+| A5b | Worked examples per agent | Abdul (with Linus) | P1, P2, L5, H3, H6 | M4 | spec + plan ready | [[A5b - Worked examples per agent - spec]] · [[A5b - Worked examples per agent - plan]] |
 
 ## DevOps
 | ID | Item | Owner | Depends on | Milestone | Status |
@@ -71,11 +75,13 @@ Milestones (`docs/TEAM_PLAN.md` §4):
 | F6 | Demo rehearsal + 2-minute backup video | Clement (with Patrick) | everything | M5 | not specced |
 
 ## Business case and pitch
-| ID | Item | Owner | Depends on | Milestone | Status |
-|---|---|---|---|---|---|
-| B1 | Close the `[TBC]`s in `business/business-case.md`; validation session (D1 09:30) | Patrick, Michael | A3, H5 (measured cost) | M5 | not specced |
-| B2 | Pitch deck (source + PDF in `business/`) | Patrick, Michael | (none) | M5 | not specced |
-| B3 | One-page value case; architecture slides; cost and 90-day-plan slide | Patrick, Michael | A3, A4, L7 | M5 | not specced |
+| ID | Item | Owner | Depends on | Milestone | Status | Spec / plan |
+|---|---|---|---|---|---|---|
+| B1 | Close the `[TBC]`s in `business/business-case.md`; validation session (D1 09:30) | Patrick, Michael | A3a, A3b, H5, A5a, H6/L6 | M5 | spec + plan ready | [[B1 - Business case figures and validation - spec]] · [[B1 - Business case figures and validation - plan]] |
+| B2 | Pitch deck (source + PDF in `business/`) | Patrick, Michael | B1, A3b, A5a, H6/L6 | M5 | spec + plan ready | [[B2 - Pitch deck - spec]] · [[B2 - Pitch deck - plan]] |
+| B3a | One-page value case | Patrick, Michael | B1 | M5 | spec + plan ready | [[B3a - One-page value case - spec]] · [[B3a - One-page value case - plan]] |
+| B3b | Architecture and cost slides | Patrick, Michael | B2, A4a, A3b | M5 | spec + plan ready | [[B3b - Architecture and cost slides - spec]] · [[B3b - Architecture and cost slides - plan]] |
+| B3c | Pitch script and Q and A | Patrick, Michael | B2, B3b, F6 | M5 | spec + plan ready | [[B3c - Pitch script and Q and A - spec]] · [[B3c - Pitch script and Q and A - plan]] |
 
 *M3\* is the GuardrailStack + AuthStack item. It isn't the D2 12:00 milestone M3.*
 
