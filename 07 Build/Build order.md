@@ -61,12 +61,12 @@ Work in parallel: an item starts as soon as its dependencies are merged into `de
 | ID | Item | Owner | Depends on | Milestone | Status | Spec / plan |
 |---|---|---|---|---|---|---|
 | A1 | Review the 28 eval files against `EVALS.md`; Q10 on Day 2; manual checks (Q02, Q03, Q09, Q11) after each run | Abdul | (none); Task 6: H6/L6 | M0, then every run | in progress (fixes merged in PR #30; Q05 wording waits on Linus; Q10 + manual checks on Day 2) | [[A1 - Eval set review and manual checks - spec]] · [[A1 - Eval set review and manual checks - plan]] |
-| A2 | Cognito groups, claims and test users (with Michael) | Abdul | (none); Tasks 3–4: M3b, Y1, L1–L2, F3, F4 | M3 | spec + plan ready | [[A2 - Cognito groups, claims and test users - spec]] · [[A2 - Cognito groups, claims and test users - plan]] |
+| A2 | Cognito groups, claims and test users (with Michael) | Abdul | (none); Tasks 3–4: M3b, Y1, L1–L2, F3, F4 | M3 | in progress (HANDOFF section merged, PR #43; AuthStack PR #44 matches the list; Tasks 3–4 after deploy) | [[A2 - Cognito groups, claims and test users - spec]] · [[A2 - Cognito groups, claims and test users - plan]] |
 | A3a | Bedrock unit prices | Abdul | (none) | M2 | **merged** (PR #25, 2372f97; Opus follow-up PR #31) | [[A3a - Bedrock unit prices - spec]] · [[A3a - Bedrock unit prices - plan]] |
 | A3b | COST measured figures | Abdul | A3a, H5, H6, A5a | M5 | spec + plan ready | [[A3b - COST measured figures - spec]] · [[A3b - COST measured figures - plan]] |
-| A4a | Target architecture diagram v2 | Abdul | (none) | M5 | in review (PR #40) | [[A4a - Target architecture diagram v2 - spec]] · [[A4a - Target architecture diagram v2 - plan]] |
+| A4a | Target architecture diagram v2 | Abdul | (none) | M5 | **merged** (PR #40) | [[A4a - Target architecture diagram v2 - spec]] · [[A4a - Target architecture diagram v2 - plan]] |
 | A4b | HANDOFF and DEMO lines | Abdul | A5a, A3b, A2 | M5 | spec + plan ready | [[A4b - HANDOFF and DEMO lines - spec]] · [[A4b - HANDOFF and DEMO lines - plan]] |
-| A4c | Prompt wording review | Abdul | P1, P2, L5, H3 PRs | M4 | spec + plan ready | [[A4c - Prompt wording review - spec]] · [[A4c - Prompt wording review - plan]] |
+| A4c | Prompt wording review | Abdul | P1, P2, L5, H3 PRs | M4 | in progress (issue #45: critic, retriever, writer reviewed; orchestrator, analyst when their PRs open) | [[A4c - Prompt wording review - spec]] · [[A4c - Prompt wording review - plan]] |
 | A5a | EVALS results write-up | Abdul (with Linus) | H6 | M5 | spec + plan ready | [[A5a - EVALS results write-up - spec]] · [[A5a - EVALS results write-up - plan]] |
 | A5b | Worked examples per agent | Abdul (with Linus) | P1, P2, L5, H3, H6 | M4 | spec + plan ready | [[A5b - Worked examples per agent - spec]] · [[A5b - Worked examples per agent - plan]] |
 
