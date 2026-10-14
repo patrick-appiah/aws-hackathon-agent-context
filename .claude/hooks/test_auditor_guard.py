@@ -51,12 +51,12 @@ class GuardTestCase(unittest.TestCase):
     def tearDownClass(cls):
         cls.temp.cleanup()
 
-    def decide(self, tool_name, tool_input, raw=None, env_vault=True):
+    def decide(self, tool_name, tool_input, raw=None, env_vault=True, extra_args=()):
         payload = raw if raw is not None else json.dumps({"tool_name": tool_name, "tool_input": tool_input, "cwd": str(self.vault), "agent_type": "progress-auditor"})
         env = {key: value for key, value in os.environ.items() if key != "CLAUDE_PROJECT_DIR"}
         if env_vault:
             env["CLAUDE_PROJECT_DIR"] = str(self.vault)
-        result = subprocess.run([sys.executable, "-I", str(GUARD)], input=payload, capture_output=True, text=True, env=env, check=False)
+        result = subprocess.run([sys.executable, "-I", str(GUARD), *extra_args], input=payload, capture_output=True, text=True, env=env, check=False)
         self.assertEqual(result.returncode, 0, result.stderr)
         if not result.stdout.strip():
             return "allow"
@@ -507,6 +507,12 @@ class OtherAgentTests(GuardTestCase):
                 if agent_type:
                     fields["agent_type"] = agent_type
                 self.assertEqual(self.decide("Bash", {}, raw=json.dumps(fields)), "allow")
+
+    def test_unnamed_subagent_and_frontmatter_flag_are_judged(self):
+        unnamed = {"tool_name": "Bash", "tool_input": {"command": "cat /etc/passwd"}, "cwd": str(self.vault), "agent_id": "a1b2"}
+        self.assertEqual(self.decide("Bash", {}, raw=json.dumps(unnamed)), "deny")
+        main_thread = {"tool_name": "Bash", "tool_input": {"command": "cat /etc/passwd"}, "cwd": str(self.vault)}
+        self.assertEqual(self.decide("Bash", {}, raw=json.dumps(main_thread), extra_args=["--auditor"]), "deny")
 
 
 class NoGhTests(GuardTestCase):

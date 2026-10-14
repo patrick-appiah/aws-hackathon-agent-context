@@ -121,6 +121,9 @@ INDEX_NAME = "Progress.md"
 # project agent's frontmatter hooks are skipped) and therefore sees every session's tool calls.
 # It judges only calls made inside the progress-auditor subagent; Claude Code sets agent_type there.
 AUDITOR_AGENT_TYPE = "progress-auditor"
+# The agent file's own frontmatter hook passes this flag: that hook only ever runs for the auditor, so it
+# always judges, whatever agent_type says.
+ALWAYS_JUDGE_FLAG = "--auditor"
 
 
 class Denied(Exception):
@@ -670,10 +673,21 @@ def decide(payload, roots):
         deny(f"{tool_name} is not available to the progress auditor")
 
 
+def judges_this_call(payload, arguments):
+    """True when this call must be judged. Fails closed: a subagent call (agent_id present) that doesn't
+    name its agent_type is judged, because it can't be shown to be some other agent's."""
+    if ALWAYS_JUDGE_FLAG in arguments:
+        return True
+    agent_type = payload.get("agent_type")
+    if agent_type == AUDITOR_AGENT_TYPE:
+        return True
+    return bool(payload.get("agent_id")) and not agent_type
+
+
 def main():
     try:
         payload = json.load(sys.stdin)
-        if payload.get("agent_type") != AUDITOR_AGENT_TYPE:
+        if not judges_this_call(payload, sys.argv[1:]):
             sys.exit(0)
         roots = load_roots()
         decide(payload, roots)

@@ -14,7 +14,7 @@ hooks:
     - matcher: "Bash|Read|Write|Edit|Grep|Glob|MultiEdit|NotebookEdit"
       hooks:
         - type: command
-          command: python3 -I "$CLAUDE_PROJECT_DIR/.claude/hooks/auditor_guard.py"
+          command: python3 -I "$CLAUDE_PROJECT_DIR/.claude/hooks/auditor_guard.py" --auditor
 ---
 
 # Progress auditor
