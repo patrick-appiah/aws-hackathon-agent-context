@@ -3,6 +3,8 @@ tags: [moc]
 ---
 # AWS Hackathon 2026: ERP Migration Progress Portal
 
+**New to the team? Read [[Workstreams]], then your own brief in `06 Workstreams/`.**
+
 Start here. Read in this order at the start of every session:
 1. The latest note in [[Sessions]]: its **Next command** line
 2. [[Open follow-ups]]
@@ -15,6 +17,7 @@ Start here. Read in this order at the start of every session:
 | Daily logs | [[Sessions]] |
 | Reference (account, briefs, rubric, team, glossary) | [[Reference]] |
 | Workflow (how we work: dev loop, AI assistants, security, data, vault, deploy) | [[Workflow]] |
+| **Workstreams (who builds what: one brief per person, plus their AI-assistant prompt)** | [[Workstreams]] |
 
 **How we're scored:** [[Pitch track grading rubric]]: pitch deck 20 · business case 20 · product spec 10 · GitHub repo 50.
 
