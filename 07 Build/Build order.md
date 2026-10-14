@@ -39,7 +39,7 @@ Work in parallel: an item starts as soon as its dependencies are merged into `de
 | **C2** | Repo layout (C2) | Patrick | (none) | M0 | **merged** (PR #27) | [[C2 - Repo layout - spec]] |
 | **C1** | API and ask-spine contracts (`tools/api_schema.py` *(new)*, step models with `usage`, settings, JSON Schema, DevOps handover) | Patrick | (none) | M0 | **merged** (PR #22, 5d6ff5f; 213 tests, 96%) | [[C1 - API and spine contracts - spec]] · [[C1 - API and spine contracts - plan]] |
 | P1 | Retriever agent + prompt | Patrick | C1 | M2 | **merged** (PR #24, 1b815aa) | [[P1 - Retriever agent - spec]] · [[P1 - Retriever agent - plan]] |
-| P2 | Orchestrator agent + prompt (budget via H2a, `PartialAnswer`, re-plan) | Patrick | C1, H2a, L5 (or a stub) | M2 | in review (PR #47) | [[P2 - Orchestrator agent - spec]] · [[P2 - Orchestrator agent - plan]] |
+| P2 | Orchestrator agent + prompt (budget via H2a, `PartialAnswer`, re-plan) | Patrick | C1, H2a, L5 (or a stub) | M2 | **merged** (PR #47, 9f16bd6) | [[P2 - Orchestrator agent - spec]] · [[P2 - Orchestrator agent - plan]] |
 | P3 | `scripts/ask.py` *(new)* local runner on `run_spine` | Patrick | H2b | M2 | spec + plan ready | [[P3 - Local ask runner - spec]] · [[P3 - Local ask runner - plan]] |
 | H1 | Ledger extensions (rejected records, read methods, steps, task tokens) on both adapters | Huvison | C1 | M2 | **merged** (PR #26, d2d0e35) | [[H1 - Ledger extensions - spec]] · [[H1 - Ledger extensions - plan]] |
 | H2a | Budget and ledger states (`tools/budget.py` *(new)*, the ledger steps of the ask spine) | Huvison | C1, H1, H5 | M2 | **merged** (PR #34, ebd66e0) | [[H2a - Budget and ledger states - spec]] · [[H2a - Budget and ledger states - plan]] |
@@ -73,7 +73,7 @@ Work in parallel: an item starts as soon as its dependencies are merged into `de
 ## DevOps
 | ID | Item | Owner | Depends on | Milestone | Status | Spec / plan |
 |---|---|---|---|---|---|---|
-| M1 | Jenkins CI: PR #8 reviewed and merged; bandit list extended | Michael | (none) | M0 | in review (PR #8) | [[M1 - Jenkins CI - spec]] · [[M1 - Jenkins CI - plan]] |
+| M1 | Jenkins CI: PR #8 reviewed and merged; bandit list extended | Michael | (none) | M0 | in progress (draft PR #8) | [[M1 - Jenkins CI - spec]] · [[M1 - Jenkins CI - plan]] |
 | M2 | `infra/app.py` *(new)* + DataStack + LedgerStack; CDK in its own `infra` dependency group; Node 22 in CI | Michael | C1, M1 (edits the Jenkinsfile) | M1 → M2 | **merged** (PR #37, 307da7c) | [[M2 - App, DataStack and LedgerStack - spec]] · [[M2 - App, DataStack and LedgerStack - plan]] |
 | M3a | GuardrailStack | Michael | M2 | M1 → M3 | **merged** (PR #38, 18f98ae) | [[M3a - GuardrailStack - spec]] · [[M3a - GuardrailStack - plan]] |
 | M3b | AuthStack (Cognito) | Michael | M2, A2 | M1 → M3 | **merged** (PR #44, 8ccf8d7) | [[M3b - AuthStack - spec]] · [[M3b - AuthStack - plan]] |
