@@ -33,7 +33,7 @@ OPTION_TABLE = {
     "grep": (set("nicloLhHEFwxvrsq"), set("mABCe"), {"recursive"}, {"include", "exclude", "exclude-dir"}),
     "sort": (set("nrufb"), set("kt"), set(), set()),
     "uniq": (set("cdui"), set(), set(), set()),
-    "diff": (set("uqr"), set(), {"brief"}, set()),
+    "diff": (set("uq"), set(), {"brief"}, set()),
     "stat": (set(), set("c"), set(), {"format"}),
     "date": (set("uIR"), set("d"), set(), set()),
     "cut": (set(), set("dfc"), set(), set()),
@@ -70,6 +70,9 @@ GIT_OPTION_TABLE = {
 }
 # git option values that are patterns, never paths
 GIT_PATTERN_VALUES = {"format", "pretty", "grep", "author", "date"}
+# %G placeholders make git run gpg or ssh-keygen on commit signatures
+GIT_FORMAT_VALUES = {"format", "pretty"}
+GIT_SIGNATURE_PLACEHOLDER = "%G"
 GIT_COUNT_OPTION = re.compile(r"-n?\d+")
 # gh: (subcommand words) -> {option: takes a value}
 GH_OPTION_TABLE = {
@@ -84,18 +87,21 @@ GH_OPTION_TABLE = {
     ("api",): {"--jq": True, "-q": True, "--paginate": False, "--cache": True},
 }
 GH_API_ENDPOINT_PREFIX = "repos/"
+GH_REPO_OPTIONS = {"--repo", "-R"}
 GH_JQ_OPTIONS = {"--jq", "-q"}
 GH_JQ_REFUSED = "env"
 SEGMENT_OPERATORS = {"|", "||", "&&", ";"}
 PUNCTUATION = set("();<>|&")
-STDERR_TO_NULL = re.compile(r"(?<=\s)2>/dev/null(?=\s|$)")
+STDERR_TO_NULL = re.compile(r"(?<=[ \t])2>/dev/null(?=[ \t]|$)")
+SPECIAL_FILESYSTEMS = re.compile(r"^/(proc|dev)(/|$)")
 DOTDOT = re.compile(r"(^|[/:=])\.\.(/|$)")
 SED_RANGE = re.compile(r"\d+(,\d+)?p")
 SHA = re.compile(r"[0-9a-f]{7,40}")
 REPORT_NAME = re.compile(r"\d{4}-\d{2}-\d{2} \d{4}\.md")
 GLOB_CHARACTERS = set("*?[")
 UNQUOTED_REFUSED = set("#{}\\!*?[]")
-ALWAYS_REFUSED = set("$`\n\r")
+ALWAYS_REFUSED = set("$`")
+TAB = "\t"
 WORD_START_CHARACTERS = set(" \t|&;()<>")
 INDEX_NAME = "Progress.md"
 
@@ -113,6 +119,7 @@ class Roots:
     vault: str
     repo: str | None
     use_gh: bool
+    github_repo: str = ""
 
     @property
     def evals(self):
@@ -148,16 +155,17 @@ def load_roots():
     if not project_dir:
         deny("CLAUDE_PROJECT_DIR is not set; run the auditor from the vault root")
     vault = os.path.realpath(project_dir)
-    repo, use_gh = None, True
+    repo, use_gh, github_repo = None, True, ""
     try:
         with open(os.path.join(vault, ".claude", "auditor", "local.json"), encoding="utf-8") as handle:
             local = json.load(handle)
         candidate = os.path.realpath(os.path.expanduser(str(local.get("repo", ""))))
         repo = candidate if local.get("repo") and os.path.isdir(candidate) else None
         use_gh = bool(local.get("use_gh", True))
+        github_repo = str(local.get("github_repo", ""))
     except (OSError, ValueError):
         pass
-    return Roots(vault=vault, repo=repo, use_gh=use_gh)
+    return Roots(vault=vault, repo=repo, use_gh=use_gh, github_repo=github_repo)
 
 
 def under(path, root):
@@ -168,18 +176,65 @@ def resolved(path, cwd):
     return os.path.realpath(os.path.join(cwd, path))
 
 
+def same_file(first, second):
+    try:
+        return os.path.samefile(first, second)
+    except OSError:
+        return True  # cannot tell, so treat as the same: fail closed
+
+
+def ancestors_and_self(path):
+    while True:
+        yield path
+        parent = os.path.dirname(path)
+        if parent == path:
+            return
+        path = parent
+
+
+def inside_refused(real, roots):
+    """True if real is, or is under, a refused directory.
+
+    The vault is on a case-insensitive Windows mount that also resolves 8.3 short names,
+    so string comparison alone is not enough: compare casefolded, and by file identity
+    wherever the paths exist.
+    """
+    folded = real.casefold()
+    for refused in roots.denied_dirs():
+        if under(folded, refused.casefold()):
+            return True
+    existing_refused = [refused for refused in roots.denied_dirs() if os.path.exists(refused)]
+    for probe in ancestors_and_self(real):
+        if os.path.exists(probe) and any(same_file(probe, refused) for refused in existing_refused):
+            return True
+    return False
+
+
 def judge_real_path(real, shown, roots):
     if not any(under(real, root) for root in roots.readable()):
         deny(f"{shown} is outside the vault and the repo")
-    for denied_dir in roots.denied_dirs():
-        if under(real, denied_dir):
-            deny(f"{shown} is in a refused directory")
-    if f"{os.sep}.git{os.sep}" in real + os.sep:
+    if inside_refused(real, roots):
+        deny(f"{shown} is in a refused directory")
+    if f"{os.sep}.git{os.sep}" in (real + os.sep).casefold():
         deny(f"{shown} is inside a .git directory")
 
 
 def is_ancestor_of_denied(real, roots):
-    return any(under(denied_dir, real) for denied_dir in roots.denied_dirs())
+    """True if real is, or contains, a refused directory (casefolded and by identity)."""
+    folded = real.casefold()
+    for refused in roots.denied_dirs():
+        if under(refused.casefold(), folded):
+            return True
+        if os.path.exists(real) and any(
+            os.path.exists(candidate) and same_file(real, candidate) for candidate in ancestors_and_self(refused)
+        ):
+            return True
+    return False
+
+
+def refuse_special_path(token):
+    if SPECIAL_FILESYSTEMS.match(os.path.normpath(token)):
+        deny("/proc and /dev paths are refused")
 
 
 def scan_raw(command):
@@ -188,8 +243,8 @@ def scan_raw(command):
     Quote-aware: glob, brace, comment, history and escape characters are literal inside
     quotes, so they are refused only outside them.
     """
-    if any(character in ALWAYS_REFUSED for character in command):
-        deny("variables, command substitution and newlines are refused")
+    if any(character in ALWAYS_REFUSED or (character < " " and character != TAB) for character in command):
+        deny("variables, command substitution and control characters are refused")
     quote = None
     index = 0
     while index < len(command):
@@ -217,8 +272,9 @@ def check_path_tokens(tokens, cwd, roots):
     for token in tokens:
         if DOTDOT.search(token):
             deny("'..' path components are refused")
-        if token.startswith("~"):
-            deny("home-directory paths are refused")
+        if "~" in token:
+            deny("'~' is refused (home directories and 8.3 short names)")
+        refuse_special_path(token)
         if token == "-":
             continue
         if "/" in token or os.path.exists(os.path.join(cwd, token)):
@@ -310,6 +366,9 @@ def check_git(tokens, cwd, roots):
         rest = [token for token in rest if not GIT_COUNT_OPTION.fullmatch(token)]
     parsed = check_options(f"git {subcommand}", rest, *GIT_OPTION_TABLE[subcommand], inline_values_only=True)
     check_path_tokens([value for name, value in parsed.values if "/" in value and name not in GIT_PATTERN_VALUES], cwd, roots)
+    for name, value in parsed.values:
+        if name in GIT_FORMAT_VALUES and GIT_SIGNATURE_PLACEHOLDER in value:
+            deny("git %G placeholders run signature tools and are refused")
     for token in parsed.positionals:
         if token.startswith(("/", "~")):
             deny("git paths outside the repository are refused")
@@ -322,12 +381,14 @@ def check_git(tokens, cwd, roots):
 def check_gh(tokens, roots):
     if not roots.use_gh:
         deny("gh is disabled for this run (local.json use_gh: false)")
+    if not roots.github_repo:
+        deny("gh is refused: local.json has no github_repo")
     args = tokens[1:]
     key = ("api",) if args[:1] == ["api"] else tuple(args[:2])
     allowed = GH_OPTION_TABLE.get(key)
     if allowed is None:
         deny("only gh pr list/view/checks/diff and gh api GET are allowed")
-    rest, positionals, index = args[len(key):], [], 0
+    rest, positionals, index, repo_given = args[len(key):], [], 0, False
     while index < len(rest):
         token = rest[index]
         index += 1
@@ -347,11 +408,21 @@ def check_gh(tokens, roots):
                 deny(f"gh option {name} needs a value")
             value = rest[index]
             index += 1
+        if name in GH_REPO_OPTIONS:
+            if value != roots.github_repo:
+                deny("gh --repo must be the configured github_repo")
+            repo_given = True
         if name in GH_JQ_OPTIONS and GH_JQ_REFUSED in value:
             deny("gh jq filters that mention env are refused")
-    if key == ("api",) and (
+    if key != ("api",):
+        if not repo_given:
+            deny("gh pr commands need --repo <github_repo>")
+        if not all(positional.isdigit() for positional in positionals):
+            deny("gh pr commands take only a PR number")
+        return
+    if (
         len(positionals) != 1
-        or not positionals[0].startswith(GH_API_ENDPOINT_PREFIX)
+        or not positionals[0].startswith(f"{GH_API_ENDPOINT_PREFIX}{roots.github_repo}/")
         or "graphql" in positionals[0]
         or ".." in positionals[0]
     ):
@@ -409,7 +480,6 @@ def check_listed_program(program, args, cwd, roots):
     recursive = (
         (program == "grep" and parsed.flags & {"r", "R", "recursive"})
         or (program == "ls" and "R" in parsed.flags)
-        or (program == "diff" and "r" in parsed.flags)
     )
     if recursive:
         check_recursive(positionals, cwd, roots)
@@ -462,8 +532,9 @@ def check_bash(command, cwd, roots):
     for token in tokens:
         if token == "":
             deny("empty argument")
-        if "=~" in token:
-            deny("'=~' is refused (tilde expansion)")
+        if "~" in token:
+            deny("'~' is refused (home directories and 8.3 short names)")
+        refuse_special_path(token)
         if token in SEGMENT_OPERATORS:
             check_segment(segment, cwd, roots)
             segment = []
@@ -495,6 +566,11 @@ def decide(payload, roots):
     cwd = os.path.realpath(payload.get("cwd") or roots.vault)
     if not any(under(cwd, root) for root in roots.readable()):
         deny("the working directory is outside the vault and the repo")
+    if tool_name in ("Read", "Write", "Edit"):
+        file_path = str(tool_input["file_path"])
+        if "~" in file_path:
+            deny("'~' is refused in file paths")
+        refuse_special_path(file_path)
     if tool_name == "Bash":
         check_bash(str(tool_input["command"]), cwd, roots)
     elif tool_name == "Read":

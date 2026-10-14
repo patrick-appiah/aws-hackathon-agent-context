@@ -9,6 +9,8 @@ from pathlib import Path
 
 GUARD = Path(__file__).resolve().parent / "auditor_guard.py"
 SHA7 = "abc1234"
+GITHUB_REPO = "Amali-Tech/cloud-9-hackathon"
+DRVFS_PARENT = Path(__file__).resolve().parents[2] / ".superpowers"
 
 
 def make_fixture(root, use_gh=True):
@@ -21,11 +23,14 @@ def make_fixture(root, use_gh=True):
         directory.mkdir(parents=True)
     (vault / ".git" / "config").write_text("[core]\n")
     (vault / ".claude" / "auditor" / "collect.py").write_text("")
-    (vault / ".claude" / "auditor" / "local.json").write_text(json.dumps({"repo": str(repo), "use_gh": use_gh}))
+    (vault / ".claude" / "auditor" / "local.json").write_text(json.dumps({"repo": str(repo), "use_gh": use_gh, "github_repo": GITHUB_REPO}))
     (vault / "06 Workstreams" / "Brief.md").write_text("brief\n")
     (vault / "07 Build" / "Progress auditor" / "evals" / "cases" / "c1.md").write_text("answer key\n")
     (vault / "08 Progress" / "2026-10-14 0900.md").write_text("old report\n")
-    (vault / "escape").symlink_to("/etc")
+    try:
+        (vault / "escape").symlink_to("/etc")
+    except OSError:
+        pass
     (repo / "AGENTS.md").write_text("agents\n")
     (repo / ".git" / "config").write_text("[core]\n")
     return vault, repo
@@ -279,6 +284,76 @@ class RoundTwoTests(GuardTestCase):
             f"git -C {repo} log -1 --pretty=format:x",
             f"git -C {repo} log --format=%h -n5",
         ])
+
+
+class RoundThreeTests(GuardTestCase):
+    """Fix round 3: case-insensitive refused dirs, tilde, gh pinned to the repo, minors."""
+
+    def test_refused(self):
+        vault, repo = self.vault, self.repo
+        self.assert_bash("deny", [
+            f'cat "{vault}/07 BUILD/Progress Auditor/evals/cases/c1.md"',
+            "cat 07BUIL~1/x",
+            'cat "a~b"',
+            f'cat "{vault}/.GIT/config"',
+            f'cat "{repo}/.Git/config"',
+            "gh pr view https://evil.example/o/r/pull/1",
+            "gh pr list --repo evil.example/o/r",
+            "gh api repos/other/repo/pulls",
+            "gh pr view 8",
+            f"gh pr view abc --repo {GITHUB_REPO}",
+            f"cat x{chr(0)}y",
+            f"ls{chr(1)}",
+            f"cat README.md{chr(11)}2>/dev/null",
+            f"cat README.md{chr(12)}2>/dev/null",
+            "diff -r a b",
+            f'git -C {repo} log "--format=%G?" -1',
+            f'git -C {repo} show "--pretty=%GS" {SHA7}',
+            "cat /proc/self/cwd/Brief.md",
+            "cat /dev/zero",
+        ])
+
+    def test_allowed(self):
+        self.assert_bash("allow", [
+            f"gh pr view 8 --repo {GITHUB_REPO} --json state",
+            f"gh api repos/{GITHUB_REPO}/pulls/8",
+        ])
+
+    def test_file_tools(self):
+        for tool_name, tool_input in [
+            ("Read", {"file_path": f"{self.vault}/x~1"}),
+            ("Read", {"file_path": f"{self.vault}/07 BUILD/Progress Auditor/evals/cases/c1.md"}),
+            ("Read", {"file_path": "/proc/self/cwd/AGENTS.md"}),
+            ("Write", {"file_path": f"{self.vault}/08 Progress/Progress~1.md", "content": "x"}),
+            ("Edit", {"file_path": f"{self.vault}/08 Progress/Progress~1.md", "old_string": "a", "new_string": "b"}),
+        ]:
+            with self.subTest(tool_name=tool_name, tool_input=tool_input):
+                self.assertEqual(self.decide(tool_name, tool_input), "deny")
+
+
+class DrvFsTests(GuardTestCase):
+    """The real vault is on a case-insensitive Windows mount; the /tmp fixture is not."""
+
+    @classmethod
+    def setUpClass(cls):
+        if not DRVFS_PARENT.is_dir():
+            raise unittest.SkipTest("no DrvFs-backed scratch directory")
+        cls.temp = tempfile.TemporaryDirectory(dir=DRVFS_PARENT)
+        cls.vault, cls.repo = make_fixture(cls.temp.name)
+        if not (cls.vault / "07 build").exists():
+            cls.temp.cleanup()
+            raise unittest.SkipTest("scratch directory is case-sensitive")
+
+    def test_case_variants_refused(self):
+        vault = self.vault
+        self.assert_bash("deny", [
+            'cat "07 build/progress auditor/evals/cases/c1.md"',
+            'grep -r x "07 build"',
+            f'cat "{vault}/.GIT/config"',
+            'ls -R "07 BUILD"',
+        ])
+        self.assertEqual(self.decide("Read", {"file_path": f"{vault}/07 build/progress auditor/evals/cases/c1.md"}), "deny")
+        self.assertEqual(self.decide("Read", {"file_path": f"{vault}/06 workstreams/Brief.md"}), "allow")
 
 
 class FileToolTests(GuardTestCase):
