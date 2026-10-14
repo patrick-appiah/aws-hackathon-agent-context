@@ -20,7 +20,7 @@ Milestones (`docs/TEAM_PLAN.md` §4):
 ## Back end
 | ID | Item | Owner | Depends on | Milestone | Status | Spec / plan |
 |---|---|---|---|---|---|---|
-| **C1** | API and ask-spine contracts (`tools/api_schema.py` *(new)*, step models with `usage`, settings, JSON Schema, DevOps handover) | Patrick | (none) | M0 | spec + plan ready | [[C1 - API and spine contracts - spec]] · [[C1 - API and spine contracts - plan]] |
+| **C1** | API and ask-spine contracts (`tools/api_schema.py` *(new)*, step models with `usage`, settings, JSON Schema, DevOps handover) | Patrick | (none) | M0 | **merged** (PR #22, 5d6ff5f; 213 tests, 96%) | [[C1 - API and spine contracts - spec]] · [[C1 - API and spine contracts - plan]] |
 | P1 | Retriever agent + prompt | Patrick | C1 | M2 | spec + plan ready | [[P1 - Retriever agent - spec]] · [[P1 - Retriever agent - plan]] |
 | P2 | Orchestrator agent + prompt (budget via H2a, `PartialAnswer`, re-plan) | Patrick | C1, H2a, L5 (or a stub) | M2 | spec + plan ready | [[P2 - Orchestrator agent - spec]] · [[P2 - Orchestrator agent - plan]] |
 | P3 | `scripts/ask.py` *(new)* local runner on `run_spine` | Patrick | H2b | M2 | spec + plan ready | [[P3 - Local ask runner - spec]] · [[P3 - Local ask runner - plan]] |
@@ -44,7 +44,7 @@ Milestones (`docs/TEAM_PLAN.md` §4):
 | ID | Item | Owner | Depends on | Milestone | Status | Spec / plan |
 |---|---|---|---|---|---|---|
 | A1 | Review the 28 eval files against `EVALS.md`; Q10 on Day 2; manual checks (Q02, Q03, Q09, Q11) after each run | Abdul | (none); Task 6: H6/L6 | M0, then every run | spec + plan ready | [[A1 - Eval set review and manual checks - spec]] · [[A1 - Eval set review and manual checks - plan]] |
-| A2 | Cognito groups, claims and test users (with Michael) | Abdul | (none); Tasks 3–4: M3*, Y1, L1–L2, F3, F4 | M3 | spec + plan ready | [[A2 - Cognito groups, claims and test users - spec]] · [[A2 - Cognito groups, claims and test users - plan]] |
+| A2 | Cognito groups, claims and test users (with Michael) | Abdul | (none); Tasks 3–4: M3b, Y1, L1–L2, F3, F4 | M3 | spec + plan ready | [[A2 - Cognito groups, claims and test users - spec]] · [[A2 - Cognito groups, claims and test users - plan]] |
 | A3a | Bedrock unit prices | Abdul | (none) | M2 | spec + plan ready | [[A3a - Bedrock unit prices - spec]] · [[A3a - Bedrock unit prices - plan]] |
 | A3b | COST measured figures | Abdul | A3a, H5, H6, A5a | M5 | spec + plan ready | [[A3b - COST measured figures - spec]] · [[A3b - COST measured figures - plan]] |
 | A4a | Target architecture diagram v2 | Abdul | (none) | M5 | spec + plan ready | [[A4a - Target architecture diagram v2 - spec]] · [[A4a - Target architecture diagram v2 - plan]] |
@@ -54,17 +54,21 @@ Milestones (`docs/TEAM_PLAN.md` §4):
 | A5b | Worked examples per agent | Abdul (with Linus) | P1, P2, L5, H3, H6 | M4 | spec + plan ready | [[A5b - Worked examples per agent - spec]] · [[A5b - Worked examples per agent - plan]] |
 
 ## DevOps
-| ID | Item | Owner | Depends on | Milestone | Status |
-|---|---|---|---|---|---|
-| M1 | Jenkins CI: PR #8 reviewed and merged; bandit list extended | Michael | (none) | M0 | in review (PR #8) |
-| M2 | `infra/app.py` *(new)* + DataStack + LedgerStack | Michael | C1 (handover) | M1 → M2 | not specced |
-| M3* | GuardrailStack + AuthStack (Cognito) | Michael | C1, A2 | M1 → M3 | not specced |
-| M4 | WebStack (S3 + CloudFront, `/api/*`) + observability | Michael | M2 | M1 → M2 | not specced |
-| M5 | Clean-deploy runbook (with Patrick) | Michael | all stacks | M2, M4 | not specced |
-| Y1 | ApiStack (HTTP API v2, JWT authorizer, routes) | Yaw | C1, M3* | M1 → M2 | not specced |
-| Y2 | FlowStack (Express ask spine, Standard publish) | Yaw | C1, H2, H4 | M1 → M3 | not specced |
-| Y3 | AgentStack (AgentCore + Lambda fallback + shim) | Yaw | C1, P2 | M1 → M2 | not specced |
-| Y4 | IAM review (least privilege, no `*`) | Yaw (with Patrick) | all stacks | M2 | not specced |
+| ID | Item | Owner | Depends on | Milestone | Status | Spec / plan |
+|---|---|---|---|---|---|---|
+| M1 | Jenkins CI: PR #8 reviewed and merged; bandit list extended | Michael | (none) | M0 | spec + plan ready | [[M1 - Jenkins CI - spec]] · [[M1 - Jenkins CI - plan]] |
+| M2 | `infra/app.py` *(new)* + DataStack + LedgerStack; CDK in its own `infra` dependency group; Node 22 in CI | Michael | C1, M1 (edits the Jenkinsfile) | M1 → M2 | spec + plan ready | [[M2 - App, DataStack and LedgerStack - spec]] · [[M2 - App, DataStack and LedgerStack - plan]] |
+| M3a | GuardrailStack | Michael | M2 | M1 → M3 | spec + plan ready | [[M3a - GuardrailStack - spec]] · [[M3a - GuardrailStack - plan]] |
+| M3b | AuthStack (Cognito) | Michael | M2, A2 | M1 → M3 | spec + plan ready | [[M3b - AuthStack - spec]] · [[M3b - AuthStack - plan]] |
+| M4a | WebStack (S3 + CloudFront, `/api/*`) and the Cognito callback fix | Michael | M2; app wiring needs M3b and Y1 | M1 → M2 | spec + plan ready | [[M4a - WebStack - spec]] · [[M4a - WebStack - plan]] |
+| M4b | Observability (dashboards, alarms) | Michael | M2; app wiring needs Y1, Y2a and M4a | M2 | spec + plan ready | [[M4b - Observability - spec]] · [[M4b - Observability - plan]] |
+| M5 | Clean-deploy runbook (with Patrick) | Michael | all stacks | M2, M4 | spec + plan ready | [[M5 - Clean-deploy runbook - spec]] · [[M5 - Clean-deploy runbook - plan]] |
+| Y1 | ApiStack (HTTP API v2, JWT authorizer, routes) | Yaw | M3a, M3b | M1 → M2 | spec + plan ready | [[Y1 - ApiStack - spec]] · [[Y1 - ApiStack - plan]] |
+| Y2a | Express ask spine + `/ask` | Yaw | Y1; Task 6 needs H2b and L3 | M1 → M3 | spec + plan ready | [[Y2a - Express ask spine - spec]] · [[Y2a - Express ask spine - plan]] |
+| Y2b | Standard publish flow + `/publish`, `/approve` | Yaw | Y2a; Task 5 needs H4 and L3 | M3 | spec + plan ready | [[Y2b - Standard publish flow - spec]] · [[Y2b - Standard publish flow - plan]] |
+| Y3a | AgentCore runtime (code zip, no Docker) | Yaw | Y2a, H2b | M2 | spec + plan ready | [[Y3a - AgentCore runtime - spec]] · [[Y3a - AgentCore runtime - plan]] |
+| Y3b | Agent shim and `agent_host=agentcore\|lambda` switch | Yaw | Y3a, Y2b | M2 | spec + plan ready | [[Y3b - Agent shim and host switch - spec]] · [[Y3b - Agent shim and host switch - plan]] |
+| Y4 | IAM least-privilege review (no `*` except task-token actions) | Yaw (with Patrick) | all stacks | M2 | spec + plan ready | [[Y4 - IAM least-privilege review - spec]] · [[Y4 - IAM least-privilege review - plan]] |
 
 ## Front end
 | ID | Item | Owner | Depends on | Milestone | Status | Spec / plan |
