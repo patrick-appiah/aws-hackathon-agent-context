@@ -36,7 +36,7 @@ Work in parallel: an item starts as soon as its dependencies are merged into `de
 ## Back end
 | ID | Item | Owner | Depends on | Milestone | Status | Spec / plan |
 |---|---|---|---|---|---|---|
-| **C2** | Repo layout (C2) | Patrick | (none) | M0 | spec ready; docs PR pending | [[C2 - Repo layout - spec]] |
+| **C2** | Repo layout (C2) | Patrick | (none) | M0 | **merged** (PR #27) | [[C2 - Repo layout - spec]] |
 | **C1** | API and ask-spine contracts (`tools/api_schema.py` *(new)*, step models with `usage`, settings, JSON Schema, DevOps handover) | Patrick | (none) | M0 | **merged** (PR #22, 5d6ff5f; 213 tests, 96%) | [[C1 - API and spine contracts - spec]] · [[C1 - API and spine contracts - plan]] |
 | P1 | Retriever agent + prompt | Patrick | C1 | M2 | **merged** (PR #24, 1b815aa) | [[P1 - Retriever agent - spec]] · [[P1 - Retriever agent - plan]] |
 | P2 | Orchestrator agent + prompt (budget via H2a, `PartialAnswer`, re-plan) | Patrick | C1, H2a, L5 (or a stub) | M2 | spec + plan ready | [[P2 - Orchestrator agent - spec]] · [[P2 - Orchestrator agent - plan]] |
