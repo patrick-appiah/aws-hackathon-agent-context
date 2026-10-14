@@ -1,0 +1,59 @@
+You are helping Huvison on an 8-person AmaliTech x AWS hackathon team building the ERP Migration Progress Portal.
+Huvison owns workstream 2, trust and flow:
+- the writer agent;
+- the Step Functions ask-spine step functions (budget, orchestrator call, claims to the ledger, critic per claim,
+  retry guard, writer);
+- the run-ledger extensions;
+- publish and approve with human approval;
+- cost per run;
+- the Guardrail settings;
+- the 29-second /ask timing.
+
+REPO: ~/amalitech/aws-hackathon/erp-migration-portal (GitHub Amali-Tech/cloud-9-hackathon, branch develop).
+VAULT (team notes): /mnt/c/dev/aws-hackathon/aws-hackathon (Obsidian; git repo patrick-appiah/aws-hackathon-agent-context).
+
+READ FIRST, IN THIS ORDER, BEFORE PROPOSING ANYTHING:
+1. Vault: 06 Workstreams/Huvison - trust and flow.md     (your brief: tasks, ledger table, interfaces, done)
+2. Vault: 06 Workstreams/Workstreams.md                    (architecture, contracts, timeline, rules)
+3. Repo: AGENTS.md (critic and writer rows), ARCHITECTURE.md (sections 2, 3, 7), docs/TEAM_PLAN.md (sections 2, 3, 6),
+   DECISIONS.md D-007, D-009, D-012, D-014
+4. Repo code you build on: tools/ports.py (Ledger), adapters/memory_ledger.py, adapters/dynamo_ledger.py,
+   tests/adapters/test_ledgers.py (one suite for both adapters), agents/critic.py, agents/prompt_loader.py, config.py
+
+NON-NEGOTIABLE RULES:
+- The critic is blind (claim + cited rows only; never the plan, the history or attempt counts) and fails closed.
+- The retry guard reads the attempt count from the ledger; a model never decides a retry; max_claim_attempts = 2.
+- The ledger is create-once: re-creating a run, claim or rejection raises LedgerConflict; counters and spent cost are
+  never reset (D-012).
+- Nothing is written (the status pack) until a delivery_lead approves through waitForTaskToken.
+- eu-west-1 and Bedrock eu.* models only (model IDs from config.py). Synthetic data only. No secrets anywhere.
+- Prompts live only in agents/prompts/<agent>.txt; bump version and run `uv run python scripts/lock_prompts.py`.
+- Settings only in config.py; domain constants (including the price table) in tools/constants.py; descriptive names;
+  no single-character names; no magic numbers.
+- Never weaken a security rule to make a test pass.
+
+HOW TO WORK:
+- Anything architectural: brainstorm, write a spec, write a plan, then implement test-first. If you have the
+  superpowers skills, use them; otherwise follow the same steps.
+- Test first. Every new ledger method goes into tests/adapters/test_ledgers.py, so both adapters pass the same tests
+  (DynamoDB via moto). No real AWS in unit tests.
+- Run `uv run --locked pytest` from the repo root before every commit. Coverage must not drop below 92%.
+- Branch <type>/<short-topic> from develop; PR to develop; Patrick merges. Small, clear commits (history is graded).
+- Ask Huvison before pushing, opening PRs or touching AWS.
+
+FIRST TASK: ledger extensions on branch feature/ledger-extensions:
+- put_rejected / rejected;
+- run, claims;
+- add_step (STEP#n);
+- persist tokens_in/tokens_out on the RUN item;
+- put_task_token / task_token keyed by run_id (sk=TASK).
+Test-first, on both adapters.
+Then: flow/budget.py (require_budget), flow/steps.py (one function per state), agents/writer.py with a code check
+that drops uncited bullets, flow/publish.py (start_publish, decide), flow/cost.py with the price table, the Q08/Q09
+fault doubles for the eval runner, the Guardrail settings, and the 29-second timing.
+
+IF A DEPENDENCY ISN'T READY: Patrick's step models aren't merged? Use BlockerClaim/Verdict and plain dicts. No
+orchestrator yet? Use a stub returning VALID_CLAIM from tests/tools/test_claims.py. Tell Patrick.
+
+NEVER: give the critic attempt counts; reset a counter; write the status pack before approval; add a fault switch to
+the API or production config; edit api/ (Linus), web/ (front end) or infra/ (DevOps).
