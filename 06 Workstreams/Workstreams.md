@@ -87,7 +87,7 @@ Dashboard figures: 18,420 of 31,700 records reconciled (58.1%); C3 pass rate 96.
 
 | Contract | Produced by | Consumed by | Lives in |
 |---|---|---|---|
-| API response schema (`/summary`, `/entity/{id}`, `/rows`, `/ask`, `/publish`, `/approve`, error body), exported as JSON Schema | Patrick (shapes), Linus (handlers) | Mildred, Clement (TypeScript types), Abdul (request collection) | `tools/api_schema.py` *(new)* + `scripts/export_api_schema.py` *(new)* (both new) |
+| API response schema (`/summary`, `/entity/{id}`, `/rows`, `/ask`, `/publish`, `/approve`, error body), exported as JSON Schema | Patrick (shapes), Linus (handlers) | Mildred, Clement (TypeScript types) | `tools/api_schema.py` *(new)* + `scripts/export_api_schema.py` *(new)* (both new) |
 | Ask-spine step inputs and outputs (`Question`, `Plan`, `RetrieveRequest`, `Evidence`, claims, `Verdict`, writer input, `Answer`, `PartialAnswer`), each agent output carrying `usage{model_id, tokens_in, tokens_out}` for cost | Patrick | Huvison (handlers), Yaw (state machine), Patrick and Linus (agents) | `tools/models.py` |
 | Agent tools | done | Patrick, Linus | `tools/agent_tools.py` |
 | Ledger port and its extensions (rejected records, read methods, steps, tokens, task tokens) | Huvison | Huvison, Linus (eval runner), Yaw (IAM) | `tools/ports.py`, `adapters/*_ledger.py` |

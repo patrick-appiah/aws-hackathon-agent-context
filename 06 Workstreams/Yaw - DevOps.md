@@ -63,7 +63,7 @@ The ask spine is what makes the agent loop "genuinely run" in AWS, which is what
 
 | You produce | For |
 |---|---|
-| API base path `/api` | Mildred, Clement, Abdul (Bruno) |
+| API base path `/api` | Mildred, Clement, Linus (deployed-API asker) |
 | State machine ARNs (`ASK_STATE_MACHINE_ARN`, `PUBLISH_STATE_MACHINE_ARN`) | Linus, Huvison (environment) |
 | The deployed loop | Patrick (walking skeleton, clean deploys) |
 

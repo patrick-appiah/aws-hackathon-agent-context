@@ -2,14 +2,13 @@ You are helping Abdul on an 8-person AmaliTech x AWS hackathon team building the
 Abdul owns workstream 4:
 - the eval set (already built by Michael in PR #16: Abdul reviews it, records Q10, runs the manual checks and
   writes the results);
-- the API request collection (Bruno);
 - the Cognito groups and test users (with Michael, who deploys them in CDK);
 - Bedrock prices for COST.md;
 - the documents judges read: EVALS.md results, worked examples per agent, target architecture diagram v2,
   and HANDOFF.md and DEMO.md lines.
 
 IMPORTANT: Abdul does not write Python. Never ask him to run Python, uv, pytest or scripts. Work only in JSON,
-Markdown, Bruno, draw.io/Excalidraw and the GitHub web editor or VS Code. Explain each step plainly (which file, what
+Markdown, draw.io/Excalidraw and the GitHub web editor or VS Code. Explain each step plainly (which file, what
 to type, how to commit). His pair, Linus, covers anything that needs code.
 
 REPO: ~/amalitech/aws-hackathon/erp-migration-portal (GitHub Amali-Tech/cloud-9-hackathon, branch develop).
@@ -22,7 +21,7 @@ READ FIRST, IN THIS ORDER, BEFORE PROPOSING ANYTHING:
 
 RULES:
 - Synthetic data only; no real company, system or person names.
-- No passwords, tokens or keys in any file (Bruno environments included). Patrick shares test passwords privately.
+- No passwords, tokens or keys in any file (nothing exported from Postman with tokens). Patrick shares test passwords privately.
 - Never create AWS resources by hand in the console; Michael creates them in CDK. The console is for looking only.
 - Copy every ID exactly as written (RC-C3-E4-customers, E4#RB-010, DEF-0412, CAL-004).
   The eval runner matches them character for character.
@@ -42,4 +41,5 @@ evals/run.py). Review all 28 files against the question table in EVALS.md: quest
 must_cite lists. List any mismatch for Michael or Linus; don't edit evals/run.py. On Day 2, record the unseen Q10.
 After each eval run, write the results row and "What still fails" in EVALS.md, and do the manual checks for Q02,
 Q09 and Q11. Ask Huvison for the Q09 verdict count rather than guessing.
-Then: the Bruno collection, Cognito with Michael, the Bedrock prices, worked examples, and the documents.
+Then: Cognito with Michael, the Bedrock prices and COST.md, the roadmap draft with Linus, worked examples, and the
+documents. Postman is only for trying a route by hand; nothing from it is committed.

@@ -9,7 +9,6 @@ updated: 2026-10-14
 ## Your job in one paragraph
 You make our work **provable and presentable**:
 - **the eval set:** the 14 test questions as files the eval runner reads, plus what a correct answer must contain;
-- **the API request collection**, so anyone can click through every route;
 - **the Cognito test users**, so we can sign in as each role (with Michael);
 - **the Bedrock prices** behind `COST.md`;
 - **the documents judges read:** `EVALS.md` results (honest, failures included), the worked examples per agent, the target architecture diagram v2, and your `HANDOFF.md` and `DEMO.md` lines.
@@ -21,7 +20,6 @@ The organisers' guideline calls the eval set "the single highest-leverage ninety
  ★evals/inputs/Qnn.json★ ─▶ Michael's evals/run.py ─▶ the agent loop (in-process) ─▶ evals/results/run-*.json
                                                                                        └─▶ ★EVALS.md results★
  ★evals/expected/Qnn.json★ (what must appear)        ★evals/expected/<agent>.json★ (worked examples)
- ★evals/api-collection/★ (Bruno) ─▶ API Gateway ─▶ Linus's handlers
  ★Cognito groups + test users★ (Michael deploys in AuthStack) ─▶ sign-in ─▶ the token's role and entity claims
  ★Bedrock prices★ ─▶ Huvison's price table ─▶ cost per run ─▶ ★COST.md★
 ```
@@ -31,7 +29,6 @@ The organisers' guideline calls the eval set "the single highest-leverage ninety
 |---|---|
 | `evals/inputs/`, `evals/expected/` | exist (Michael, PR #16): you review them, write Q10 on Day 2, and run the manual checks |
 | `evals/expected/<agent>.json` *(new)* | worked examples per agent |
-| `evals/api-collection/` *(new)* | the Bruno collection |
 | `EVALS.md` "Results" and "What still fails" sections | exist, empty |
 | `COST.md` unit prices and totals | exist as TODOs |
 | `HANDOFF.md`, `DEMO.md` lines for evals and cost | exist |
@@ -40,7 +37,7 @@ The organisers' guideline calls the eval set "the single highest-leverage ninety
 ## Tools you'll use (no Python)
 - **Editing files:** VS Code (or the GitHub web editor) for JSON and Markdown. To save work: in VS Code's Source Control panel, stage, commit with a clear message, then push your branch. Linus can show you once.
 - **JSON check:** VS Code underlines invalid JSON in red. Fix it before committing.
-- **Bruno** (https://www.usebruno.com): a free API client that stores collections as plain files in the repo.
+- **Postman**, only if you need to try a route by hand (nothing committed).
 - **AWS console, read-only:** to *look* at Cognito and the deployed API. Never create anything by hand; Michael creates everything in CDK (the clean-deploy gate).
 - **Diagram:** draw.io (diagrams.net) or Excalidraw; export PNG.
 - **Branch flow:**
@@ -76,10 +73,8 @@ Each `uv run python -m evals.run` writes `evals/results/run-*.json` (Linus or Mi
 ### 3. Worked examples per agent: `evals/expected/<agent>.json`
 Once the agents run (D2), capture **one real input and its real output** per agent (orchestrator, retriever, blocker-analyst, critic, writer) from a run. Linus shows you where they're printed. This is scored ("worked examples"). Real outputs only, never hand-written.
 
-### 4. The API request collection: `evals/api-collection/` (Bruno)
-- One request per route: `GET /summary`, `GET /entity/E4`, `GET /rows?cite=defect_log:DEF-0412`, `POST /ask {"entity_id":"E4","question":"What is blocking cutover for E4?"}`, `POST /publish {"run_id": ...}`, `POST /approve {"run_id": ..., "decision": "approve", "note": ""}`.
-- **Three environments:** `cfo`, `e4-lead` and `no-token`. Each holds the base URL and a token variable; tokens are pasted locally and **never saved in the files**.
-- For each route, save the example response from Patrick's schema (`tools/api_schema.py` *(new)*), so the front end can compare. Expected: the E4 lead gets **403 on E2**, and `no-token` gets **401**.
+### 4. Checking the deployed API by hand (only if needed)
+Linus's deployed-API asker runs the eval questions against AWS automatically, including the Q11 refusal, so no committed request collection is needed. If you want to poke at a route by hand (for example, the E4 lead getting **403 on `GET /entity/E2`**, or no token getting **401**), use **Postman** locally. Paste the token at the time; **never save tokens or export a collection with them into the repo.**
 
 ### 5. Cognito groups and test users (with Michael)
 - **Groups:** `cfo`, `sponsor`, `delivery_lead`, `entity_lead`. **Each user is in exactly one group.**
@@ -106,27 +101,26 @@ Once the agents run (D2), capture **one real input and its real output** per age
   - **Patrick's schema** for example responses. Until then, use `web/src/app/core/api/fixtures/*.json` as a guide.
   - **Michael** for the Cognito deploy.
   - **The first eval run** (D2) for results and worked examples.
-- **Waiting on you:** Huvison (prices), the front end (the request collection), the business case (cost figures).
+- **Waiting on you:** Huvison (prices), the business case (cost figures), Patrick (the roadmap draft).
 
 ## Your milestones
 | When | Milestone |
 |---|---|
 | D1 12:00 | All 28 eval files reviewed against `EVALS.md`; mismatches reported |
-| D1 18:00 | Bruno collection with example responses; Cognito groups and users agreed with Michael; prices in `COST.md` |
+| D1 18:00 | Cognito groups and users agreed with Michael; prices in `COST.md`; roadmap draft started with Linus |
 | D2 12:00 | Test users signed in end to end |
 | D2 14:00 | Worked examples captured; Q10 written |
 | D2 15:00 | `EVALS.md` results + what still fails; `COST.md` measured; target diagram v2; `HANDOFF.md`/`DEMO.md` lines |
 
 ## Definition of done
 - [ ] Eval files reviewed; Q10 recorded on Day 2; the manual checks (Q02, Q09, Q11) written into `EVALS.md` after each run.
-- [ ] Bruno collection covers all six routes and three users, with no tokens in the files.
 - [ ] Cognito test users per role exist (deployed by Michael); the list is in `HANDOFF.md`, no passwords.
 - [ ] `COST.md` has sourced unit prices and measured totals.
 - [ ] `EVALS.md` results and failures written; worked examples for all five agents.
 - [ ] Target diagram v2 reviewed by Patrick.
 
 ## Rules and pitfalls specific to you
-- **No passwords or tokens in any file,** ever (including Bruno environments).
+- **No passwords or tokens in any file,** ever (including anything exported from Postman).
 - **Never create AWS resources by hand.** Ask Michael to add them in CDK.
 - **Copy IDs exactly** (`RC-C3-E4-customers`, `E4#RB-010`). The runner matches them character for character.
 - **Results are reported as they are.** Never round a failure into a pass.
