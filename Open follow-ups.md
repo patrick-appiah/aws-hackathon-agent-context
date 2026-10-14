@@ -35,8 +35,12 @@ Tick with the commit/run id that closed it; never delete.
 - [ ] Share the read-only npm token privately with teammates who build `web/` (never in Slack or the repo)
 - [ ] Mildred: `web/scripts/build-fixtures.mjs` reads `kpis.json`, deleted in PR #11; regenerate fixtures from `metrics.portfolio_summary` instead (small spec)
 - [ ] Front-end API types still follow the old summary shape (pass_rate_by_cycle, open_defects_by_age, capacity in hours); align with the new `portfolio_summary`
-- [ ] Name the business-case and pitch owner (TEAM_PLAN §2 workstream 7 says "to be confirmed")
+- [x] (Patrick + Michael, 2026-10-14) Name the business-case and pitch owner (TEAM_PLAN §2 workstream 7 says "to be confirmed")
 - [ ] Write the contracts spec (Patrick, first): API shapes incl. /rows, /entity, rejected[], partial_reason, trace, /approve statuses, error body; ask-spine step I/O; new config.py settings; DevOps handover
 - [ ] Draft one GitHub issue per workstream's first milestone and a project board
+- [ ] Tell each teammate: read `06 Workstreams/<you>.md` (after [[Workstreams]]), and paste `prompts/<you>.txt` into your AI assistant
+- [ ] Q09 verdict count: EVALS.md says 3 verdicts, but `max_claim_attempts = 2` with `attempts < 2` gives 2. Huvison decides; code and EVALS.md must agree
+- [ ] Timeline bars: `portfolio_summary` has no timeline figure. Patrick + Linus decide whether metrics adds one (Mildred waits)
+- [ ] Delete `team-credentials.txt` (IAM user credentials file) once everyone has signed in
 
 Related: [[00 Home]]
