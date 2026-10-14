@@ -102,7 +102,7 @@ Same repo shape for all ten, so a judge can navigate any team's work in two minu
 | D2 14:00–16:00 | **Freeze the code.** Write the docs. Record eval scores as they are, failures included |
 | D2 16:00–17:00 | Rehearse the demo twice, on the clock, from a cold start. A demo that needs a warm cache fails on stage |
 
-> **The 14:00 freeze on day two is real.** Every hackathon has a team with something genuinely good and no documentation; their work is unusable a week later, so the two days are a total loss. Freeze, then write. If the freeze costs a feature, it was the right feature to lose. → [[Code freeze is Day 2 14:00]]
+> **The 14:00 freeze on day two is real.** Every hackathon has a team with something genuinely good and no documentation; their work is unusable a week later, so the two days are a total loss. Freeze, then write. If the freeze costs a feature, it was the right feature to lose. → [[Code freeze is Day 2 1400|Code freeze is Day 2 14:00]]
 
 ### Documenting an agent well
 A well-documented agent is one a different engineer can modify without reading your prompt. Four things, and prose isn't one:

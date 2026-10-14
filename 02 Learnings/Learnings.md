@@ -19,7 +19,7 @@ One fact per note, with **Why** and **How to apply** (so it can be promoted to C
 | 2026-10-13 | [[Rule of evidence caps claims at 2]] | #area/judging |
 | 2026-10-13 | [[Critic is the highest-value agent]] | #area/agents |
 | 2026-10-13 | [[One source of truth per number]] | #area/architecture |
-| 2026-10-13 | [[Code freeze is Day 2 14:00]] | #area/process |
+| 2026-10-13 | [[Code freeze is Day 2 1400|Code freeze is Day 2 14:00]] | #area/process |
 | 2026-10-13 | [[Bedrock smoke test 2026-10-13]] | #area/bedrock |
 
 Related: [[00 Home]]
