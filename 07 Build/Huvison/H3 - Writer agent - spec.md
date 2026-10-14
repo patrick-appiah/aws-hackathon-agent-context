@@ -35,6 +35,8 @@ The team vault is the shared context space for this project. Clone it from `git@
 - A model bullet citing only rows of passed claims is kept with the model's wording; an uncited bullet, or one citing any other row, is dropped and logged.
 - Unusable model output (not JSON, extra keys, markup in the headline or a bullet, a model or guardrail error) or no surviving bullet → `verbatim_answer(passed_claims)`: never an empty answer when claims passed, never a model-invented one.
 - No passed claim → no model call; the headline says nothing could be verified.
+- Every passed claim reaches the answer: one that no kept bullet cites is added verbatim and logged (owner's decision, PR #39).
+- The model's headline is kept only if its bullets came through unchanged; otherwise it is `VERIFIED_FINDINGS_HEADLINE` (owner's decision, PR #39).
 - The model sees the question and the claims (`claim_id`, `statement`, `chain`) inside `<question>` / `<claims>`, escaped; never the scope or the metrics snapshot.
 - `usage` is the reply's token usage per model call (`agent_support.usage_of`), so H2b can price it.
 - `uv run --locked pytest`: start + **12 passed**; the prompt lock check passes; coverage not lower.
@@ -50,7 +52,9 @@ The team vault is the shared context space for this project. Clone it from `git@
 | Model output unusable | Fall back to `verbatim_answer`: the passed claims as bullets, statement and citations | Failing the run (the claims are verified; losing them helps nobody); an empty answer |
 | Every model bullet dropped | Same fallback | An answer with a headline and no bullets while claims passed |
 | No passed claim | No model call; `Answer(headline=NO_VERIFIED_CLAIM_HEADLINE)` | A model call that can only invent |
-| Headline checks | `Answer` itself rejects markup in the headline (C1's `MarkupFreeText`), as `Bullet` does for its text | No check (the headline is model text on screen) |
+| Headline checks | `Answer` itself rejects markup in the headline (C1's `MarkupFreeText`), as `Bullet` does for its text. **Added 2026-10-14 (Huvison, from review):** the model's headline is kept only if its bullets came through unchanged; if any bullet was dropped or a claim had to be added, the headline is `VERIFIED_FINDINGS_HEADLINE`, so a headline can't summarise bullets the reader doesn't see (review: "E4 is clear to cut over" next to a blocker bullet) | No check (the headline is model text on screen); always the fixed headline (safest, but loses a useful summary when the model's bullets all held) |
+| A passed claim the model left out | **Added 2026-10-14 (Huvison, from review):** `claims_left_out` adds a verbatim bullet (statement and citations) for every passed claim none of whose citations a kept bullet cites, and logs it. Every verified blocker reaches the reader | Keeping the model's selection (a verified blocker could silently vanish); only logging it |
+| `rejected_count` in the model's reply | Reset to 0 after parsing: the caller sets it (from review) | Trusting the model's number |
 | What the model sees | `<question>` and `<claims>` (`claim_id`, `statement`, `chain`), via `agent_support.tagged` | The scope (not needed, and it's who-may-see-what); `metrics_snapshot` (figures must appear only as claims state them, D-001); the critic's verdicts |
 | Shared plumbing | `agent_support.bedrock_model`, `usage_of`, `tagged` from P1 | A third copy of the Guardrail options and the escaping (the critic has the first) |
 | Moving the critic onto `agent_support` | Not in this item (a follow-up; the critic is tested and works) | Refactoring the critic here (scope creep in a security path) |
