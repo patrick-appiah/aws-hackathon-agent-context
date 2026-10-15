@@ -27,15 +27,15 @@ updated: 2026-10-14
 
 ## Linus
 **Correctness**
-- [ ] **The figure recheck crashes, and nothing calls it.** `tools/claims.py` `_recheck_figures` calls `tool(**figure.args)` with argument names the model chose. A wrong name raises `TypeError`, which isn't caught, so `validate_claim` crashes instead of rejecting the claim (**reproduced**). Also confirm that L5 calls `validate_claim` on the production path. If nothing does, figures are never re-computed (needs coordination: one place, the analyst or `store_claims`).
-- [ ] **Every `KeyError` and `ValueError` becomes a client error.** `infra/functions/api.py` `ERROR_CODE_BY_EXCEPTION` maps every `KeyError` to 404 and every `ValueError` to 400, so a data or metrics bug looks like the caller's fault. Raise specific exceptions (unknown entity, malformed request) and let the rest be 500.
+- [x] (L5, PR #52: a wrong argument name is rejected, not raised; `analyse` calls `validate_claim` on every claim) **The figure recheck crashes, and nothing calls it.** `tools/claims.py` `_recheck_figures` calls `tool(**figure.args)` with argument names the model chose. A wrong name raises `TypeError`, which isn't caught, so `validate_claim` crashes instead of rejecting the claim (**reproduced**). Also confirm that L5 calls `validate_claim` on the production path. If nothing does, figures are never re-computed (needs coordination: one place, the analyst or `store_claims`).
+- [x] (PR #92, 6e0b9ff: `InvalidRequest`/`NotFound`/`Forbidden`; anything else is a 500) **Every `KeyError` and `ValueError` becomes a client error.** `infra/functions/api.py` `ERROR_CODE_BY_EXCEPTION` maps every `KeyError` to 404 and every `ValueError` to 400, so a data or metrics bug looks like the caller's fault. Raise specific exceptions (unknown entity, malformed request) and let the rest be 500.
 
 **Duplication and simplification**
-- [ ] **Error codes are re-exported.** `tools/agent_tools.py` re-exports them with `noqa: F401`. Import all `ERROR_*` from `tools.constants` (Patrick's modules already do).
-- [ ] **The scope check is repeated.** `scope.require(entity_id)` is written in 12 tools in `agent_tools.py`; one decorator would cover them. `_visible_entity_ids` re-implements `Scope.allows`.
-- [ ] **Blockers are computed repeatedly.** `tools/metrics.py` calls `open_blockers` 8 times per `/summary` for 4 entities. That's cheap today, but compute it once and pass it in. `recon_pass_rate` is a one-line wrapper.
-- [ ] **A duplicate status constant.** `evals/run.py` `REFUSED_STATUS_CODE = 403` duplicates `api_schema.HTTP_FORBIDDEN`. Also, `check_citations` runs twice per label.
-- [ ] **A duplicate demo user.** `scripts/export_summary.py` builds its own CFO `Scope`; `demo_scope` already does that.
+- [x] (PR #86, 943c1bc) **Error codes are re-exported.** `tools/agent_tools.py` re-exports them with `noqa: F401`. Import all `ERROR_*` from `tools.constants` (Patrick's modules already do).
+- [x] (PR #86, 943c1bc: one decorator; `_visible_entity_ids` kept, it returns the set `capacity_used` needs) **The scope check is repeated.** `scope.require(entity_id)` is written in 12 tools in `agent_tools.py`; one decorator would cover them. `_visible_entity_ids` re-implements `Scope.allows`.
+- [x] (PR #86, 8f4911d) **Blockers are computed repeatedly.** `tools/metrics.py` calls `open_blockers` 8 times per `/summary` for 4 entities. That's cheap today, but compute it once and pass it in. `recon_pass_rate` is a one-line wrapper.
+- [x] (PR #86, 011deee; citations checked in claims and in the critic pre-check is kept as defence in depth) **A duplicate status constant.** `evals/run.py` `REFUSED_STATUS_CODE = 403` duplicates `api_schema.HTTP_FORBIDDEN`. Also, `check_citations` runs twice per label.
+- [x] (PR #86, 011deee) **A duplicate demo user.** `scripts/export_summary.py` builds its own CFO `Scope`; `demo_scope` already does that.
 - [ ] **Two repository caches.** `api.py` `repository_for` and `states.make_repository` both cache the repository. Cache it once, in the factory.
 
 ## Michael / Yaw
