@@ -41,7 +41,7 @@ Work in parallel: an item starts as soon as its dependencies are merged into `de
 | P1 | Retriever agent + prompt | Patrick | C1 | M2 | **merged** (PR #24, 1b815aa) | [[P1 - Retriever agent - spec]] · [[P1 - Retriever agent - plan]] |
 | P2 | Orchestrator agent + prompt (budget via H2a, `PartialAnswer`, re-plan) | Patrick | C1, H2a, L5 (or a stub) | M2 | **merged** (PR #47, 9f16bd6) | [[P2 - Orchestrator agent - spec]] · [[P2 - Orchestrator agent - plan]] |
 | P3 | `scripts/ask.py` *(new)* local runner on `run_spine` | Patrick | H2b | M2 | **merged** (PR #50, 2f372c7) | [[P3 - Local ask runner - spec]] · [[P3 - Local ask runner - plan]] |
-| P4 | Retriever as a fixed lookup, no model (D-028) | Patrick | P1, P2 | M3 | in review (PR #72; 554 passed, 98%) | [[P4 - Fixed-lookup retriever - spec]] · [[P4 - Fixed-lookup retriever - plan]] |
+| P4 | Retriever as a fixed lookup, no model (D-028) | Patrick | P1, P2 | M3 | **merged** (PR #72, 252aea2) | [[P4 - Fixed-lookup retriever - spec]] · [[P4 - Fixed-lookup retriever - plan]] |
 | P5 | Remove the layout guard tests; rules documented | Patrick | (none) | M3 | spec + plan ready | [[P5 - Remove layout guard tests - spec]] · [[P5 - Remove layout guard tests - plan]] |
 | H1 | Ledger extensions (rejected records, read methods, steps, task tokens) on both adapters | Huvison | C1 | M2 | **merged** (PR #26, d2d0e35) | [[H1 - Ledger extensions - spec]] · [[H1 - Ledger extensions - plan]] |
 | H2a | Budget and ledger states (`tools/budget.py` *(new)*, the ledger steps of the ask spine) | Huvison | C1, H1, H5 | M2 | **merged** (PR #34, ebd66e0) | [[H2a - Budget and ledger states - spec]] · [[H2a - Budget and ledger states - plan]] |

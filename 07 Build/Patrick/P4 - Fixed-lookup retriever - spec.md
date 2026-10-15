@@ -2,7 +2,7 @@
 tags: [build, spec, area/agents, area/cost]
 id: P4
 owner: Patrick
-status: built (branch refactor/retriever-fixed-lookup)
+status: merged (PR #72)
 updated: 2026-10-15
 ---
 # P4: the retriever as a fixed lookup, no model (spec)
