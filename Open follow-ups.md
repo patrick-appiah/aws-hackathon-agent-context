@@ -66,7 +66,7 @@ Tick with the commit/run id that closed it; never delete.
 - [ ] **Michael:** raise the ask machine's own timeout (2 min today) as well as the step timeouts; time again after PR #65 (merged) is deployed #area/flow
 
 ### From the first eval run (2026-10-15)
-- [ ] **Linus (analyst prompt):** one blocker per claim; the statement names only rows in its chain; every date and number is copied from a cited row or is a `figure` with its tool (D-030); keep the DEF-0412 → RC-C3-E4-customers → RB-010 chain together (Q01, Q02, Q04) #area/agents
+- [x] (done by Patrick, PR #80: prompt v1.1.0, checked live) **Linus (analyst prompt):** one blocker per claim; the statement names only rows in its chain; every date and number is copied from a cited row or is a `figure` with its tool (D-030); keep the DEF-0412 → RC-C3-E4-customers → RB-010 chain together (Q01, Q02, Q04) #area/agents
 - [ ] (spec: H9) **Huvison (critic, D-030):** mark the claim's figures as recomputed by code in the critic's input; drop "every figure must appear in the cited rows" from the prompt; keep rejecting numbers and dates no row shows; also `callback_handler=None` (H7) #area/agents
 - [ ] (spec: H8, parallel judging not in it) **Huvison (spine):** budget check before each critic, writer and re-plan call; a claim cap per plan; judge claims in parallel (4 orchestrator rounds, 7 critic calls in run 4) #area/cost
 - [ ] (spec: H9) **Huvison (writer), Patrick's OK given:** when the analyst returns no claims and `metrics.open_blockers(entity)` is empty, the headline is "Nothing is blocking cutover for <entity> in the migration records", decided in code; "could not verify" stays for rejected claims (Q03) #area/agents
