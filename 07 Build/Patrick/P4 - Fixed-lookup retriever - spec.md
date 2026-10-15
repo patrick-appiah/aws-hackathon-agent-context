@@ -2,7 +2,7 @@
 tags: [build, spec, area/agents, area/cost]
 id: P4
 owner: Patrick
-status: awaiting review
+status: built (branch refactor/retriever-fixed-lookup)
 updated: 2026-10-15
 ---
 # P4: the retriever as a fixed lookup, no model (spec)
@@ -73,7 +73,7 @@ An `object` lead with no `id` fetches nothing (a warning is logged). A tool that
 `tests/agents/test_retriever.py` is rewritten (the model-loop tests go: caps, throttling, usage, the reply never used, make_agent). Kept or new, about 7:
 - each lead kind's cited rows for E4 (`entity`, `object` with the mapping chain, `defect` with its object from the defect log, `runbook_step`, `task`), one parametrised test;
 - an unknown defect ID fetches the open blockers only;
-- an `object` lead with no `id`, or an unknown object, gives no rows;
+- an `object` lead with no `id`, or an unknown object, gives no load-error or mapping rows (the entity's failing reconciliations still come back: the table calls `failing_reconciliations` first);
 - an out-of-scope entity gives no rows and no tool call (kept);
 - a row fetched by two tools is kept once, in first-fetch order (kept);
 - `team_capacity_rows` returns only that entity's people and programme-wide ones (kept: the narrowed scope).
@@ -83,6 +83,6 @@ An `object` lead with no `id` fetches nothing (a warning is logged). A tool that
 ## 5. Out of scope
 - The orchestrator's prompt and its `retrieve` tool (the lead digest stays as built, PR #58).
 - The analyst, critic and writer.
-- IAM: the Haiku inference profile in the agent Lambdas' Bedrock statement can go in Y4's least-privilege review (follow-up for Yaw and Michael).
+- ~~IAM: the Haiku grant left to Y4.~~ **Built differently:** `infra/bedrock_access.py` imported the Haiku default this item removes, so the Haiku profile left the agent Lambdas' Bedrock statement in P4 itself (Michael reviews; tighter IAM, no agent calls Haiku).
 
 Related: [[Build order]], [[P1 - Retriever agent - spec]], [[P4 - Fixed-lookup retriever - plan]]
