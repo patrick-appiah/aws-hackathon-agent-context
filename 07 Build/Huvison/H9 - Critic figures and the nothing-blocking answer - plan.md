@@ -33,11 +33,11 @@ Clone `git@github.com:patrick-appiah/aws-hackathon-agent-context.git`, then `git
 
 **Task done when:** `grep -n "ESCAPED_CHARACTERS\|BedrockModel\|_is_valid_verdict" agents/critic.py` prints nothing.
 
-## Task 2: figures recomputed by code (D-029)
+## Task 2: figures recomputed by code (D-030)
 1. Tests (spec §4, critic input and prompt). **Expected:** fail: no `<figures_recomputed_by_code>` tag; the prompt is v1.0.0.
 2. `build_input`: the claim without `figures`, then `tagged(FIGURES_TAG, {name: figure["value"] ...})` after the evidence. Prompt v1.1.0 with the rule in spec §1.1; `uv run python scripts/lock_prompts.py`.
 3. Run `uv run --locked pytest`. **Expected:** green (`lock_prompts.py --check` passes).
-4. Commit: `Critic: figures recomputed by code are marked as such (D-029), prompt v1.1.0`.
+4. Commit: `Critic: figures recomputed by code are marked as such (D-030), prompt v1.1.0`.
 
 **Task done when:** `grep -n "version: 1.1.0" agents/prompts/critic.txt` prints one line and the suite is green.
 

@@ -31,7 +31,7 @@ Clone `git@github.com:patrick-appiah/aws-hackathon-agent-context.git`, then `git
 
 ## Task 2: document the rules
 1. `docs/TEAM_PLAN.md` §6: drop "a test fails if they come back" and "a guard test fails the build"; state the rules plainly; say which stay tested (single-character names, inline prompts, core imports, the lock).
-2. `DECISIONS.md`: one line under the clean-code rules entry (or a short D-029) saying layout and doc-wording rules are documented, not tested.
+2. `DECISIONS.md`: one line under the clean-code rules entry (or a short D-032) saying layout and doc-wording rules are documented, not tested.
 3. Run `uv run --locked pytest`. **Expected:** green.
 4. Commit: `Docs: layout and command rules are documented, not tested`.
 

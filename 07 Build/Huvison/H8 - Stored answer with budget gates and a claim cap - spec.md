@@ -75,7 +75,7 @@ Clone `git@github.com:patrick-appiah/aws-hackathon-agent-context.git` (lead: `/m
 
 ## 5. Out of scope
 - Linus's `api.ask_result` and `api.ask` (L3).
-- The critic's figures (D-029) and the "nothing is blocking" headline (Q03): [[H9 - Critic figures and the nothing-blocking answer - spec]].
+- The critic's figures (D-030) and the "nothing is blocking" headline (Q03): [[H9 - Critic figures and the nothing-blocking answer - spec]].
 - Parallel judging; the FlowStack (Michael).
 
 Related: [[Build order]], [[H8 - Stored answer with budget gates and a claim cap - plan]]
