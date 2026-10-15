@@ -14,7 +14,7 @@ The team vault is the shared context space for this project. Clone `git@github.c
 2. [[P1 - Retriever agent - spec]]: what the retriever is today (scope narrowed to the entity, rows recorded from tool results, never from the reply).
 3. [[P2 - Orchestrator agent - spec]] and `DECISIONS.md` D-027: the orchestrator's `retrieve` tool and its lead digest, which call this retriever.
 4. [[Whole-code review 2026-10-14]], "Open decisions (Patrick)": where this change was proposed.
-5. [[2026-10-15]] and [[2026-10-14]] (the three live E4 runs: 26 s, 87 s, 2 min 42 s; $0.31, $0.46, $0.62), and [[2026-10-15 Ask is asynchronous, start then poll]] (D-023).
+5. [[2026-10-15]] and [[2026-10-14]] (the three live E4 runs: 26 s, 87 s, 2 min 42 s; $0.31, $0.46, $0.62), and [[2026-10-15 Ask is asynchronous with start and poll]] (D-023).
 6. `01 Decisions/`: [[2026-10-13 Metrics are code, only the blocker Q&A is agentic]] (D-010's spirit: code where no judgement is needed), [[2026-10-13 Artefact text is untrusted, critic fails closed]] (D-009), [[2026-10-13 Scope from the token, enforced twice]].
 7. [[C2 - Repo layout - spec]]: where every file goes.
 
