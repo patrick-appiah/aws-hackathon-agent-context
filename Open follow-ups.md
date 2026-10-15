@@ -75,4 +75,7 @@ Tick with the commit/run id that closed it; never delete.
 
 - [ ] **Patrick, after tonight's builds:** rename the 21 vault notes with commas in their names (`find . -name "*,*"`) and fix their links; tell the team first, since their agents read the old paths #area/vault
 
+- [ ] **Clement (F4b, PR #75):** polling gives up after 60 s (`ASK_POLL_MAX_ATTEMPTS = 30` × 2 s); live runs take 129–206 s. Raise to about 5 minutes (Express's limit), e.g. 100 polls × 3 s #area/web
+- [ ] **Michael (Y2b):** when the publish machine lands, switch `publish` and `approve` to real handlers in `ROUTES_WITH_REAL_HANDLERS` with `PUBLISH_STATE_MACHINE_ARN`, the ledger settings and H4's IAM (handover) #area/flow
+
 Related: [[00 Home]]

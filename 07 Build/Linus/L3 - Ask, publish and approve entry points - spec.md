@@ -8,6 +8,11 @@ updated: 2026-10-14
 # L3: the `/ask`, `/publish` and `/approve` entry points (spec)
 > **Where a question enters the agent loop, and where a human approves the only write.** Thin HTTP entry points on L1's scope and error body, in front of Huvison's flow. Repo: `Amali-Tech/cloud-9-hackathon`, branch from `develop` after L1, L2, H2b and H4 are merged.
 
+> **Ruling, 2026-10-15 (Patrick; built by Patrick while Linus is away): `/ask` is asynchronous (D-023).** It overrides §1.1, the `StartSyncExecution` lines and the `/ask` row of §3:
+> - `POST /ask` refuses an out-of-scope entity first (Q11, unchanged), then `start_execution` (name = run ID, input = the `Question` from `steps.question_for`) and returns **202 `AskPending`**.
+> - New `GET /ask/{run_id}` → `api.ask_result`: the run's stored `AskResponse` (`ledger.answer`, H8) or `AskPending`; **404** for an unknown run or one the caller (same `user_id` and `tenant_id`) didn't ask.
+> - `/publish` and `/approve` are as below; their routes stay on the stub until Y2b sets their settings and IAM.
+
 ## 0. Context: read the vault first
 The team vault is the shared context space for this project: decisions, briefs, rules, the build order and the reasons behind them. Clone it from `git@github.com:patrick-appiah/aws-hackathon-agent-context.git` (lead's machine: `/mnt/c/dev/aws-hackathon/aws-hackathon/`) and run `git pull` first. **Before writing any code, read, in this order:**
 1. [[How to execute a plan]] (`07 Build/`).
