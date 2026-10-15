@@ -128,4 +128,7 @@ Tick with the commit/run id that closed it; never delete.
 - [x] (stale, verified 2026-10-15 by Linus: #124: JudgeEachClaim max_concurrency 4) **Michael (FlowStack):** the judge Map runs claims one at a time. Set `max_concurrency=4` on it (each claim's retry loop is independent in the ledger): about 10–20 s off each run. With the redeploy #area/flow
 - [ ] **Clement (F6 pre-flight):** ask one question about 5 minutes before the demo to warm the Lambdas (cold starts add about 15 s: CheckBudget, StoreClaims, RetryDecision, RecordRejection about 4 s each). Expect about 1 minute per answer, up to about 2 when a claim is re-checked #area/demo
 
+- [ ] **Vanessa Addo (via Patrick):** confirm the portfolio count and the $1,000 blended day rate; whether programmes track a budget per entity (validation follow-ups) #area/business
+- [ ] **Anyone who remembers:** one sentence Vanessa or Joseph said in the session (they agreed to be quoted): it would go on business case line 23 #area/business
+
 Related: [[00 Home]]
