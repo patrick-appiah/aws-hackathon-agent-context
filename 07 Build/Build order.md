@@ -72,7 +72,7 @@ Work in parallel: an item starts as soon as its dependencies are merged into `de
 | A3b | COST measured figures | Abdul | A3a, H5, H6, A5a | M5 | **merged** (PR #98, on Patrick's run #93) | [[A3b - COST measured figures - spec]] · [[A3b - COST measured figures - plan]] |
 | A4a | Target architecture diagram v2 | Abdul | (none) | M5 | **merged** (PR #40; ARCHITECTURE link PR #103) | [[A4a - Target architecture diagram v2 - spec]] · [[A4a - Target architecture diagram v2 - plan]] |
 | A4b | HANDOFF and DEMO lines | Abdul | A5a, A3b, A2 | M5 | **merged** (PR #99, #123, #130) | [[A4b - HANDOFF and DEMO lines - spec]] · [[A4b - HANDOFF and DEMO lines - plan]] |
-| A4c | Prompt wording review | Abdul | P1, P2, L5, H3 PRs | M4 | in progress (issue #45: all prompts reviewed; analyst Q taken, retriever prompt removed; critic + writer replies pending) | [[A4c - Prompt wording review - spec]] · [[A4c - Prompt wording review - plan]] |
+| A4c | Prompt wording review | Abdul | P1, P2, L5, H3 PRs | M4 | **done** (issue #45 closed: 5 prompts, 13 suggestions; 1 taken, 2 partly, rest unchanged) | [[A4c - Prompt wording review - spec]] · [[A4c - Prompt wording review - plan]] |
 | A5a | EVALS results write-up | Abdul (with Linus) | H6 | M5 | **merged** (PR #98 local, #114 deployed Lambda, #123 deployed AgentCore: 8 of 11) | [[A5a - EVALS results write-up - spec]] · [[A5a - EVALS results write-up - plan]] |
 | A5b | Worked examples per agent | Abdul (with Linus) | P1, P2, L5, H3, H6 | M4 | **merged** (PR #120: 4 files from one Q01 run, captured by Linus; AGENTS.md link PR #121 merged) | [[A5b - Worked examples per agent - spec]] · [[A5b - Worked examples per agent - plan]] |
 
