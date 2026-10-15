@@ -110,7 +110,7 @@ Work in parallel: an item starts as soon as its dependencies are merged into `de
 ## Business case and pitch
 | ID | Item | Owner | Depends on | Milestone | Status | Spec / plan |
 |---|---|---|---|---|---|---|
-| B1 | Close the `[TBC]`s in `business/business-case.md`; validation session (D1 09:30) | Patrick, Michael | A3a, A3b, H5, A5a, H6/L6 | M5 | business case merged (#88, #105 measured figures); validation session held 2026-10-15, record and lines 23/79 in review (PR #141); PDF re-render (Michael) | [[B1 - Business case figures and validation - spec]] · [[B1 - Business case figures and validation - plan]] |
+| B1 | Close the `[TBC]`s in `business/business-case.md`; validation session (D1 09:30) | Patrick, Michael | A3a, A3b, H5, A5a, H6/L6 | M5 | business case merged (#88, #105 measured figures); validation session held 2026-10-15, record and lines 23/79 merged (PR #141, 9fbc25e); PDF re-render (Michael) | [[B1 - Business case figures and validation - spec]] · [[B1 - Business case figures and validation - plan]] |
 | B2 | Pitch deck (source + PDF in `business/`) | Patrick, Michael | B1, A3b, A5a, H6/L6 | M5 | **merged** (PR #90, e0493b9: about a minute, the honest cost cap, D-028 wording; PDF) | [[B2 - Pitch deck - spec]] · [[B2 - Pitch deck - plan]] |
 | B3a | One-page value case | Patrick, Michael | B1 | M5 | spec + plan ready | [[B3a - One-page value case - spec]] · [[B3a - One-page value case - plan]] |
 | B3b | Architecture and cost slides | Patrick, Michael | B2, A4a, A3b | M5 | **merged** (PR #94, 193a7a9: A1–A3, $0.27 a question from COST.md; PDF) | [[B3b - Architecture and cost slides - spec]] · [[B3b - Architecture and cost slides - plan]] |
