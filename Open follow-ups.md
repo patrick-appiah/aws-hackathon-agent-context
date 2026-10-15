@@ -75,7 +75,7 @@ Tick with the commit/run id that closed it; never delete.
 
 - [ ] **Patrick, after tonight's builds:** rename the 21 vault notes with commas in their names (`find . -name "*,*"`) and fix their links; tell the team first, since their agents read the old paths #area/vault
 
-- [ ] **Clement (F4b, PR #75):** polling gives up after 60 s (`ASK_POLL_MAX_ATTEMPTS = 30` × 2 s); live runs take 129–206 s. Raise to about 5 minutes (Express's limit), e.g. 100 polls × 3 s #area/web
+- [x] (100 × 3 s, PR #75) **Clement (F4b, PR #75):** polling gives up after 60 s (`ASK_POLL_MAX_ATTEMPTS = 30` × 2 s); live runs take 129–206 s. Raise to about 5 minutes (Express's limit), e.g. 100 polls × 3 s #area/web
 - [ ] **Michael (Y2b):** when the publish machine lands, switch `publish` and `approve` to real handlers in `ROUTES_WITH_REAL_HANDLERS` with `PUBLISH_STATE_MACHINE_ARN`, the ledger settings and H4's IAM (handover) #area/flow
 
 - [ ] **Huvison with Michael (D-023 gap):** a run that fails inside the ask spine (a Lambda error, a timeout) never stores an answer, so `GET /ask/{run_id}` says "running" until the panel gives up. Add a Catch on the ask machine to a state that stores a failed `AskResponse` (partial, with the reason) through `put_answer` (L3 final review) #area/flow
@@ -108,5 +108,8 @@ Tick with the commit/run id that closed it; never delete.
 - [ ] **Michael (#90 deck, #94 slides), reviewed by Patrick:** deck slide 8 "about 3 minutes" → "about a minute" (eval run: 57 s); slide 6 still "AI assistants … gather the evidence and work out the numbers"; slides 5 and 8 "open 18 days" → "open since 25 September"; slide A3 → $0.27 per question, pilot ≈ $54/month, 100/day ≈ $810/month (cite the results file, PR #93); A1's "waitForTaskToken" only once #91 lands; both PDFs #area/business
 
 - [ ] **Patrick (on hold, his call):** rerun Q02 alone on #96's branch with the full response saved (~$0.55) to see why the DEF-0398 conflict claim was rejected (the Q01 + Q02 check: Q01 passes and now reports the conflict; Q02 spent its budget, $0.54) #area/agents
+
+- [ ] **Yaw (Y2b, after #91 merges):** post the real `POST /api/publish` → `POST /api/approve` round trip as an asker then `demo-delivery-lead`: the status pack appears only after approve #area/flow
+- [ ] **Michael:** redeploy `develop` once #91, #73 and #75 are merged; then the end-to-end check (ask as `demo-cfo`, publish, approve as `demo-delivery-lead`) #area/flow
 
 Related: [[00 Home]]
