@@ -118,7 +118,7 @@ Tick with the commit/run id that closed it; never delete.
 - [x] (PR #132, 7b0ddfd: AskerCannotAskThis, recorded as not applicable) **Linus (L6):** Q08 and Q09 come out *not applicable* for `evals.api_asker` (their faults need the local asker), not fail #area/evals
 - [ ] **Huvison:** Q12 guarded-content fix (still `AnalystStopped` in the deployed run) #area/agents
 - [ ] **Patrick, 14:00 code freeze:** open the release PR develop → main after the deployed end-to-end check (ask, publish, approve, the E2 refusal) #area/release
-- [ ] **Linus (L7), by 13:00:** light roadmap review: async /ask, D-028, $0.27 a question, AgentCore as Phase 2 (#102, #115), the 85 % bar against 9/11 local and 6/9 deployed #area/docs
+- [x] (PR #135, d6cdc98: Phase 0 updated for D-023/D-028/AgentCore, measured figures, monitoring plan, week one) **Linus (L7), by 13:00:** light roadmap review: async /ask, D-028, $0.27 a question, AgentCore as Phase 2 (#102, #115), the 85 % bar against 9/11 local and 6/9 deployed #area/docs
 
 - [ ] **Michael (deck slide 7, slides A1):** "Stops at $0.50 a question (plus the call in flight)" can overshoot by about $0.13 when the call in flight is a re-plan (Q04 live: $0.63). Honest wording: "about $0.50: it stops before the next step once the budget is spent" #area/business
 - [ ] **Huvison (spine, after the freeze):** check the budget before the analyst call inside a re-plan too, so a re-plan in flight can't overshoot by about $0.13 #area/cost
