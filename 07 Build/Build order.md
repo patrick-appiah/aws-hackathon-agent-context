@@ -83,7 +83,7 @@ Work in parallel: an item starts as soon as its dependencies are merged into `de
 | M3b | AuthStack (Cognito) | Michael | M2, A2 | M1 → M3 | **merged** (PR #44, 8ccf8d7) | [[M3b - AuthStack - spec]] · [[M3b - AuthStack - plan]] |
 | M4a | WebStack (S3 + CloudFront, `/api/*`) and the Cognito callback fix | Michael | M2; app wiring needs M3b and Y1 | M1 → M2 | **merged** (PR #54, 9b5d3b7) | [[M4a - WebStack - spec]] · [[M4a - WebStack - plan]] |
 | M4b | Observability (dashboards, alarms) | Michael | M2; app wiring needs Y1, Y2a and M4a | M2 | spec + plan ready | [[M4b - Observability - spec]] · [[M4b - Observability - plan]] |
-| M5 | Clean-deploy runbook (with Patrick) | Michael | all stacks | M2, M4 | spec + plan ready | [[M5 - Clean-deploy runbook - spec]] · [[M5 - Clean-deploy runbook - plan]] |
+| M5 | Clean-deploy runbook (with Patrick) | Michael | all stacks | M2, M4 | **merged** (PR #77, 3e6867a: the five README commands, the check table in infra/README) | [[M5 - Clean-deploy runbook - spec]] · [[M5 - Clean-deploy runbook - plan]] |
 | Y1 | ApiStack (HTTP API v2, JWT authorizer, routes) | Yaw | M3a, M3b | M1 → M2 | **merged** (PR #51, f17622a) | [[Y1 - ApiStack - spec]] · [[Y1 - ApiStack - plan]] |
 | Y2a | Express ask spine + `/ask` | Yaw | Y1; Task 6 needs H2b and L3 | M1 → M3 | **merged** (PR #69, built by Michael; async `/ask` per D-023 merged as PR #71: `StartExecution`, `GET /ask/{run_id}` reads the ledger) | [[Y2a - Express ask spine - spec]] · [[Y2a - Express ask spine - plan]] |
 | Y2b | Standard publish flow + `/publish`, `/approve` | Yaw | Y2a; Task 5 needs H4 and L3 | M3 | spec + plan ready | [[Y2b - Standard publish flow - spec]] · [[Y2b - Standard publish flow - plan]] |
