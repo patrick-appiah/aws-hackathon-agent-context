@@ -102,7 +102,7 @@ Work in parallel: an item starts as soon as its dependencies are merged into `de
 | F3b | Role views and the 403 refusal | Clement | F1b, L1 | M3 | merged (PR #70, b108be5); live check waits on L3 | [[F3b - Role views and the 403 refusal - spec]] · [[F3b - Role views and the 403 refusal - plan]] |
 | F4a | Ask panel on `/ask` (trace, cost, partial, could-not-verify) | Clement | C1, F1b, L3 | M3 | merged (PR #73, 97e5e4b); live check pending | [[F4a - Ask panel on the real ask contract - spec]] · [[F4a - Ask panel on the real ask contract - plan]] |
 | F4b | Async ask polling (only if H7 decides async) | Clement | F4a, H7 (only if async) | M4 | merged (PR #75, bf41560: polls 100 × 3 s); live check pending | [[F4b - Async ask polling - spec]] · [[F4b - Async ask polling - plan]] |
-| F5 | Publish + approve on the real API | Clement | F1b, L3, H4 | M4 | spec + plan ready | [[F5 - Publish and approve on the real API - spec]] · [[F5 - Publish and approve on the real API - plan]] |
+| F5 | Publish + approve on the real API | Clement | F1b, L3, H4 | M4 | in review (PR #119); live check pending | [[F5 - Publish and approve on the real API - spec]] · [[F5 - Publish and approve on the real API - plan]] |
 | F6 | Demo rehearsal + 2-minute backup video | Clement (with Patrick) | everything | M5 | spec + plan ready | [[F6 - Demo rehearsal and backup video - spec]] · [[F6 - Demo rehearsal and backup video - plan]] |
 
 ## Business case and pitch
