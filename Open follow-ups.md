@@ -71,7 +71,7 @@ Tick with the commit/run id that closed it; never delete.
 - [x] (PR #81) (spec: H8, parallel judging not in it) **Huvison (spine):** budget check before each critic, writer and re-plan call; a claim cap per plan; judge claims in parallel (4 orchestrator rounds, 7 critic calls in run 4) #area/cost
 - [x] (PR #85) **Huvison (writer), Patrick's OK given:** when the analyst returns no claims and `metrics.open_blockers(entity)` is empty, the headline is "Nothing is blocking cutover for <entity> in the migration records", decided in code; "could not verify" stays for rejected claims (Q03) #area/agents
 - [x] (built by Patrick, PR #82) **Linus with Abdul (`evals/run.py`, D-031):** check Q05 against `summary_response`'s capacity card (Tester, 133.3 %, roster rows), not `/ask` #area/evals
-- [ ] **Patrick:** check whether `replan` lets a re-planned claim drift off the rejected claim's subject (run 4: claim-1 lost DEF-0412 on its retry) #area/agents
+- [x] (run 5: the re-plan stayed on WP-022's subject; recheck in the eval run) **Patrick:** check whether `replan` lets a re-planned claim drift off the rejected claim's subject (run 4: claim-1 lost DEF-0412 on its retry) #area/agents
 
 - [ ] **Patrick, after tonight's builds:** rename the 21 vault notes with commas in their names (`find . -name "*,*"`) and fix their links; tell the team first, since their agents read the old paths #area/vault
 
