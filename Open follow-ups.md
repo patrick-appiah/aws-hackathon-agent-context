@@ -111,5 +111,6 @@ Tick with the commit/run id that closed it; never delete.
 
 - [ ] **Yaw (Y2b, after #91 merges):** post the real `POST /api/publish` → `POST /api/approve` round trip as an asker then `demo-delivery-lead`: the status pack appears only after approve #area/flow
 - [ ] **Michael:** redeploy `develop` once #91, #73 and #75 are merged; then the end-to-end check (ask as `demo-cfo`, publish, approve as `demo-delivery-lead`) #area/flow
+- [ ] **Abdul (Y3b, PR #115):** OK the one-line `HANDOFF.md` record ("Agents run on AgentCore Runtime (`demo_erp_portal_agents`); fallback: `cd infra && npx cdk deploy FlowStack -c agent_host=lambda` runs the same steps inside Lambdas") so Yaw can add it, or add it yourself #area/docs
 
 Related: [[00 Home]]
