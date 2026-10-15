@@ -78,7 +78,7 @@ Tick with the commit/run id that closed it; never delete.
 - [x] (100 × 3 s, PR #75) **Clement (F4b, PR #75):** polling gives up after 60 s (`ASK_POLL_MAX_ATTEMPTS = 30` × 2 s); live runs take 129–206 s. Raise to about 5 minutes (Express's limit), e.g. 100 polls × 3 s #area/web
 - [ ] **Michael (Y2b):** when the publish machine lands, switch `publish` and `approve` to real handlers in `ROUTES_WITH_REAL_HANDLERS` with `PUBLISH_STATE_MACHINE_ARN`, the ledger settings and H4's IAM (handover) #area/flow
 
-- [ ] **Huvison with Michael (D-023 gap):** a run that fails inside the ask spine (a Lambda error, a timeout) never stores an answer, so `GET /ask/{run_id}` says "running" until the panel gives up. Add a Catch on the ask machine to a state that stores a failed `AskResponse` (partial, with the reason) through `put_answer` (L3 final review) #area/flow
+- [x] (PR #110) **Huvison with Michael (D-023 gap):** a run that fails inside the ask spine (a Lambda error, a timeout) never stores an answer, so `GET /ask/{run_id}` says "running" until the panel gives up. Add a Catch on the ask machine to a state that stores a failed `AskResponse` (partial, with the reason) through `put_answer` (L3 final review) #area/flow
 - [ ] **Michael (least privilege, minor):** `POST /ask` gets ledger `GetItem` and the ledger settings but never reads the ledger; only `GET /ask/{run_id}` needs them (`api_stack.py` `_statements_for`) #area/iam
 - [ ] **Patrick (doc nit, found in #91 review):** `docs/DEVOPS_HANDOVER.md` line 46 says `Catch States.TaskFailed → SentBack` for the publish machine; `decide()` actually sends `SendTaskFailure(error="SentBack")`, so the real (and correct, per #91) catch is on the specific error `SentBack`, not the generic `States.TaskFailed`. Fix the handover line to match #area/docs
 
@@ -112,5 +112,12 @@ Tick with the commit/run id that closed it; never delete.
 - [ ] **Yaw (Y2b, after #91 merges):** post the real `POST /api/publish` → `POST /api/approve` round trip as an asker then `demo-delivery-lead`: the status pack appears only after approve #area/flow
 - [ ] **Michael:** redeploy `develop` once #91, #73 and #75 are merged; then the end-to-end check (ask as `demo-cfo`, publish, approve as `demo-delivery-lead`) #area/flow
 - [ ] **Abdul (Y3b, PR #115):** OK the one-line `HANDOFF.md` record ("Agents run on AgentCore Runtime (`demo_erp_portal_agents`); fallback: `cd infra && npx cdk deploy FlowStack -c agent_host=lambda` runs the same steps inside Lambdas") so Yaw can add it, or add it yourself #area/docs
+
+### From the deployed eval run (2026-10-15 09:20, PR #114)
+- [ ] **Patrick:** Q04: check the deployed `store_claims` logs for Q04's run ID ("plan … had N claims: kept …, dropped …"). If the 4-claim cap dropped CAL-004 → raise `MAX_CLAIMS_PER_PLAN` to 5 (with Huvison; about +$0.03 a question). If the analyst never made it → a prompt rule for date and schedule questions #area/agents
+- [ ] **Linus (L6):** Q08 and Q09 come out *not applicable* for `evals.api_asker` (their faults need the local asker), not fail #area/evals
+- [ ] **Huvison:** Q12 guarded-content fix (still `AnalystStopped` in the deployed run) #area/agents
+- [ ] **Patrick, 14:00 code freeze:** open the release PR develop → main after the deployed end-to-end check (ask, publish, approve, the E2 refusal) #area/release
+- [ ] **Linus (L7), by 13:00:** light roadmap review: async /ask, D-028, $0.27 a question, AgentCore as Phase 2 (#102, #115), the 85 % bar against 9/11 local and 6/9 deployed #area/docs
 
 Related: [[00 Home]]
