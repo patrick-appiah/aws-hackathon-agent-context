@@ -90,7 +90,7 @@ Work in parallel: an item starts as soon as its dependencies are merged into `de
 | Y2b | Standard publish flow + `/publish`, `/approve` | Yaw | Y2a; Task 5 needs H4 and L3 | M3 | **merged** (PR #91, e63df3d); API round trip through `/publish`+`/approve` with real Cognito tokens still pending (waiting on Michael) | [[Y2b - Standard publish flow - spec]] · [[Y2b - Standard publish flow - plan]] |
 | Y3a | AgentCore runtime (code zip, no Docker) | Yaw | Y2a, H2b | M2 | **merged** (PR #102, 6699409; live-verified in AWS, real `judge_claim` round trip against the actual critic) | [[Y3a - AgentCore runtime - spec]] · [[Y3a - AgentCore runtime - plan]] |
 | Y3b | Agent shim and `agent_host=agentcore\|lambda` switch | Yaw | Y3a, Y2b | M2 | **merged** (PR #115, 37f2648; live-verified in AWS, both hosts gave identical citations on a real E4 question) | [[Y3b - Agent shim and host switch - spec]] · [[Y3b - Agent shim and host switch - plan]] |
-| Y4 | IAM least-privilege review (no `*` except task-token actions) | Yaw (with Patrick) | all stacks | M2 | **in review** (PR #117; all Review Focus checked solo, 2 findings fixed; Patrick's own sign-off still outstanding) | [[Y4 - IAM least-privilege review - spec]] · [[Y4 - IAM least-privilege review - plan]] |
+| Y4 | IAM least-privilege review (no `*` except task-token actions) | Yaw (with Patrick) | all stacks | M2 | **merged** (PR #117, 5379d75; 2 findings fixed, all Review Focus checked) | [[Y4 - IAM least-privilege review - spec]] · [[Y4 - IAM least-privilege review - plan]] |
 
 ## Front end
 | ID | Item | Owner | Depends on | Milestone | Status | Spec / plan |
