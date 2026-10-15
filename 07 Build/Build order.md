@@ -64,7 +64,7 @@ Work in parallel: an item starts as soon as its dependencies are merged into `de
 ## Evals, Cognito, docs (Abdul, no Python)
 | ID | Item | Owner | Depends on | Milestone | Status | Spec / plan |
 |---|---|---|---|---|---|---|
-| A1 | Review the 28 eval files against `EVALS.md`; Q10 on Day 2; manual checks (Q02, Q03, Q09, Q11) after each run | Abdul | (none); Task 6: H6/L6 | M0, then every run | in progress (fixes merged in PR #30; Q05 wording waits on Linus; Q10 + manual checks on Day 2) | [[A1 - Eval set review and manual checks - spec]] · [[A1 - Eval set review and manual checks - plan]] |
+| A1 | Review the 28 eval files against `EVALS.md`; Q10 on Day 2; manual checks (Q02, Q03, Q09, Q11) after each run | Abdul | (none); Task 6: H6/L6 | M0, then every run | in progress (review done: PR #30, Q05 wording PR #83; Q10 + manual checks wait on the first recorded run) | [[A1 - Eval set review and manual checks - spec]] · [[A1 - Eval set review and manual checks - plan]] |
 | A2 | Cognito groups, claims and test users (with Michael) | Abdul | (none); Tasks 3–4: M3b, Y1, L1–L2, F3, F4 | M3 | in progress (HANDOFF section merged, PR #43; AuthStack PR #44 matches the list; Tasks 3–4 after deploy) | [[A2 - Cognito groups, claims and test users - spec]] · [[A2 - Cognito groups, claims and test users - plan]] |
 | A3a | Bedrock unit prices | Abdul | (none) | M2 | **merged** (PR #25, 2372f97; Opus follow-up PR #31) | [[A3a - Bedrock unit prices - spec]] · [[A3a - Bedrock unit prices - plan]] |
 | A3b | COST measured figures | Abdul | A3a, H5, H6, A5a | M5 | spec + plan ready | [[A3b - COST measured figures - spec]] · [[A3b - COST measured figures - plan]] |
