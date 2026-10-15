@@ -14,7 +14,7 @@ tags: [decision, area/flow, area/api]
 - **Repo decision:** D-023 in `DECISIONS.md` (Patrick, 2026-10-15).
 
 ## Who builds what
-- **Patrick:** `AskPending` in `tools/api_schema.py`, with its JSON Schema for the front end (PR, `feature/ask-async-contract`).
+- **Patrick:** `AskPending` in `tools/api_schema.py`, with its JSON Schema for the front end (PR #68).
 - **Linus (L3):** `api.ask` returns `AskPending`; new `api.ask_result` for `GET /ask/{run_id}` (scope check, 404 for an unknown run).
 - **Yaw (Y2a §6):** the `GET /ask/{run_id}` route; the ask Lambda gets `states:StartExecution` and `dynamodb:GetItem` on the ledger; the machine timeout.
 - **Huvison:** `write_answer` stores the `AskResponse` on the run; a ledger method to read it back.
