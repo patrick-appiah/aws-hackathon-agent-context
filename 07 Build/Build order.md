@@ -62,7 +62,7 @@ Work in parallel: an item starts as soon as its dependencies are merged into `de
 | L4 | `scripts/export_summary.py` *(new)* (front-end fixtures) | Linus | C1 | M2 | merged (PR #42, 5c33292) | [[L4 - Front-end fixtures from the real summary - spec]] · [[L4 - Front-end fixtures from the real summary - plan]] |
 | L5 | Blocker-analyst agent + prompt | Linus | C1, P1 | M2 | merged (PR #52, cb7dd4b) | [[L5 - Blocker-analyst agent - spec]] · [[L5 - Blocker-analyst agent - plan]] |
 | L6 | Deployed-API eval asker `evals/api_asker.py` *(new)* | Linus | L3, Y1, M3b | M4 | **merged** (PR #97, cf43b68: deployed-API eval asker) | [[L6 - Deployed-API eval asker - spec]] · [[L6 - Deployed-API eval asker - plan]] |
-| L7 | `docs/ROADMAP.md` review and update (exists on develop) | Linus | (none) | M5 | draft merged (PR #135, Linus); Patrick's final pass pending | [[L7 - Roadmap draft - spec]] · [[L7 - Roadmap draft - plan]] |
+| L7 | `docs/ROADMAP.md` review and update (exists on develop) | Linus | (none) | M5 | draft merged (PR #135, Linus); Patrick's final pass in review (PR #146: value for money in Phase 0, 15 questions, budget in Phase 1; ARCHITECTURE says AgentCore) | [[L7 - Roadmap draft - spec]] · [[L7 - Roadmap draft - plan]] |
 
 ## Evals, Cognito, docs (Abdul, no Python)
 | ID | Item | Owner | Depends on | Milestone | Status | Spec / plan |
