@@ -78,4 +78,7 @@ Tick with the commit/run id that closed it; never delete.
 - [ ] **Clement (F4b, PR #75):** polling gives up after 60 s (`ASK_POLL_MAX_ATTEMPTS = 30` × 2 s); live runs take 129–206 s. Raise to about 5 minutes (Express's limit), e.g. 100 polls × 3 s #area/web
 - [ ] **Michael (Y2b):** when the publish machine lands, switch `publish` and `approve` to real handlers in `ROUTES_WITH_REAL_HANDLERS` with `PUBLISH_STATE_MACHINE_ARN`, the ledger settings and H4's IAM (handover) #area/flow
 
+- [ ] **Huvison with Michael (D-023 gap):** a run that fails inside the ask spine (a Lambda error, a timeout) never stores an answer, so `GET /ask/{run_id}` says "running" until the panel gives up. Add a Catch on the ask machine to a state that stores a failed `AskResponse` (partial, with the reason) through `put_answer` (L3 final review) #area/flow
+- [ ] **Michael (least privilege, minor):** `POST /ask` gets ledger `GetItem` and the ledger settings but never reads the ledger; only `GET /ask/{run_id}` needs them (`api_stack.py` `_statements_for`) #area/iam
+
 Related: [[00 Home]]
