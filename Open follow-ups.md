@@ -60,7 +60,7 @@ Tick with the commit/run id that closed it; never delete.
 
 ## From [[2026-10-15]]
 - [ ] **Linus (L3):** `api.ask` returns `AskPending` `{run_id, status: "running"}` after `states:StartExecution`; new `api.ask_result` for `GET /ask/{run_id}`: the stored `AskResponse`, else `AskPending`; scope check against the run's stored scope; 404 for a run the ledger doesn't hold (D-023) #area/api
-- [ ] **Yaw (Y2a §6):** route `GET /ask/{run_id}`; ask Lambda gets `states:StartExecution` (not `StartSyncExecution`) and `dynamodb:GetItem` on the ledger; ask machine timeout above the measured run time, within Express's 5 minutes (D-023) #area/flow
+- [x] (done by Michael, PR #71) **Yaw (Y2a §6):** route `GET /ask/{run_id}`; ask Lambda gets `states:StartExecution` (not `StartSyncExecution`) and `dynamodb:GetItem` on the ledger; ask machine timeout above the measured run time, within Express's 5 minutes (D-023) #area/flow
 - [x] (PR #81) (spec: H8) **Huvison:** `write_answer` stores the `AskResponse` on the run, plus a ledger method to read it back for `ask_result` (D-023) #area/flow
 - [ ] **Clement (F4b):** the ask panel polls `GET /ask/{run_id}` after `POST /ask` returns `AskPending`; wait a few seconds before the first poll (a 404 at first means the run isn't created yet) (D-023) #area/web
 - [ ] **Michael:** raise the ask machine's own timeout (2 min today) as well as the step timeouts; time again after PR #65 (merged) is deployed #area/flow
