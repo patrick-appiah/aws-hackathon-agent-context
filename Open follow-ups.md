@@ -40,7 +40,7 @@ Tick with the commit/run id that closed it; never delete.
 - [ ] Draft one GitHub issue per workstream's first milestone and a project board
 - [ ] Tell each teammate: read `06 Workstreams/<you>.md` (after [[Workstreams]]), and paste `prompts/<you>.txt` into your AI assistant
 - [x] (Patrick, 2026-10-14: D-022, branch `fix/q09-attempt-limit`) Q09 verdict count: at most 2 attempts in total (one retry), 2 verdicts on a rejected claim; EVALS.md and Q09 files corrected
-- [ ] Timeline bars: `portfolio_summary` has no timeline figure. Patrick + Linus decide whether metrics adds one (Mildred waits)
+- [x] (not needed: the portal draws the timeline from the existing summary and workplan data; #125 labels the as-of date, Clement's timeline-details work adds the cutover details) Timeline bars: `portfolio_summary` has no timeline figure. Patrick + Linus decide whether metrics adds one (Mildred waits)
 - [ ] Delete `team-credentials.txt` (IAM user credentials file) once everyone has signed in
 
 ## From [[2026-10-14]] (evening)
@@ -49,7 +49,7 @@ Tick with the commit/run id that closed it; never delete.
 - [x] (Linus's part: L5, PR #52, a guardrail stop raises `AnalystStopped`) **Linus (L5), Huvison (critic, writer):** Strands 1.60 does not raise when the Bedrock Guardrail intervenes; the turn ends with `stop_reason == "guardrail_intervened"`. Treat that stop reason as a failure (the critic fails closed; the analyst and writer return nothing usable), as P2 does (final review I-1, 2026-10-14). Note: Bedrock reports the same stop reason when it only *masks* PII (ANONYMIZED); to tell blocked from masked, read the guardrail trace (Strands `_should_redact_guardrail_content`). Huvison (H7): check in the live runs whether masking ever fires on agent output #area/agents
 - [ ] **Huvison (H2b `run_orchestrator`):** call `replan` with a `BlockerClaim` (`BlockerClaim.model_validate(stored["claim"])`) and the latest verdict dict; budget the Lambda timeout against the Express 5-minute ceiling; don't put `plan.steps[].reason` (model text) into large state payloads uncapped #area/flow
 - [x] (done, PR #58) **Patrick (P2 follow-up), after the live measurement:** the orchestrator's `retrieve` tool returns every row in full (~5.4k tokens per entity fetch, resent on each later model call, ~30k+ input tokens per run). Measure it in the live run; if confirmed, return a lead digest instead (`{artefact, row_id}` plus the lead-bearing fields and status; full rows still go to the analyst in code), prompt v1.1.0 #area/cost
-- [ ] **Linus:** review PR #57 (Patrick patched `agents/blocker_analyst.py` reply parsing after the live run: claims are read from the first JSON object with a "claims" key, prose around it allowed) #area/agents
+- [x] (reviewed: every L5 guard intact; later reworked in #57, #65 and #96) **Linus:** review PR #57 (Patrick patched `agents/blocker_analyst.py` reply parsing after the live run: claims are read from the first JSON object with a "claims" key, prose around it allowed) #area/agents
 - [x] (done, PR #63) **Patrick (P2):** one `analyse` call per plan (the live run analysed twice over the full evidence, most of the $0.46); "6 steps" is hard-coded in prompt v1.1.0 #area/cost
 - [ ] **Huvison (H7):** when `critic.make_agent` moves onto `bedrock_model`, set `callback_handler=None` (the third live run streamed the critic's raw reasoning to stdout and the Lambda logs) #area/agents
 - [ ] **Huvison (spine):** budget check before each critic, writer and re-plan call, and a cap on claims per plan: the third live run's re-plans after unreadable verdicts took it to $0.62 of $0.50 (see [[Whole-code review 2026-10-14]]) #area/cost
@@ -115,7 +115,7 @@ Tick with the commit/run id that closed it; never delete.
 
 ### From the deployed eval run (2026-10-15 09:20, PR #114)
 - [x] (no cap drop: the analyst made only 4 claims; fixed in prompt v1.3.0, PR #118) **Patrick:** Q04: check the deployed `store_claims` logs for Q04's run ID ("plan … had N claims: kept …, dropped …"). If the 4-claim cap dropped CAL-004 → raise `MAX_CLAIMS_PER_PLAN` to 5 (with Huvison; about +$0.03 a question). If the analyst never made it → a prompt rule for date and schedule questions #area/agents
-- [ ] **Linus (L6):** Q08 and Q09 come out *not applicable* for `evals.api_asker` (their faults need the local asker), not fail #area/evals
+- [x] (PR #132, 7b0ddfd: AskerCannotAskThis, recorded as not applicable) **Linus (L6):** Q08 and Q09 come out *not applicable* for `evals.api_asker` (their faults need the local asker), not fail #area/evals
 - [ ] **Huvison:** Q12 guarded-content fix (still `AnalystStopped` in the deployed run) #area/agents
 - [ ] **Patrick, 14:00 code freeze:** open the release PR develop → main after the deployed end-to-end check (ask, publish, approve, the E2 refusal) #area/release
 - [ ] **Linus (L7), by 13:00:** light roadmap review: async /ask, D-028, $0.27 a question, AgentCore as Phase 2 (#102, #115), the 85 % bar against 9/11 local and 6/9 deployed #area/docs
