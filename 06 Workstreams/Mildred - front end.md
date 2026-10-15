@@ -85,11 +85,11 @@ Judges look for "every figure derived from the migration's own artefacts", and y
 | D2 12:00 | Click-a-number via `/rows` live; role-based views tested with Clement |
 
 ## Definition of done
-- [ ] All five KPIs on one screen from `/summary`, matching the back end's figures.
-- [ ] Clicking any number shows its source rows from `/rows`.
-- [ ] Models match the schema; 14 artefacts; `build-fixtures.mjs` retired.
-- [ ] `yarn test` and `yarn build` green; Jenkins front-end build green.
-- [ ] Your `HANDOFF.md` and `DEMO.md` lines (what the screen shows, what's mocked).
+- [x] All five KPIs on one screen from `/summary`, matching the back end's figures. (F1b PR #48; live 2026-10-15)
+- [x] Clicking any number shows its source rows from `/rows`. (F2 PR #53; live 2026-10-15: 58% → 49 rows)
+- [x] Models match the schema; 14 artefacts; `build-fixtures.mjs` retired. (F1a PR #35, F1b PR #48)
+- [ ] `yarn test` and `yarn build` green; Jenkins front-end build green. (`yarn test` 109 and `yarn build` green on #56; Jenkins has not reported on any front-end PR yet)
+- [x] Your `HANDOFF.md` and `DEMO.md` lines (what the screen shows, what's mocked). (F1b PR #48)
 
 ## Rules and pitfalls specific to you
 - **Never compute a KPI in the front end.** Display what `/summary` returns (D-001); only rounding for display.

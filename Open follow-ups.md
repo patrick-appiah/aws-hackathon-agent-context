@@ -33,8 +33,8 @@ Tick with the commit/run id that closed it; never delete.
 - [ ] Republish the team page with the new TEAM_PLAN §3 table
 - [x] npm token set on the lead's WSL; clean-clone front-end install, build and tests verified (2026-10-14)
 - [ ] Share the read-only npm token privately with teammates who build `web/` (never in Slack or the repo)
-- [ ] Mildred: `web/scripts/build-fixtures.mjs` reads `kpis.json`, deleted in PR #11; regenerate fixtures from `metrics.portfolio_summary` instead (small spec)
-- [ ] Front-end API types still follow the old summary shape (pass_rate_by_cycle, open_defects_by_age, capacity in hours); align with the new `portfolio_summary`
+- [x] Mildred: `web/scripts/build-fixtures.mjs` reads `kpis.json`, deleted in PR #11; regenerate fixtures from `metrics.portfolio_summary` instead (small spec). Done: F1b (PR #48) exports them with L4's `scripts/export_summary.py`; the script is retired
+- [x] Front-end API types still follow the old summary shape (pass_rate_by_cycle, open_defects_by_age, capacity in hours); align with the new `portfolio_summary`. Done: F1a (PR #35) types, F1b (PR #48) the screen
 - [x] (Patrick + Michael, 2026-10-14) Name the business-case and pitch owner (TEAM_PLAN §2 workstream 7 says "to be confirmed")
 - [x] (PR #22 merged, 5d6ff5f, 2026-10-14) Write the contracts spec (Patrick, first): API shapes incl. /rows, /entity, rejected[], partial_reason, trace, /approve statuses, error body; ask-spine step I/O; new config.py settings; DevOps handover
 - [ ] Draft one GitHub issue per workstream's first milestone and a project board
