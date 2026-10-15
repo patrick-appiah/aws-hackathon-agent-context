@@ -80,6 +80,7 @@ Tick with the commit/run id that closed it; never delete.
 
 - [ ] **Huvison with Michael (D-023 gap):** a run that fails inside the ask spine (a Lambda error, a timeout) never stores an answer, so `GET /ask/{run_id}` says "running" until the panel gives up. Add a Catch on the ask machine to a state that stores a failed `AskResponse` (partial, with the reason) through `put_answer` (L3 final review) #area/flow
 - [ ] **Michael (least privilege, minor):** `POST /ask` gets ledger `GetItem` and the ledger settings but never reads the ledger; only `GET /ask/{run_id}` needs them (`api_stack.py` `_statements_for`) #area/iam
+- [ ] **Patrick (doc nit, found in #91 review):** `docs/DEVOPS_HANDOVER.md` line 46 says `Catch States.TaskFailed → SentBack` for the publish machine; `decide()` actually sends `SendTaskFailure(error="SentBack")`, so the real (and correct, per #91) catch is on the specific error `SentBack`, not the generic `States.TaskFailed`. Fix the handover line to match #area/docs
 
 ### Business documents (2026-10-15)
 - [ ] **Patrick: book the validation session** with Vanessa Addo and Joseph Akayesi (15 minutes; the three questions in [[B1 - Business case figures and validation - spec]] §3). "The problem" is 8 of the business case's 20 points and needs the owner's words, validated during the event. Then lines 23 and 79 of the business case and `business/validation-session.md` #area/business
