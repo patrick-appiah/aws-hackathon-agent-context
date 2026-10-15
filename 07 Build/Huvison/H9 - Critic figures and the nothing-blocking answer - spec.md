@@ -31,6 +31,7 @@ Clone `git@github.com:patrick-appiah/aws-hackathon-agent-context.git`, then `git
 - Decided in code from the metrics, never by a model, so a model can't invent an all-clear. If claims were proposed and all rejected, the existing "No finding could be verified…" stays.
 
 ### 1.3 The critic's model and verdict
+> **Update (H7 merged, PR #74):** `make_agent` already uses `bedrock_model`. Still to do: `callback_handler=None`, deleting the copied escaping helpers, and `Verdict.model_validate`.
 - `critic.make_agent` builds its model with `agent_support.bedrock_model(settings.critic_model_id)` and `callback_handler=None` (nothing streamed to stdout or the Lambda logs; live run 4's output began with the critic's raw reasoning). Delete the copied `ESCAPED_CHARACTERS`, `_as_data` and `_tagged`; use `agent_support.tagged`.
 - `judge` validates the verdict with `Verdict.model_validate` (inside the fail-closed `try`), replacing `_is_valid_verdict`; any failure is a rejection (whole-code review: a malformed `missing_evidence` crashed `record_rejection`).
 
