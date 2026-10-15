@@ -58,7 +58,7 @@ Work in parallel: an item starts as soon as its dependencies are merged into `de
 | L3 | `/ask`, `/publish`, `/approve` entry points (Q11 pre-run refusal) | Linus → **Patrick** (Linus away, 2026-10-15) | L1, H2b, H4 | M3 | **merged** (PR #78; works in AWS now that H8 is merged) | [[L3 - Ask, publish and approve entry points - spec]] · [[L3 - Ask, publish and approve entry points - plan]] |
 | L4 | `scripts/export_summary.py` *(new)* (front-end fixtures) | Linus | C1 | M2 | merged (PR #42, 5c33292) | [[L4 - Front-end fixtures from the real summary - spec]] · [[L4 - Front-end fixtures from the real summary - plan]] |
 | L5 | Blocker-analyst agent + prompt | Linus | C1, P1 | M2 | merged (PR #52, cb7dd4b) | [[L5 - Blocker-analyst agent - spec]] · [[L5 - Blocker-analyst agent - plan]] |
-| L6 | Deployed-API eval asker `evals/api_asker.py` *(new)* | Linus | L3, Y1, M3b | M4 | spec + plan ready | [[L6 - Deployed-API eval asker - spec]] · [[L6 - Deployed-API eval asker - plan]] |
+| L6 | Deployed-API eval asker `evals/api_asker.py` *(new)* | Linus | L3, Y1, M3b | M4 | **merged** (PR #97, cf43b68: deployed-API eval asker) | [[L6 - Deployed-API eval asker - spec]] · [[L6 - Deployed-API eval asker - plan]] |
 | L7 | `docs/ROADMAP.md` review and update (exists on develop) | Linus | (none) | M5 | spec + plan ready | [[L7 - Roadmap draft - spec]] · [[L7 - Roadmap draft - plan]] |
 
 ## Evals, Cognito, docs (Abdul, no Python)
