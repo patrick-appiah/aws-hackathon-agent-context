@@ -65,4 +65,12 @@ Tick with the commit/run id that closed it; never delete.
 - [ ] **Clement (F4b):** the ask panel polls `GET /ask/{run_id}` after `POST /ask` returns `AskPending`; wait a few seconds before the first poll (a 404 at first means the run isn't created yet) (D-023) #area/web
 - [ ] **Michael:** raise the ask machine's own timeout (2 min today) as well as the step timeouts; time again after PR #65 (merged) is deployed #area/flow
 
+### From the first eval run (2026-10-15)
+- [ ] **Linus (analyst prompt):** one blocker per claim; the statement names only rows in its chain; every date and number is copied from a cited row or is a `figure` with its tool (D-029); keep the DEF-0412 → RC-C3-E4-customers → RB-010 chain together (Q01, Q02, Q04) #area/agents
+- [ ] **Huvison (critic, D-029):** mark the claim's figures as recomputed by code in the critic's input; drop "every figure must appear in the cited rows" from the prompt; keep rejecting numbers and dates no row shows; also `callback_handler=None` (H7) #area/agents
+- [ ] **Huvison (spine):** budget check before each critic, writer and re-plan call; a claim cap per plan; judge claims in parallel (4 orchestrator rounds, 7 critic calls in run 4) #area/cost
+- [ ] **Huvison (writer), Patrick's OK given:** when the analyst returns no claims and `metrics.open_blockers(entity)` is empty, the headline is "Nothing is blocking cutover for <entity> in the migration records", decided in code; "could not verify" stays for rejected claims (Q03) #area/agents
+- [ ] **Linus with Abdul (`evals/run.py`, D-030):** check Q05 against `summary_response`'s capacity card (Tester, 133.3 %, roster rows), not `/ask` #area/evals
+- [ ] **Patrick:** check whether `replan` lets a re-planned claim drift off the rejected claim's subject (run 4: claim-1 lost DEF-0412 on its retry) #area/agents
+
 Related: [[00 Home]]
