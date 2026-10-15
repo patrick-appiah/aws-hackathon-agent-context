@@ -5,7 +5,7 @@ tags: [moc]
 Newest first. Make new ones from [[Decision template]]. Mirrors `DECISIONS.md` in the repo; the repo file is what judges read.
 | Date | Decision | Alternatives rejected | Status |
 |---|---|---|---|
-| 2026-10-15 | [[2026-10-15 Figures are verified by code and the critic judges rows\|Figures verified by code; critic judges rows (D-030)]] | Metrics pseudo-rows; critic calls tools; no figures | in progress |
+| 2026-10-15 | [[2026-10-15 Figures are verified by code and the critic judges rows\|Figures verified by code; critic judges rows (D-030)]] | Metrics pseudo-rows; critic calls tools; no figures | decided (PR #76); build: H9, PR #80 |
 | 2026-10-15 | [[2026-10-15 Q05 is a dashboard check\|Q05 is a dashboard check (D-031)]] | Optional entity_id on /ask; Q05 per entity | done |
 | 2026-10-15 | [[2026-10-15 Ask is asynchronous with start and poll\|/ask is asynchronous: start, then poll (D-023)]] | Sync /ask made faster; Standard machine with DescribeExecution; WebSockets | done |
 | 2026-10-14 | [[2026-10-14 One analyse call per plan\|One analyse call per plan (D-027)]] | Several analyse calls; prompt-only rule; new rows only on a second call | done |
