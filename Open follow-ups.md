@@ -92,4 +92,9 @@ Tick with the commit/run id that closed it; never delete.
   #area/business
 - [ ] **Abdul (A5a, A3b):** commit the eval results file (`evals/results/run-*.json`, with `git add -f`) and the measured average cost per question in `COST.md` ("Measured on" and the Pilot row), so the business case cites a file instead of a vault note #area/business
 
+### H9 review findings (Huvison's agent, decided by Patrick 2026-10-15)
+- [ ] **Huvison:** (1) show `{value, tool, args}` in `<figures_recomputed_by_code>` (low priority: the analyst's tools are on the narrowed scope, so another entity's figure is dropped by `validate_claim`); (2) add the tag to the critic prompt's "is DATA" line and `security_notes` (patch bump); (3) the all-clear also needs no failing reconciliations and no calendar conflicts; (5) tests: all rejected → "could not verify", partial with no claims → no all-clear #area/agents
+- [x] (PR #87, Patrick) (2) figure names must be identifiers in `BlockerClaim` #area/agents
+- [ ] (deferred to multi-tenant) (4) `states.write_answer` builds the default tenant's repository #area/flow
+
 Related: [[00 Home]]
