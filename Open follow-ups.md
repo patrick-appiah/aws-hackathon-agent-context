@@ -81,4 +81,15 @@ Tick with the commit/run id that closed it; never delete.
 - [ ] **Huvison with Michael (D-023 gap):** a run that fails inside the ask spine (a Lambda error, a timeout) never stores an answer, so `GET /ask/{run_id}` says "running" until the panel gives up. Add a Catch on the ask machine to a state that stores a failed `AskResponse` (partial, with the reason) through `put_answer` (L3 final review) #area/flow
 - [ ] **Michael (least privilege, minor):** `POST /ask` gets ledger `GetItem` and the ledger settings but never reads the ledger; only `GET /ask/{run_id}` needs them (`api_stack.py` `_statements_for`) #area/iam
 
+### Business documents (2026-10-15)
+- [ ] **Patrick: book the validation session** with Vanessa Addo and Joseph Akayesi (15 minutes; the three questions in [[B1 - Business case figures and validation - spec]] §3). "The problem" is 8 of the business case's 20 points and needs the owner's words, validated during the event. Then lines 23 and 79 of the business case and `business/validation-session.md` #area/business
+- [ ] **Michael (B2 deck), from the measured runs and D-028:**
+  - "in seconds" on slides 1, 6, 8, 9 and 11 → "in minutes" (measured 2–3.5 minutes; product spec says "within 5 minutes");
+  - slide 7 "Under $0.50 a question, or it stops" → capped at $0.50 plus the one model call already running (measured $0.57 and $0.61 before the H8 budget checks);
+  - slide 5 "It picks from 14 different lookups" → it decides which leads to follow and which figures to compute (the retriever is a fixed lookup now, D-028);
+  - slide 6 "AI assistants … gather the evidence and work out the numbers" → code fetches the records and computes every number; the AI decides where to look and connects the evidence;
+  - slides 5 and 8 "open 18 days" → "open since 25 September" (the answer states the date, not a computed duration; the dashboard's "oldest 18 days" on slide 4 is fine, code computes it)
+  #area/business
+- [ ] **Abdul (A5a, A3b):** commit the eval results file (`evals/results/run-*.json`, with `git add -f`) and the measured average cost per question in `COST.md` ("Measured on" and the Pilot row), so the business case cites a file instead of a vault note #area/business
+
 Related: [[00 Home]]
