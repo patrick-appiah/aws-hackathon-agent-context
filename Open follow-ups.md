@@ -123,4 +123,9 @@ Tick with the commit/run id that closed it; never delete.
 - [ ] **Michael (deck slide 7, slides A1):** "Stops at $0.50 a question (plus the call in flight)" can overshoot by about $0.13 when the call in flight is a re-plan (Q04 live: $0.63). Honest wording: "about $0.50: it stops before the next step once the budget is spent" #area/business
 - [ ] **Huvison (spine, after the freeze):** check the budget before the analyst call inside a re-plan too, so a re-plan in flight can't overshoot by about $0.13 #area/cost
 
+### Demo speed and the timeline label (2026-10-15)
+- [ ] **Mildred:** the timeline pill says "Today, 13 Oct", but it shows the data's as-of date (the summary's `as_of`, `programme.json`), not today. One line in `web/src/app/features/dashboard/timeline/timeline-view.ts:83`: `As of ${formatDayMonth(asOf)}`. The line stays put; the date stays 13 Oct (evals, deck and DEMO use it) #area/web
+- [ ] **Michael (FlowStack):** the judge Map runs claims one at a time. Set `max_concurrency=4` on it (each claim's retry loop is independent in the ledger): about 10–20 s off each run. With the redeploy #area/flow
+- [ ] **Clement (F6 pre-flight):** ask one question about 5 minutes before the demo to warm the Lambdas (cold starts add about 15 s: CheckBudget, StoreClaims, RetryDecision, RecordRejection about 4 s each). Expect about 1 minute per answer, up to about 2 when a claim is re-checked #area/demo
+
 Related: [[00 Home]]
