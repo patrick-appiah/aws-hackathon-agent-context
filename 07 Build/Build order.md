@@ -77,7 +77,7 @@ Work in parallel: an item starts as soon as its dependencies are merged into `de
 ## DevOps
 | ID | Item | Owner | Depends on | Milestone | Status | Spec / plan |
 |---|---|---|---|---|---|---|
-| M1 | Jenkins CI: PR #8 reviewed and merged; bandit list extended | Michael | (none) | M0 | in progress (draft PR #8) | [[M1 - Jenkins CI - spec]] · [[M1 - Jenkins CI - plan]] |
+| M1 | Jenkins CI: PR #8 reviewed and merged; bandit list extended | Michael | (none) | M0 | **closed** (PR #8 closed 2026-10-15: CI moved from AmaliTech Jenkins to AWS CodeBuild, owned by Mintah) | [[M1 - Jenkins CI - spec]] · [[M1 - Jenkins CI - plan]] |
 | M2 | `infra/app.py` *(new)* + DataStack + LedgerStack; CDK in its own `infra` dependency group; Node 22 in CI | Michael | C1, M1 (edits the Jenkinsfile) | M1 → M2 | **merged** (PR #37, 307da7c) | [[M2 - App, DataStack and LedgerStack - spec]] · [[M2 - App, DataStack and LedgerStack - plan]] |
 | M3a | GuardrailStack | Michael | M2 | M1 → M3 | **merged** (PR #38, 18f98ae) | [[M3a - GuardrailStack - spec]] · [[M3a - GuardrailStack - plan]] |
 | M3b | AuthStack (Cognito) | Michael | M2, A2 | M1 → M3 | **merged** (PR #44, 8ccf8d7) | [[M3b - AuthStack - spec]] · [[M3b - AuthStack - plan]] |
@@ -108,9 +108,9 @@ Work in parallel: an item starts as soon as its dependencies are merged into `de
 | ID | Item | Owner | Depends on | Milestone | Status | Spec / plan |
 |---|---|---|---|---|---|---|
 | B1 | Close the `[TBC]`s in `business/business-case.md`; validation session (D1 09:30) | Patrick, Michael | A3a, A3b, H5, A5a, H6/L6 | M5 | business case merged (PR #88, 39f350e; measured time and cost, payback); validation session still to hold → lines 23 and 79 | [[B1 - Business case figures and validation - spec]] · [[B1 - Business case figures and validation - plan]] |
-| B2 | Pitch deck (source + PDF in `business/`) | Patrick, Michael | B1, A3b, A5a, H6/L6 | M5 | draft committed by Michael (68866af, 2026-10-14: `business/pitch-deck.pptx` + PDF); needs the measured figures and D-028 wording (see Open follow-ups) | [[B2 - Pitch deck - spec]] · [[B2 - Pitch deck - plan]] |
+| B2 | Pitch deck (source + PDF in `business/`) | Patrick, Michael | B1, A3b, A5a, H6/L6 | M5 | draft committed by Michael (68866af, 2026-10-14: `business/pitch-deck.pptx` + PDF); measured-figures and D-028 fixes in **draft PR #90** (Michael, 2026-10-15); waits for COST.md's figures (about a minute, ~$0.27, A3b) and the PDF export | [[B2 - Pitch deck - spec]] · [[B2 - Pitch deck - plan]] |
 | B3a | One-page value case | Patrick, Michael | B1 | M5 | spec + plan ready | [[B3a - One-page value case - spec]] · [[B3a - One-page value case - plan]] |
-| B3b | Architecture and cost slides | Patrick, Michael | B2, A4a, A3b | M5 | spec + plan ready | [[B3b - Architecture and cost slides - spec]] · [[B3b - Architecture and cost slides - plan]] |
+| B3b | Architecture and cost slides | Patrick, Michael | B2, A4a, A3b | M5 | built by Michael (branch `docs/submission-slides`: A1 as-deployed POC, A2 target v2, A3 cost and plan); A3 waits for COST.md (A3b), then the PDF export | [[B3b - Architecture and cost slides - spec]] · [[B3b - Architecture and cost slides - plan]] |
 | B3c | Pitch script and Q and A | Patrick, Michael | B2, B3b, F6 | M5 | spec + plan ready | [[B3c - Pitch script and Q and A - spec]] · [[B3c - Pitch script and Q and A - plan]] |
 
 *M3\* is the GuardrailStack + AuthStack item. It isn't the D2 12:00 milestone M3.*
