@@ -108,9 +108,9 @@ Work in parallel: an item starts as soon as its dependencies are merged into `de
 | ID | Item | Owner | Depends on | Milestone | Status | Spec / plan |
 |---|---|---|---|---|---|---|
 | B1 | Close the `[TBC]`s in `business/business-case.md`; validation session (D1 09:30) | Patrick, Michael | A3a, A3b, H5, A5a, H6/L6 | M5 | business case merged (PR #88, 39f350e; measured time and cost, payback); validation session still to hold → lines 23 and 79 | [[B1 - Business case figures and validation - spec]] · [[B1 - Business case figures and validation - plan]] |
-| B2 | Pitch deck (source + PDF in `business/`) | Patrick, Michael | B1, A3b, A5a, H6/L6 | M5 | draft committed by Michael (68866af, 2026-10-14: `business/pitch-deck.pptx` + PDF); measured-figures and D-028 fixes in **draft PR #90** (Michael, 2026-10-15); waits for COST.md's figures (about a minute, ~$0.27, A3b) and the PDF export | [[B2 - Pitch deck - spec]] · [[B2 - Pitch deck - plan]] |
+| B2 | Pitch deck (source + PDF in `business/`) | Patrick, Michael | B1, A3b, A5a, H6/L6 | M5 | in review (PR #90, Michael: deck fixes; reviewed by Patrick: 4 points + PDF) | [[B2 - Pitch deck - spec]] · [[B2 - Pitch deck - plan]] |
 | B3a | One-page value case | Patrick, Michael | B1 | M5 | spec + plan ready | [[B3a - One-page value case - spec]] · [[B3a - One-page value case - plan]] |
-| B3b | Architecture and cost slides | Patrick, Michael | B2, A4a, A3b | M5 | built by Michael (branch `docs/submission-slides`: A1 as-deployed POC, A2 target v2, A3 cost and plan); A3 waits for COST.md (A3b), then the PDF export | [[B3b - Architecture and cost slides - spec]] · [[B3b - Architecture and cost slides - plan]] |
+| B3b | Architecture and cost slides | Patrick, Michael | B2, A4a, A3b | M5 | in review (PR #94, Michael: slides A1–A3; reviewed by Patrick: A3 to $0.27, A1 publish wording, PDF) | [[B3b - Architecture and cost slides - spec]] · [[B3b - Architecture and cost slides - plan]] |
 | B3c | Pitch script and Q and A | Patrick, Michael | B2, B3b, F6 | M5 | spec + plan ready | [[B3c - Pitch script and Q and A - spec]] · [[B3c - Pitch script and Q and A - plan]] |
 
 *M3\* is the GuardrailStack + AuthStack item. It isn't the D2 12:00 milestone M3.*
