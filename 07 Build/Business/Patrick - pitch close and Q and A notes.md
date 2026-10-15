@@ -170,15 +170,15 @@ CFO asks "What is blocking cutover for Entity 4?"
 - **Fixed since, by finding the cause in the trace:**
   - **Q02:** the analyst now sees the question and always reports a conflict between records;
   - **Q04:** it always reports a calendar clash, first for date questions;
-  - **Q12:** the Guardrail now checks only the user's question, not the record text the injection hides in;
+  - **Q12:** the Guardrail now checks only the user's question, not the record text the injection hides in. **Not yet re-measured:** the last recorded deployed run still failed Q12;
   - **Q15:** money claims are short, use code figures, and never say "budget".
 
-  Measured on single questions; the next full run confirms them.
+  Q02, Q04 and Q15 were measured on single questions; Q12 hasn't been re-run. The next full run confirms all four.
 - **We also measured a cheaper model** on the same set: no saving, and slower (79 s against 57 s), so we kept quality (D-026).
 
 **Say it in one breath:** *"We wrote 15 questions with the answers before building, planted traps in the data (a fake 'fixed' defect, an injected instruction, stripped citations), and run the set against the live system. Today 8 of 9 pass on AWS, the critic catches every planted fault, and every failure is written down with its cause."*
 
 **Don't overclaim:**
 - The latest committed full runs are 9/11 in-process and 8/9 deployed.
-- The Q02, Q04, Q12 and Q15 fixes were checked on single runs, not yet in a full recorded run.
+- The Q02, Q04 and Q15 fixes were checked on single runs; Q12's fix hasn't been re-run at all. None is in a full recorded run yet.
 - Q10 is chosen live. Q13 and Q14 are roadmap.
