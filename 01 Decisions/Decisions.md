@@ -5,7 +5,8 @@ tags: [moc]
 Newest first. Make new ones from [[Decision template]]. Mirrors `DECISIONS.md` in the repo; the repo file is what judges read.
 | Date | Decision | Alternatives rejected | Status |
 |---|---|---|---|
-| 2026-10-14 | [[2026-10-14 One analyse call per plan\|One analyse call per plan (D-027)]] | Several analyse calls; prompt-only rule; new rows only on a second call | in progress |
+| 2026-10-15 | [[2026-10-15 Ask is asynchronous, start then poll\|/ask is asynchronous: start, then poll (D-023)]] | Sync /ask made faster; Standard machine with DescribeExecution; WebSockets | in progress |
+| 2026-10-14 | [[2026-10-14 One analyse call per plan\|One analyse call per plan (D-027)]] | Several analyse calls; prompt-only rule; new rows only on a second call | done |
 | 2026-10-14 | [[2026-10-14 Two apps in one repo\|Two apps in one repo: Python root, Angular web/ (D-020)]] | backend/+web/; Nx; separate repo; Makefile | done |
 | 2026-10-14 | [[2026-10-14 ERP-layer dataset is the single source\|ERP-layer dataset is the single source (D-019)]] | Adapter to old columns; two datasets; porting kpis.py | done |
 | 2026-10-13 | [[2026-10-13 POC plus one target slice, target as 90-day roadmap\|POC + one target slice; target = 90-day roadmap]] | Full target behind switches; POC only | done |

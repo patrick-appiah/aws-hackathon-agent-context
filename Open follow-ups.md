@@ -53,9 +53,16 @@ Tick with the commit/run id that closed it; never delete.
 - [x] (done, PR #63) **Patrick (P2):** one `analyse` call per plan (the live run analysed twice over the full evidence, most of the $0.46); "6 steps" is hard-coded in prompt v1.1.0 #area/cost
 - [ ] **Huvison (H7):** when `critic.make_agent` moves onto `bedrock_model`, set `callback_handler=None` (the third live run streamed the critic's raw reasoning to stdout and the Lambda logs) #area/agents
 - [ ] **Huvison (spine):** budget check before each critic, writer and re-plan call, and a cap on claims per plan: the third live run's re-plans after unreadable verdicts took it to $0.62 of $0.50 (see [[Whole-code review 2026-10-14]]) #area/cost
-- [ ] **Huvison (H7):** `/ask` took 87 s end to end (third run: 2 min 42 s) — the sync API cannot fit 29 s; D-023 (async /ask) is triggered #area/flow
+- [x] (decided: D-023, async) **Huvison (H7):** `/ask` took 87 s end to end (third run: 2 min 42 s) — the sync API cannot fit 29 s; D-023 (async /ask) is triggered #area/flow
 - [ ] Ask the organisers to enable Claude Opus 5.5, Sonnet 5.5 and Haiku 5.5 (eu-west-1, `eu.anthropic.claude-*-5-5`) in account 796973512193; then re-test; per D-026 a 5.5 model replaces a default only when evals or cost show the needs (D-025 target) #area/bedrock
 - [x] (2026-10-14) Anthropic use-case form submitted; Opus 4.6, Sonnet 4.6 and Haiku 4.5 answer in the new account #area/bedrock
 - [x] (2026-10-14, account moved to AmaliTech-email sign-in) Delete `team-credentials.txt` once everyone has signed in: obsolete; delete the file #area/iam
+
+## From [[2026-10-15]]
+- [ ] **Linus (L3):** `api.ask` returns `AskPending` `{run_id, status: "running"}` after `states:StartExecution`; new `api.ask_result` for `GET /ask/{run_id}`: the stored `AskResponse`, else `AskPending`; scope check against the run's stored scope; 404 for a run the ledger doesn't hold (D-023) #area/api
+- [ ] **Yaw (Y2a §6):** route `GET /ask/{run_id}`; ask Lambda gets `states:StartExecution` (not `StartSyncExecution`) and `dynamodb:GetItem` on the ledger; ask machine timeout above the measured run time, within Express's 5 minutes (D-023) #area/flow
+- [ ] **Huvison:** `write_answer` stores the `AskResponse` on the run, plus a ledger method to read it back for `ask_result` (D-023) #area/flow
+- [ ] **Clement (F4b):** the ask panel polls `GET /ask/{run_id}` after `POST /ask` returns `AskPending`; wait a few seconds before the first poll (a 404 at first means the run isn't created yet) (D-023) #area/web
+- [ ] **Michael:** raise the ask machine's own timeout (2 min today) as well as the step timeouts; time again after PR #65 (merged) is deployed #area/flow
 
 Related: [[00 Home]]

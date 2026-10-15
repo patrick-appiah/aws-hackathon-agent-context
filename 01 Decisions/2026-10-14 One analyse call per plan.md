@@ -1,6 +1,6 @@
 ---
 date: 2026-10-14
-status: in progress
+status: decided
 tags: [decision, area/agents, area/cost]
 ---
 # One analyse call per plan (D-027)
