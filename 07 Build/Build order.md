@@ -98,7 +98,7 @@ Work in parallel: an item starts as soon as its dependencies are merged into `de
 | F3a | Cognito sign-in (managed login + PKCE) | Clement | M3b, Y1, F2 | M3 | merged (PR #67, 278d7aa); #60 merged; sign-in works on the deployed portal (Clement, 2026-10-15) | [[F3a - Cognito sign-in - spec]] · [[F3a - Cognito sign-in - plan]] |
 | F3b | Role views and the 403 refusal | Clement | F1b, L1 | M3 | merged (PR #70, b108be5); live check waits on L3 | [[F3b - Role views and the 403 refusal - spec]] · [[F3b - Role views and the 403 refusal - plan]] |
 | F4a | Ask panel on `/ask` (trace, cost, partial, could-not-verify) | Clement | C1, F1b, L3 | M3 | in review (PR #73; live check waits on L3 + F4b) | [[F4a - Ask panel on the real ask contract - spec]] · [[F4a - Ask panel on the real ask contract - plan]] |
-| F4b | Async ask polling (only if H7 decides async) | Clement | F4a, H7 (only if async) | M4 | spec + plan ready; **needed: D-023 is async** | [[F4b - Async ask polling - spec]] · [[F4b - Async ask polling - plan]] |
+| F4b | Async ask polling (only if H7 decides async) | Clement | F4a, H7 (only if async) | M4 | in review (PR #75, stacked on #73) | [[F4b - Async ask polling - spec]] · [[F4b - Async ask polling - plan]] |
 | F5 | Publish + approve on the real API | Clement | F1b, L3, H4 | M4 | spec + plan ready | [[F5 - Publish and approve on the real API - spec]] · [[F5 - Publish and approve on the real API - plan]] |
 | F6 | Demo rehearsal + 2-minute backup video | Clement (with Patrick) | everything | M5 | spec + plan ready | [[F6 - Demo rehearsal and backup video - spec]] · [[F6 - Demo rehearsal and backup video - plan]] |
 
